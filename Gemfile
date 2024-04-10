@@ -12,7 +12,7 @@ group :test do
 end
 
 group :jekyll_plugins do
-  gem "jekyll-feed", "~> 0.12"
+  gem "jekyll-feed", "~> 0.17"
   gem "jekyll-timeago", "~> 0.13.1"
   gem 'jekyll-graphviz'
 end
