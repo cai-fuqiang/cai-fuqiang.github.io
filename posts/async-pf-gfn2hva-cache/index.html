@@ -1,0 +1,469 @@
+<!doctype html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f7"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1b1b1e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="viewport" content="width=device-width, user-scalable=no initial-scale=1, shrink-to-fit=no, viewport-fit=cover" ><meta name="generator" content="Jekyll v4.3.3" /><meta property="og:title" content="async pf – gfn2hva cache" /><meta name="author" content="fuqiang" /><meta property="og:locale" content="en" /><meta name="description" content="A minimal, responsive and feature-rich Jekyll theme for technical writing." /><meta property="og:description" content="A minimal, responsive and feature-rich Jekyll theme for technical writing." /><link rel="canonical" href="/posts/async-pf-gfn2hva-cache/" /><meta property="og:url" content="/posts/async-pf-gfn2hva-cache/" /><meta property="og:site_name" content="one step at a time" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2024-04-16T15:00:00+08:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="async pf – gfn2hva cache" /><meta name="twitter:site" content="@fuqiang_cai" /><meta name="twitter:creator" content="@fuqiang" /> <script type="application/ld+json"> {"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fuqiang"},"dateModified":"2024-04-16T15:00:00+08:00","datePublished":"2024-04-16T15:00:00+08:00","description":"A minimal, responsive and feature-rich Jekyll theme for technical writing.","headline":"async pf – gfn2hva cache","mainEntityOfPage":{"@type":"WebPage","@id":"/posts/async-pf-gfn2hva-cache/"},"url":"/posts/async-pf-gfn2hva-cache/"}</script><title>async pf -- gfn2hva cache | one step at a time</title><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/site.webmanifest"><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico"><meta name="apple-mobile-web-app-title" content="one step at a time"><meta name="application-name" content="one step at a time"><meta name="msapplication-TileColor" content="#da532c"><meta name="msapplication-config" content="/assets/img/favicons/browserconfig.xml"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.googleapis.com" ><link rel="dns-prefetch" href="https://fonts.googleapis.com" ><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" ><link rel="dns-prefetch" href="https://fonts.googleapis.com" ><link rel="preconnect" href="https://cdn.jsdelivr.net" ><link rel="dns-prefetch" href="https://cdn.jsdelivr.net" ><link rel="preconnect" href="https://cdnjs.cloudflare.com" ><link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" ><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&family=Source+Sans+Pro:wght@400;600;700;900&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="/assets/css/jekyll-theme-chirpy.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tocbot@4.25.0/dist/tocbot.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/loading-attribute-polyfill@2.1.1/dist/loading-attribute-polyfill.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/magnific-popup@1.1.0/dist/magnific-popup.min.css"> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return 'mode'; } static get MODE_ATTR() { return 'data-mode'; } static get DARK_MODE() { return 'dark'; } static get LIGHT_MODE() { return 'light'; } static get ID() { return 'mode-toggle'; } constructor() { if (this.hasMode) { if (this.isDarkMode) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } let self = this; /* always follow the system prefers */ this.sysDarkPrefers.addEventListener('change', () => { if (self.hasMode) { if (self.isDarkMode) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } self.notify(); }); } /* constructor() */ get sysDarkPrefers() { return window.matchMedia('(prefers-color-scheme: dark)'); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode === ModeToggle.DARK_MODE; } get isLightMode() { return this.mode === ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } /* get the current mode on screen */ get modeStatus() { if (this.isDarkMode || (!this.hasMode && this.isSysDarkPrefer)) { return ModeToggle.DARK_MODE; } else { return ModeToggle.LIGHT_MODE; } } setDark() { document.documentElement.setAttribute(ModeToggle.MODE_ATTR, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { document.documentElement.setAttribute(ModeToggle.MODE_ATTR, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { document.documentElement.removeAttribute(ModeToggle.MODE_ATTR); sessionStorage.removeItem(ModeToggle.MODE_KEY); } /* Notify another plugins that the theme mode has changed */ notify() { window.postMessage( { direction: ModeToggle.ID, message: this.modeStatus }, '*' ); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } this.notify(); } /* flipMode() */ } /* ModeToggle */ const modeToggle = new ModeToggle(); </script><body><aside aria-label="Sidebar" id="sidebar" class="d-flex flex-column align-items-end"><header class="profile-wrapper"> <a href="/" id="avatar" class="rounded-circle"></a><h1 class="site-title"> <a href="/">one step at a time</a></h1><p class="site-subtitle fst-italic mb-0">a noob's growing diary</p></header><nav class="flex-column flex-grow-1 w-100 ps-0"><ul class="nav"><li class="nav-item"> <a href="/" class="nav-link"> <i class="fa-fw fas fa-home"></i> <span>HOME</span> </a><li class="nav-item"> <a href="/categories/" class="nav-link"> <i class="fa-fw fas fa-stream"></i> <span>CATEGORIES</span> </a><li class="nav-item"> <a href="/tags/" class="nav-link"> <i class="fa-fw fas fa-tags"></i> <span>TAGS</span> </a><li class="nav-item"> <a href="/archives/" class="nav-link"> <i class="fa-fw fas fa-archive"></i> <span>ARCHIVES</span> </a><li class="nav-item"> <a href="/about/" class="nav-link"> <i class="fa-fw fas fa-info-circle"></i> <span>ABOUT</span> </a></ul></nav><div class="sidebar-bottom d-flex flex-wrap align-items-center w-100"> <button type="button" class="mode-toggle btn" aria-label="Switch Mode"> <i class="fas fa-adjust"></i> </button> <span class="icon-border"></span> <a href="https://github.com/cai-fuqiang" aria-label="github" target="_blank" rel="noopener noreferrer" > <i class="fab fa-github"></i> </a> <a href="https://twitter.com/fuqiang_cai" aria-label="twitter" target="_blank" rel="noopener noreferrer" > <i class="fa-brands fa-x-twitter"></i> </a> <a href="javascript:location.href = 'mailto:' + ['iwng86','163.com'].join('@')" aria-label="email" > <i class="fas fa-envelope"></i> </a> <a href="/feed.xml" aria-label="rss" > <i class="fas fa-rss"></i> </a></div></aside><div id="main-wrapper" class="d-flex justify-content-center"><div class="container d-flex flex-column px-xxl-5"><header id="topbar-wrapper" aria-label="Top Bar"><div id="topbar" class="d-flex align-items-center justify-content-between px-lg-3 h-100" ><nav id="breadcrumb" aria-label="Breadcrumb"> <span> <a href="/">Home</a> </span> <span>async pf -- gfn2hva cache</span></nav><button type="button" id="sidebar-trigger" class="btn btn-link"> <i class="fas fa-bars fa-fw"></i> </button><div id="topbar-title"> Post</div><button type="button" id="search-trigger" class="btn btn-link"> <i class="fas fa-search fa-fw"></i> </button> <search class="align-items-center ms-3 ms-lg-0"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" autocomplete="off" placeholder="Search..." > </search> <button type="button" class="btn btn-link text-decoration-none" id="search-cancel">Cancel</button></div></header><div class="row flex-grow-1"><main aria-label="Main Content" class="col-12 col-lg-11 col-xl-9 px-md-4"><article class="px-1"><header><h1 data-toc-skip>async pf -- gfn2hva cache</h1><div class="post-meta text-muted"> <span> Posted <time data-ts="1713250800" data-df="ll" data-bs-toggle="tooltip" data-bs-placement="bottom" > Apr 16, 2024 </time> </span><div class="d-flex justify-content-between"> <span> By <em> </em> </span><div> <span class="readtime" data-bs-toggle="tooltip" data-bs-placement="bottom" title="2257 words" > <em>12 min</em> read</span></div></div></div></header><div class="content"><h2 id="introduce"><span class="me-2">introduce</span><a href="#introduce" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><p>该功能仅通过name就可以得知, 是为了缓存gfn(gpa)到hva的映射. 但是这个映射关系 不是一直存在么, 为什么设计看似比较复杂的机制, 我们一步步来看</p><h3 id="user-memory-region-support"><span class="me-2">user memory region support</span><a href="#user-memory-region-support" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><p>我们知道,在比较早期的版本, kvm 创建memslot API</p><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>kvm_vm_ioctl
+  KVM_SET_USER_MEMORY_REGION
+</pre></table></code></div></div><p>就已经支持了对 user memory region申请的支持.</p><blockquote class="prompt-tip"><p>涉及patch</p><p>Patch: <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fc138d2278078990f597cb1f62fde9e5b458f96">KVM: Support assigning userspace memory to the guest</a></p><p>mail list: <a href="https://lore.kernel.org/all/1198421495-31481-28-git-send-email-avi@qumranet.com/">mail</a></p><p>这里只展示下, 用户态入参的数据结构:</p><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre><span class="gi">+/* for KVM_SET_USER_MEMORY_REGION */
++struct kvm_userspace_memory_region {
++       __u32 slot;
++       __u32 flags;
++       __u64 guest_phys_addr;
++       __u64 memory_size; /* bytes */
++       __u64 userspace_addr; /* start of the userspace allocated memory */
++};
+</span></pre></table></code></div></div><p>可以看到最后一个参数为, userspace_addr</p></blockquote><p>在该接口的支持下, qemu为guest申请memory region同时, 该内存也作为qemu进程的 anon memory space 存在, qemu 可以通过管理匿名页的方式, 对该地址空间进行管理, kernel其他组建, 也可以 通过操作这部分匿名页来操作guest memory, 例如: memory reclaim, memory migrate…</p><p>所以基本流程是:</p><ul><li>guest先通过mmap申请匿名内存空间, 调用完成后, kernel已经申请好了这段内存空间的 virtual base address(<code class="language-plaintext highlighter-rouge">userspace_addr</code>)<li>调用<code class="language-plaintext highlighter-rouge">kvm_vm_ioctl -- KVM_SET_USER_MEMORY_REGION</code> 执行完成时, kvm 已经建立起了 <code class="language-plaintext highlighter-rouge">hva-&gt;gpa</code>映射 关系<li>guest访问gpa, 触发EPT violation trap kvm, kvm 调用 get_user_page() 申请page, 并建立<code class="language-plaintext highlighter-rouge">hva-&gt;hpa</code> 同时, 创建<code class="language-plaintext highlighter-rouge">gpa-&gt;hpa</code>的mmu pgtables(if guest enable EPT feature, is ept pgtable)</ul><h3 id="re-set-memory-region"><span class="me-2">re-set memory region</span><a href="#re-set-memory-region" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><p>所以, 既然两者在set memory region 接口中就已经确立了映射关系, 那是不是只是保存下[hva, gpa] 就相当于cache了.</p><p>大部分情况下是这样, 但是在下面情况下, hva-&gt;gpa的映射关系会改变</p><ol><li>guest call <code class="language-plaintext highlighter-rouge">kvm_vm_ioctl -- KVM_SET_USER_MEMORY_REGION</code>, map <code class="language-plaintext highlighter-rouge">[hva-&gt;gpa]-&gt;[hpa_1, gpa]</code><li>guest call <code class="language-plaintext highlighter-rouge">kvm_vm_ioctl -- KVM_SET_USER_MEMORY_REGION</code> again, remap <code class="language-plaintext highlighter-rouge">[hva-&gt;gpa]-&gt;[hpa_2, gpa]</code></ol><p>在这种情况下, 映射关系就改变了.</p><p>所以, 我们需要一个机制, 在re-set memory region 发生之后, 我们再次 “access this cache”时, 需要 “invalidate this cache”, 这就是该patch要做的事情.</p><h2 id="patch-细节"><span class="me-2">patch 细节</span><a href="#patch-细节" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><h3 id="change-of-struct"><span class="me-2">change of struct</span><a href="#change-of-struct" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre> struct kvm_memslots {
+ 	int nmemslots;
+<span class="gi">+	u32 generation;
+</span> 	struct kvm_memory_slot memslots[KVM_MEMORY_SLOTS +
+ 					KVM_PRIVATE_MEM_SLOTS];
+ };
+</pre></table></code></div></div><ul><li><strong>generation</strong>: 表示当前memslots 的generation, 也就是latest.</ul><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre><span class="gi">+struct gfn_to_hva_cache {
++	u32 generation;
++	gpa_t gpa;
++	unsigned long hva;
++	struct kvm_memory_slot *memslot;
++};
+</span></pre></table></code></div></div><ul><li><strong>generation</strong>: 获取cache时, memslots的<code class="language-plaintext highlighter-rouge">generation</code>, 可能是old的.<li><strong>memslot</strong>: 当前gpa所属的<code class="language-plaintext highlighter-rouge">memslot</code>, 主要用于 <code class="language-plaintext highlighter-rouge">mark_page_dirty</code><blockquote class="prompt-tip"><p>作者在这里有个小心思, 因为这个地方没有该成员也没有关系, 也可以执行, <code class="language-plaintext highlighter-rouge">mark_page_dirty</code>, 但是在执行时, 需要每次获取<code class="language-plaintext highlighter-rouge">memslot</code>, 所以作者想了, 既然缓存, 那为什么不缓存多一些, 将<code class="language-plaintext highlighter-rouge">memslot</code>也缓存</p></blockquote></ul><h3 id="interface"><span class="me-2">interface</span><a href="#interface" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><h4 id="cache-init"><span class="me-2">cache init</span><a href="#cache-init" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h4><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</pre><td class="rouge-code"><pre><span class="gi">+int kvm_gfn_to_hva_cache_init(struct kvm *kvm, struct gfn_to_hva_cache *ghc,
++			      gpa_t gpa)
++{
++	struct kvm_memslots *slots = kvm_memslots(kvm);
++	int offset = offset_in_page(gpa);
++	gfn_t gfn = gpa &gt;&gt; PAGE_SHIFT;
++
++	ghc-&gt;gpa = gpa;
++	//==(1)==
++	ghc-&gt;generation = slots-&gt;generation;
++	ghc-&gt;memslot = __gfn_to_memslot(kvm, gfn);
++	ghc-&gt;hva = gfn_to_hva_many(ghc-&gt;memslot, gfn, NULL);
++	//==(2)==
++	if (!kvm_is_error_hva(ghc-&gt;hva))
++		ghc-&gt;hva += offset;
++	else
++		return -EFAULT;
++
++	return 0;
++}
+</span></pre></table></code></div></div><ol><li>将此时<code class="language-plaintext highlighter-rouge">slots-&gt;generation</code>赋值给<code class="language-plaintext highlighter-rouge">ghc-&gt;generation</code><li>错误情况暂时不看.</ol><h4 id="write-cache"><span class="me-2">write cache</span><a href="#write-cache" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h4><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+</pre><td class="rouge-code"><pre><span class="gi">+int kvm_write_guest_cached(struct kvm *kvm, struct gfn_to_hva_cache *ghc,
++			   void *data, unsigned long len)
++{
++	struct kvm_memslots *slots = kvm_memslots(kvm);
++	int r;
++
++	//==(1)==
++	if (slots-&gt;generation != ghc-&gt;generation)
++		kvm_gfn_to_hva_cache_init(kvm, ghc, ghc-&gt;gpa);
++	
++	if (kvm_is_error_hva(ghc-&gt;hva))
++		return -EFAULT;
++
++	//==(2)==
++	r = copy_to_user((void __user *)ghc-&gt;hva, data, len);
++	if (r)
++		return -EFAULT;
++	//==(3)==
++	mark_page_dirty_in_slot(kvm, ghc-&gt;memslot, ghc-&gt;gpa &gt;&gt; PAGE_SHIFT);
++
++	return 0;
++}
+</span></pre></table></code></div></div><ol><li>如果<code class="language-plaintext highlighter-rouge">slots-&gt;generation</code> 和当前cache generation(<code class="language-plaintext highlighter-rouge">ghc-&gt;generation</code>)不一致, 说明 该cache已经是stale的了, 需要update, 那就直接重新init cache(调用 <code class="language-plaintext highlighter-rouge">kvm_gfn_to_hva_cache_init()</code>)<li>将数据写入hva<li><p>该接口是新增的, 为<code class="language-plaintext highlighter-rouge">mark_page_dirty()</code>的变体.</p><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+</pre><td class="rouge-code"><pre><span class="gd">-void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
+</span><span class="gi">+void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
++			     gfn_t gfn)
+</span> {
+<span class="gd">-	struct kvm_memory_slot *memslot;
+-
+-	memslot = gfn_to_memslot(kvm, gfn);
+</span> 	if (memslot &amp;&amp; memslot-&gt;dirty_bitmap) {
+ 		unsigned long rel_gfn = gfn - memslot-&gt;base_gfn;
+    
+<span class="p">@@ -1284,6 +1325,14 @@</span> void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
+ 	}
+ }
+    
+<span class="gi">+void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
++{
++	struct kvm_memory_slot *memslot;
++
++	memslot = gfn_to_memslot(kvm, gfn);
++	mark_page_dirty_in_slot(kvm, memslot, gfn);
++}
+</span></pre></table></code></div></div><p>该变体较<code class="language-plaintext highlighter-rouge">mark_page_dirty()</code>来说, 主要是增加<code class="language-plaintext highlighter-rouge">memslot</code>参数. 原因在介绍数据结构的时候 已经说明</p><blockquote class="prompt-tip"><p>该功能和<code class="language-plaintext highlighter-rouge">dirty log</code>功能相关, guest可以通过bitmap知道那些page是dirty的,在热迁移 的时候会用到, 这里不过多介绍</p></blockquote></ol><p>那<code class="language-plaintext highlighter-rouge">slots-&gt;generation</code> 什么时候改变的呢</p><h3 id="bump-slots-generation"><span class="me-2">bump slots-&gt;generation</span><a href="#bump-slots-generation" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+</pre><td class="rouge-code"><pre><span class="gh">diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index db58a1b..45ef50c 100644
+</span><span class="gd">--- a/virt/kvm/kvm_main.c
+</span><span class="gi">+++ b/virt/kvm/kvm_main.c
+</span><span class="p">int __kvm_set_memory_region(struct kvm *kvm,
+</span>                            struct kvm_userspace_memory_region *mem,
+                            int user_alloc)
+{
+<span class="p">skip_lpage:
+</span>  //==(1)==
+  if (!npages) {
+    r = -ENOMEM;
+    slots = kzalloc(sizeof(struct kvm_memslots), GFP_KERNEL);
+    if (!slots)
+      goto out_free;
+    memcpy(slots, kvm-&gt;memslots, sizeof(struct kvm_memslots));
+    if (mem-&gt;slot &gt;= slots-&gt;nmemslots)
+      slots-&gt;nmemslots = mem-&gt;slot + 1;
+<span class="gi">+		slots-&gt;generation++;
+</span>    slots-&gt;memslots[mem-&gt;slot].flags |= KVM_MEMSLOT_INVALID;
+    
+    old_memslots = kvm-&gt;memslots;
+    rcu_assign_pointer(kvm-&gt;memslots, slots);
+    synchronize_srcu_expedited(&amp;kvm-&gt;srcu);
+    /* From this point no new shadow pages pointing to a deleted
+     * memslot will be created.
+     *
+     * validation of sp-&gt;gfn happens in:
+     *      - gfn_to_hva (kvm_read_guest, gfn_to_pfn)
+     *      - kvm_is_visible_gfn (mmu_check_roots)
+     */
+    kvm_arch_flush_shadow(kvm);
+    kfree(old_memslots);
+  }
+  //==(2)==
+  r = kvm_arch_prepare_memory_region(kvm, &amp;new, old, mem, user_alloc);
+  if (r)
+    goto out_free;
+  
+  /* map the pages in iommu page table */
+  if (npages) {
+    r = kvm_iommu_map_pages(kvm, &amp;new);
+    if (r)
+      goto out_free;
+  }
+  
+  r = -ENOMEM;
+  slots = kzalloc(sizeof(struct kvm_memslots), GFP_KERNEL);
+  if (!slots)
+    goto out_free;
+  memcpy(slots, kvm-&gt;memslots, sizeof(struct kvm_memslots));
+  if (mem-&gt;slot &gt;= slots-&gt;nmemslots)
+    slots-&gt;nmemslots = mem-&gt;slot + 1;
+<span class="gi">+ slots-&gt;generation++;
+</span><span class="err">
+
+</span></pre></table></code></div></div><ol><li>说明不是内存, 有可能是mmio, 这里变动memslots, 需要使用rcu机制, 这样可以保证在无锁的情况下把这个动作完成<li>normal 内存</ol><p>因为更新到了memslots, 说明<code class="language-plaintext highlighter-rouge">hva-&gt;gpa</code>的关系有改变, 所以需要更新<code class="language-plaintext highlighter-rouge">generation</code></p><h2 id="history-of-change"><span class="me-2">history of change</span><a href="#history-of-change" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><ul><li>avi在<a href="https://lore.kernel.org/all/4B0D23E8.3060508@redhat.com/">Re: [PATCH v2 02/12] Add PV MSR to enable asynchronous page faults delivery.</a> 中提到, 目前这一版本patch可能在遇到 memslots 情况下, 会有问题 <details open=""> <summary>原文</summary><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+</pre><td class="rouge-code"><pre><span class="gi">&gt; +static int kvm_pv_enable_async_pf(struct kvm_vcpu *vcpu, u64 data)
+&gt; +{
+&gt; +	u64 gpa = data&amp;  ~0x3f;
+&gt; +	int offset = offset_in_page(gpa);
+&gt; +	unsigned long addr;
+&gt; +
+&gt; +	addr = gfn_to_hva(vcpu-&gt;kvm, gpa&gt;&gt;  PAGE_SHIFT);
+&gt; +	if (kvm_is_error_hva(addr))
+&gt; +		return 1;
+&gt; +
+</span>    //只初始化一次
+<span class="gi">&gt; +	vcpu-&gt;arch.apf_data = (u32 __user*)(addr + offset);
+&gt; +
+&gt; +	/* check if address is mapped */
+&gt; +	if (get_user(offset, vcpu-&gt;arch.apf_data)) {
+&gt; +		vcpu-&gt;arch.apf_data = NULL;
+&gt; +		return 1;
+&gt; +	}
+&gt;    
+</span>  
+<span class="p">What if the memory slot arrangement changes?  This needs to be 
+revalidated (and gfn_to_hva() called again).
+</span><span class="err">
+</span><span class="gi">&gt; validate &lt;==&gt; invalidate
+&gt; revalidate : 重新生效, 重新验证
+</span></pre></table></code></div></div></details><li><p>在<a href="https://lore.kernel.org/all/1262700774-1808-8-git-send-email-gleb@redhat.com/">[PATCH v3 07/12] Maintain memslot version number</a>和 <a href="https://lore.kernel.org/all/1262700774-1808-9-git-send-email-gleb@redhat.com/">[PATCH v3 08/12] Inject asynchronous page fault into a guest if page is swapped out.</a> 中, 作者引入了该功能, 不过该功能是嵌入到async pf 功能中, 并非独立接口</p><details open="1"> <summary>代码</summary><div class="language-diff highlighter-rouge"><div class="code-header"> <span data-label-text="Diff"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+</pre><td class="rouge-code"><pre><span class="gh">diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
+index 600baf0..3f5ebc2 100644
+</span><span class="gd">--- a/include/linux/kvm_host.h
+</span><span class="gi">+++ b/include/linux/kvm_host.h
+</span><span class="p">@@ -163,6 +163,7 @@</span> struct kvm {
+ 	spinlock_t requests_lock;
+ 	struct mutex slots_lock;
+ 	struct mm_struct *mm; /* userspace tied to this vm */
+<span class="gi">+	u32 memslot_version;
+</span> 	struct kvm_memslots *memslots;
+ 	struct srcu_struct srcu;
+<span class="p">@@ -364,7 +364,9 @@</span> struct kvm_vcpu_arch {
+ 	unsigned long singlestep_rip;
+   
+ 	u32 __user *apf_data;
+<span class="gi">+	u32 apf_memslot_ver;
+</span> 	u64 apf_msr_val;
+<span class="gi">+	u32 async_pf_id;
+</span> };
+<span class="gi">+static int apf_put_user(struct kvm_vcpu *vcpu, u32 val)
++{
++	if (unlikely(vcpu-&gt;arch.apf_memslot_ver !=
++		     vcpu-&gt;kvm-&gt;memslot_version)) {
++		u64 gpa = vcpu-&gt;arch.apf_msr_val &amp; ~0x3f;
++		unsigned long addr;
++		int offset = offset_in_page(gpa);
++
++		addr = gfn_to_hva(vcpu-&gt;kvm, gpa &gt;&gt; PAGE_SHIFT);
++		vcpu-&gt;arch.apf_data = (u32 __user*)(addr + offset);
++		if (kvm_is_error_hva(addr)) {
++			vcpu-&gt;arch.apf_data = NULL;
++			return -EFAULT;
++		}
++	}
++
++	return put_user(val, vcpu-&gt;arch.apf_data);
++}
+</span></pre></table></code></div></div><p>可以看到, 相当于引入了两个version, 并在<code class="language-plaintext highlighter-rouge">apf_put_user()</code>时,比对两个version.</p></details><li>作者在<a href="https://lore.kernel.org/all/20100708180525.GA11885@redhat.com/">Re: [PATCH v4 08/12] Inject asynchronous page fault into a guest if page is swapped out.</a> 回答了为什么不使用<code class="language-plaintext highlighter-rouge">kvm_write_guest</code><ul><li>Q: why<li>A: want to cache gfn_to_hva_translation</ul><li><p>avi 在<a href="https://lore.kernel.org/all/4C729F10.40005@redhat.com/">Re: [PATCH v5 08/12] Inject asynchronous page fault into a guest if page is swapped out.</a> 建议将该功能剥离, 因为这个功能很好,其他代码也可以用.</p><details open=""> <summary>原文</summary><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre>This nice cache needs to be outside apf to reduce complexity for 
+reviewers and since it is useful for others.
+  
+Would be good to have memslot-cached kvm_put_guest() and kvm_get_guest().
+</pre></table></code></div></div></details><li><p>作者在<a href="https://lore.kernel.org/all/20100824122844.GA10499@redhat.com/">Re: [PATCH v5 08/12] Inject asynchronous page fault into a guest if page is swapped out.</a> 首次提供该接口.</p><li>Marcelo Tosatti 在<a href="https://lore.kernel.org/all/20101005165738.GA32750@amt.cnet/">Re: [PATCH v6 04/12] Add memory slot versioning and use it to provide fast guest write interface</a> 提到两个问题:<ul><li>在<code class="language-plaintext highlighter-rouge">kvm_gfn_to_hva_cache_init</code>中使用<code class="language-plaintext highlighter-rouge">gfn_to_memslot</code> 获取memslot, 可能会造成如下问题 <details open=""> <summary>自己的理解</summary><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+</pre><td class="rouge-code"><pre>thread1                             thread2                          guest
+kvm_write_guest_cached
+ kvm_gfn_to_hva_cache_init {        __kvm_set_memory_region
+     slots = kvm_memslots(kvm) {
+     rcu_dereference_check
+   }
+   ghc-&gt;generation = 
+          slots-&gt;generation;
+                                     slots-&gt;generation++;
+   ghc-&gt;memslot = 
+          gfn_to_memslot(
+              slots, gfn) {
+     rcu_dereference_check {
+       //may have a gp
+                                     rcu_assign_pointer(
+                                        kvm-&gt;memslots, slots);
+     }
+   ghc-&gt;hva = gfn_to_hva_many(
+      ghc-&gt;memslot, gfn, NULL);
+ }
+copy_to_user();
+
+                                     kvm_arch_commit_memory_region
+                                        do_munmap
+                                                                     access apf 
+                                                                     reason, 
+                                                                        LOSS
+</pre></table></code></div></div><p>这样可能会导致在这个函数中, 前面和后面获取的信息来自于不同的memslots, 个人认为, 不仅仅是这样, 还可能导致, thread2 因为中间释放了rcu, 导致其流程和thread1有race, 最终导致 本次<code class="language-plaintext highlighter-rouge">copy_to_user()</code> 数据丢失</p><p>作者在下一版patch中将<code class="language-plaintext highlighter-rouge">gfn_to_memslot</code>修改为了<code class="language-plaintext highlighter-rouge">__gfn_to_memslot</code>, 该接口不会在使用<code class="language-plaintext highlighter-rouge">rcu_dereference_check</code></p></details></ul></ul></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw me-1"></i> <a href="/categories/kvm/">kvm</a>, <a href="/categories/async-pf/">async_pf</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw me-1"></i> <a href="/tags/para-virt/" class="post-tag no-text-decoration" >para_virt</a></div><div class=" post-tail-bottom d-flex justify-content-between align-items-center mt-5 pb-2 " ><div class="license-wrapper"> This post is licensed under <a href="https://creativecommons.org/licenses/by/4.0/"> CC BY 4.0 </a> by the author.</div><div class="share-wrapper d-flex align-items-center"> <span class="share-label text-muted">Share</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=async%20pf%20--%20gfn2hva%20cache%20-%20one%20step%20at%20a%20time&url=%2Fposts%2Fasync-pf-gfn2hva-cache%2F" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Twitter" aria-label="Twitter"> <i class="fa-fw fa-brands fa-square-x-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=async%20pf%20--%20gfn2hva%20cache%20-%20one%20step%20at%20a%20time&u=%2Fposts%2Fasync-pf-gfn2hva-cache%2F" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Facebook" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://t.me/share/url?url=%2Fposts%2Fasync-pf-gfn2hva-cache%2F&text=async%20pf%20--%20gfn2hva%20cache%20-%20one%20step%20at%20a%20time" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Telegram" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <button id="copy-link" aria-label="Copy link" class="btn small" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy link" data-title-succeed="Link copied successfully!" > <i class="fa-fw fas fa-link pe-none fs-6"></i> </button> </span></div></div></div></article></main><aside aria-label="Panel" id="panel-wrapper" class="col-xl-3 ps-2 mb-5 text-muted"><div class="access"><section id="access-lastmod"><h2 class="panel-heading">Recently Updated</h2><ul class="content list-unstyled ps-0 pb-1 ms-1 mt-2"><li class="text-truncate lh-lg"> <a href="/posts/async-pf-gfn2hva-cache/">async pf -- gfn2hva cache</a><li class="text-truncate lh-lg"> <a href="/posts/async-pf-gup-change/">async pf -- GUP change</a><li class="text-truncate lh-lg"> <a href="/posts/embedding_markdown_in_html_tag/">embedding markdown in HTML tag</a><li class="text-truncate lh-lg"> <a href="/posts/async-pf/">async pf</a></ul></section><section><h2 class="panel-heading">Trending Tags</h2><div class="d-flex flex-wrap mt-3 mb-1 me-3"> <a class="post-tag btn btn-outline-primary" href="/tags/para-virt/">para_virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/html-details/">html-details</a> <a class="post-tag btn btn-outline-primary" href="/tags/markdown/">markdown</a></div></section></div><section id="toc-wrapper" class="ps-0 pe-4"><h2 class="panel-heading ps-3 pt-2 mb-2">Contents</h2><nav id="toc"></nav></section></aside></div><div class="row"><div id="tail-wrapper" class="col-12 col-lg-11 col-xl-9 px-md-4"><aside id="related-posts" aria-labelledby="related-label"><h3 class="mb-4" id="related-label">Further Reading</h3><nav class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4"><article class="col"> <a href="/posts/async-pf/" class="post-preview card h-100"><div class="card-body"> <time data-ts="1712722800" data-df="ll" > Apr 10, 2024 </time><h4 class="pt-0 my-2">async pf</h4><div class="text-muted"><p>introduce 在支持EPT的架构中, 对于GVA-&amp;gt;HPA一般有两段映射: GVA-&amp;gt;GPA GPA-&amp;gt;HPA 而host kernel (kvm) 需要关心的是 GPA-&amp;gt;HPA的映射, 需要host做的事情主要有 以下几个: 捕捉相关 VM-exit event (EPT violation), 得到 GPA 分配page 建立...</p></div></div></a></article><article class="col"> <a href="/posts/async-pf-gup-change/" class="post-preview card h-100"><div class="card-body"> <time data-ts="1713250800" data-df="ll" > Apr 16, 2024 </time><h4 class="pt-0 my-2">async pf -- GUP change</h4><div class="text-muted"><p>参考代码 该部分代码, mail list中和commit中内容不同, 而且mail list中也没有提到为什么当时没有全部 合入, 我们先以mail list 为准: [KVM: Add host swap event notifications for PV guest][v7] 后续, 我们在另一篇文章中详细介绍: [link][2] 遗留问题 ...</p></div></div></a></article></nav></aside><nav class="post-navigation d-flex justify-content-between" aria-label="Post Navigation"> <a href="/posts/embedding_markdown_in_html_tag/" class="btn btn-outline-primary" aria-label="Older" ><p>embedding markdown in HTML tag</p></a> <a href="/posts/async-pf-gup-change/" class="btn btn-outline-primary" aria-label="Newer" ><p>async pf -- GUP change</p></a></nav><footer aria-label="Site Info" class=" d-flex flex-column justify-content-center text-muted flex-lg-row justify-content-lg-between align-items-lg-center pb-lg-3 " ><p>© <time>2024</time> <a href="https://twitter.com/fuqiang_cai">fuqiang wang</a>. <span data-bs-toggle="tooltip" data-bs-placement="top" title="Except where otherwise noted, the blog posts on this site are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author." >Some rights reserved.</span></p><p>Using the <a data-bs-toggle="tooltip" data-bs-placement="top" title="v6.5.5" href="https://github.com/cotes2020/jekyll-theme-chirpy" target="_blank" rel="noopener" >Chirpy</a> theme for <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a>.</p></footer></div></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-11 content"><div id="search-hints"><section><h2 class="panel-heading">Trending Tags</h2><div class="d-flex flex-wrap mt-3 mb-1 me-3"> <a class="post-tag btn btn-outline-primary" href="/tags/para-virt/">para_virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/html-details/">html-details</a> <a class="post-tag btn btn-outline-primary" href="/tags/markdown/">markdown</a></div></section></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><aside aria-label="Scroll to Top"> <button id="back-to-top" type="button" class="btn btn-lg btn-box-shadow"> <i class="fas fa-angle-up"></i> </button></aside></div><div id="mask"></div><aside id="notification" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-animation="true" data-bs-autohide="false" ><div class="toast-header"> <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Close" ></button></div><div class="toast-body text-center pt-0"><p class="px-2 mb-3">A new version of content is available.</p><button type="button" class="btn btn-primary" aria-label="Update"> Update </button></div></aside><script src="https://cdn.jsdelivr.net/combine/npm/jquery@3.7.1/dist/jquery.min.js,npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js,npm/simple-jekyll-search@1.10.0/dest/simple-jekyll-search.min.js,npm/loading-attribute-polyfill@2.1.1/dist/loading-attribute-polyfill.umd.min.js,npm/magnific-popup@1.1.0/dist/jquery.magnific-popup.min.js,npm/clipboard@2.0.11/dist/clipboard.min.js,npm/dayjs@1.11.10/dayjs.min.js,npm/dayjs@1.11.10/locale/en.min.js,npm/dayjs@1.11.10/plugin/relativeTime.min.js,npm/dayjs@1.11.10/plugin/localizedFormat.min.js,npm/tocbot@4.25.0/dist/tocbot.min.js"></script> <script defer src="/assets/js/dist/post.min.js"></script> <script defer src="/assets/js/dist/app.min.js"></script> <script> /* Note: dependent library will be loaded in `js-selector.html` */ SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<article class="px-1 px-sm-2 px-lg-4 px-xl-0"><header><h2><a href="{url}">{title}</a></h2><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"> {categories} {tags}</div></header><p>{snippet}</p></article>', noResultsText: '<p class="mt-5">Oops! No results found.</p>', templateMiddleware: function(prop, value, template) { if (prop === 'categories') { if (value === '') { return `${value}`; } else { return `<div class="me-sm-4"><i class="far fa-folder fa-fw"></i>${value}</div>`; } } if (prop === 'tags') { if (value === '') { return `${value}`; } else { return `<div><i class="fa fa-tag fa-fw"></i>${value}</div>`; } } } }); </script>
