@@ -35,7 +35,7 @@ EPT 和 影子页表有一些共同面对的问题,并且在数据
 > 
 > 我们主要依据这个代码进行分析
 
-## userspace interface
+## userspace interface -- set memory region
 
 kvm 是内核的一个模块, 其主要功能是提供一些对memory, cpu, interrupt controller
 虚拟化的一些接口, 所以我们这里主要介绍下, 用于memory virtualization的一些
@@ -43,7 +43,7 @@ kvm 是内核的一个模块, 其主要功能是提供一些对memory, cpu, inte
 
 ### data struct
 
-#### kvm_memory_region
+#### kvm_memory_region 
 
 ```cpp
 struct kvm_memory_region {
@@ -92,6 +92,24 @@ struct kvm_memory_slot {
 * **flags**: 
 * **phys_mem**: page of guest memory 
 * **dirty_bitmap**: 和kvm脏页管理有关, 可以标识guest中哪些page是dirty的
+
+####  kvm
+
+```cpp
+struct kvm {
+        spinlock_t lock; /* protects everything except vcpus */
+        int nmemslots;
+        struct kvm_memory_slot memslots[KVM_MEMORY_SLOTS];
+        int memory_config_version;
+        ...
+};
+```
+
+* **lock**: 注释中提到, 可以保护除了vcpu成员之外的所有的程亚u年
+* **nmemslots**: 表示当前所有的 memslot 的number
+* **memslots**: memslot数组, 共`KVM_MEMORY_SLOTS(4)`
+* **memory_config_version**: 表示当前 memslots的version, 每修改一次
+  就做一次bump version
 
 ### kvm_dev_ioctl
 
@@ -372,5 +390,113 @@ out:
    其中步骤`3, 4`锁在一起. 这样保证了check 和 modify version 是atomic的, 保证
    如果有两方同时修改肯定有一方需要重新走一遍`raced`
 
-2. 请注意, 这里会将所有的vcpu 分别执行`vcpu_load()`, `vcpu_put()`, 这里就不展开
-   这两个函数, 
+2. 请注意, 这里会将所有的vcpu 分别执行`vcpu_load()`, `vcpu_put()`, 简单说下这两个
+   函数, `vcpu_load()`的作用, 是将`vcpu` 也就是 `VMCS` load 到当前cpu上,也就是
+   变为`current`, 这样就可以使用`VMX instruction` -- `VMWRITE`修改VMCS 内容.
+
+   而这里执行`vcpu_load`就是为了在`kvm_mmu_reset_context`中, 完成对VMCS
+   某些字段的修改. 我们下面会介绍相关函数.
+
+## KVM MMU -- shadow page table
+
+* Q: 何谓影子页表?
+* A: 影子页表就是guest pgtable 的1:1 copy, 但是不是完全的copy, 例如 page/next pgtable
+     paddr.
+
+* Q: 为什么会出现影子页表呢?
+* A: 因为早期的CPU不支持EPT, 也就是说在VMX non-root operation中, VA->PA 只有一个stage.
+     不可能让GUEST 直接访问到GPA. 应该让guest访问到KVM为guest 分配的page. 所以KVM 需要
+     重建这个映射.
+
+* Q: 如何实现
+* A: 我们主要思考两个问题:
+     + guest写入pgtable的地址是GPA, 而kvm分配的地址是HPA. 如何将这两者绑定.
+
+       guest 需要 `GVA->GPA`, 而最终的是否访问到`GPA`, 在guest看来是由hardware mmu
+       决定, 对于其来说是透明的. 索性KVM就 重构了这个"hardware mmu"(i.e.,`KVM MMU`), 
+       搞了另外一套页表, attr什么的, 能copy直接copy guest pgtable, 但是 页表的pa 部分, 
+       全都替换成hpa, 让最终的映射, 映射到为guest 分配好的page 上, 页表准备好了另一套, 
+       那么就需要在guest运行时, 指定到这套页表, 咋指定呢? 通过CR3指定到shadow pgtable
+       的 root pgtable.
+
+     + guest modify pgtable, 如何通知到kvm
+
+       这个当前版本代码是把`kvm mmu -- shadow pgtable`, 当作了 TLB, 所以就允许了guest如果
+       modify pgtable, 可能会造成memory和 "TLB" 不一致的问题. 所以KVM 捕捉guest invlidate
+       TLB 的行为, 并在hook中 invlidate 相关的"shadow pgtable"
+
+### data struct
+
+#### kvm_mmu
+
+```cpp
+struct kvm_mmu {
+        void (*new_cr3)(struct kvm_vcpu *vcpu);
+        int (*page_fault)(struct kvm_vcpu *vcpu, gva_t gva, u32 err);
+        void (*inval_page)(struct kvm_vcpu *vcpu, gva_t gva);
+        void (*free)(struct kvm_vcpu *vcpu);
+        gpa_t (*gva_to_gpa)(struct kvm_vcpu *vcpu, gva_t gva);
+        hpa_t root_hpa;
+        int root_level;
+        int shadow_root_level;
+};
+```
+* **root_hpa**: shadow pgtable的root: pgd
+* **root_level**: 表示guest pgtable 的 level
+* **shadow_root_level**: 表示影子页表的level
+
+#### kvm_mmu_page
+
+每个shadow page table 都由一个 `kvm_mmu_page`维护
+
+```cpp
+struct kvm_mmu_page {
+        struct list_head link;
+        hpa_t page_hpa;
+        unsigned long slot_bitmap; /* One bit set per slot which has memory
+                                    * in this shadow page.
+                                    */
+        int global;              /* Set if all ptes in this page are global */
+        u64 *parent_pte;
+};
+```
+
+* **link**: 链接所有的`kvm_mmu_page`
+* **page_hpa**: 该shadow page table的`hpa`
+* **slot_bitmap**: 表示该shadow page 指向的page 在哪些memslot内
+* **global**: 表示该pgtable 中的所有pte 都是 global的.
+* **parent_pte**: parent level pte address
+
+#### kvm_vcpu
+
+```cpp
+struct kvm_vcpu {
+        ...
+        struct kvm_mmu_page page_header_buf[KVM_NUM_MMU_PAGES];
+        struct kvm_mmu mmu;
+        ...
+};
+
+```
+
+* **page_header_buf**: 
+
+### init mmu
+该函数为`init_kvm_mmu`, 该函数有两类调用路径:
+1. `kvm_mmu_reset_context`
+   ```
+   set_cr0/set_cr4/kvm_dev_ioctl_set_memory_region/kvm_ioctl_set_sregs
+     kvm_mmu_reset_context() {
+       destroy_kvm_mmu()
+       init_kvm_mmu()
+     }
+   ```
+2. `kvm_mmu_init`
+   ```
+   kvm_dev_ioctl_create_vcpu
+     kvm_mmu_init
+       init_kvm_mmu
+   ```
+
+> 思考下1, 
+{: .prompt-tip}
