@@ -3,7 +3,7 @@ layout: post
 title:  "kvm mmu org patch"
 author: fuqiang
 date:   2024-04-26 11:26:00 +0800
-categories: [kvm,mmu]
+categories: [kvm,mmu_note]
 tags: [virt]
 ---
 ## 简介

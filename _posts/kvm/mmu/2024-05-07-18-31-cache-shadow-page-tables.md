@@ -3,7 +3,7 @@ layout: post
 title:  "cache shadow page tables"
 author: fuqiang
 date:   2024-05-07 18:30:00 +0800
-categories: [kvm,mmu]
+categories: [kvm,mmu_note]
 tags: [virt]
 ---
 
