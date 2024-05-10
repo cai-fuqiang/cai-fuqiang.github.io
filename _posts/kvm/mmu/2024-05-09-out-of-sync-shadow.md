@@ -2,11 +2,19 @@
 layout: post
 title:  "out of sync shadow"
 author: fuqiang
-date:   2024-05-09 17:37:00 +0800
-categories: [kvm]
+date:   2024-05-10 10:30:00 +0800
+categories: [kvm, mmu]
 tags: [virt]
 ---
 
 
-[RFC]: https://lore.kernel.org/all/20080906192431.462798798@localhost.localdomain/
-[v2]: https://lore.kernel.org/all/20080922192215.654700943@localhost.localdomain/
+
+## 参考链接
+
+{% include link/kvm_link.md %}
+
+[RFC][out_of_async_shadow_v1]
+
+[v2][out_of_async_shadow_v2]
+
+[v3][out_of_async_shadow_v3]
