@@ -4,7 +4,10 @@ source "https://rubygems.org"
 
 gemspec
 
-ruby "3.2.3"
+# ruby "3.2.3"
+
+ruby "3.3.0"
+
 gem "jekyll", "~> 4.3.3"
 
 group :test do
