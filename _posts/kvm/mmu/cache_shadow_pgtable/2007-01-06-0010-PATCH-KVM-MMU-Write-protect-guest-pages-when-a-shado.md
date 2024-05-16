@@ -18,6 +18,9 @@ When we cache a guest page table into a shadow page table, we need to prevent
 further access to that page by the guest, as that would render the cache
 incoherent.
 
+> 当我们将guest pgtable 缓存到影子页表中时，我们需要防止guest进一步访问该页面，
+> 因为这会导致缓存 incoherent.
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -34,7 +37,7 @@ index 47c699c21c08..ba813f49f8aa 100644
 @@ -274,6 +274,35 @@ static void rmap_remove(struct kvm *kvm, u64 *spte)
  	}
  }
- 
+
 +static void rmap_write_protect(struct kvm *kvm, u64 gfn)
 +{
 +	struct page *page;
@@ -46,6 +49,7 @@ index 47c699c21c08..ba813f49f8aa 100644
 +	BUG_ON(!slot);
 +	page = gfn_to_page(slot, gfn);
 +
+ //通过反向映射, 找到所有相关的spte, 将其 PT_WRITABLE_MASK clear.
 +	while (page->private) {
 +		if (!(page->private & 1))
 +			spte = (u64 *)page->private;
@@ -59,6 +63,10 @@ index 47c699c21c08..ba813f49f8aa 100644
 +		BUG_ON(!(*spte & PT_PRESENT_MASK));
 +		BUG_ON(!(*spte & PT_WRITABLE_MASK));
 +		rmap_printk("rmap_write_protect: spte %p %llx\n", spte, *spte);
+    //而rmap的作用是,当一个page从normal page 变为pgtable时, 找到所有
+    //能访问到它的spte, 将其修改为 NOT WRITABLE, 
+    //而如果修改后, 所有的spte都不是 WRITABLE了, 所以不再需要rmap了,
+    //这里会执行rmap_remove
 +		rmap_remove(kvm, spte);
 +		*spte &= ~(u64)PT_WRITABLE_MASK;
 +	}
@@ -71,6 +79,8 @@ index 47c699c21c08..ba813f49f8aa 100644
  	page->gfn = gfn;
  	page->role = role;
  	hlist_add_head(&page->hash_link, bucket);
+  //如果不是 metaphysical , 说明该shadow pgtable在guest中对应的有pgtable, 需要wp该page,
+  //也就是让guest访问该 page时, 触发 wp
 +	if (!metaphysical)
 +		rmap_write_protect(vcpu->kvm, gfn);
  	return page;
@@ -139,6 +149,8 @@ index 47c699c21c08..ba813f49f8aa 100644
 +		mark_page_dirty(vcpu->kvm, gaddr >> PAGE_SHIFT);
 +
 +	page_header_update_slot(vcpu->kvm, shadow_pte, gaddr);
+  //注意, 这里rmap_add() 并不会对 NO WRITABLE 的 shadow_pte指向
+  //的page做反向映射, 详见: is_rmap_pte()
 +	rmap_add(vcpu->kvm, shadow_pte);
  }
  

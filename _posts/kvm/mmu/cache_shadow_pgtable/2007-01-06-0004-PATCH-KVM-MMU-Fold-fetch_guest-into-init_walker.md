@@ -7,19 +7,31 @@ categories: [kvm,cache_shadow_pgtable]
 tags:       [cache_shadow_pgtable]
 ---
 
-```diff
+```
 From ac79c978f173586ab3624427c89cd22b393cabd4 Mon Sep 17 00:00:00 2001
 From: Avi Kivity <avi@qumranet.com>
 Date: Fri, 5 Jan 2007 16:36:40 -0800
+```
+
 Subject: [PATCH 04/33] [PATCH] KVM: MMU: Fold fetch_guest() into init_walker()
 
 It is never necessary to fetch a guest entry from an intermediate page table
 level (except for large pages), so avoid some confusion by always descending
 into the lowest possible level.
 
+> ```
+> intermediate /ˌɪntərˈmiːdiət/: 中间的
+> descend /dɪˈsend/: 下降
+> ```
+> 从来没有必要从中间页表级别获取guest条目（大页除外），因此请始终下降到尽可能
+> 低的级别，以避免一些混乱。
+
 Rename init_walker() to walk_addr() as it is no longer restricted to
 initialization.
 
+> 将 init_walker() 重命名为 walk_addr()，因为它不再局限于初始化。
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

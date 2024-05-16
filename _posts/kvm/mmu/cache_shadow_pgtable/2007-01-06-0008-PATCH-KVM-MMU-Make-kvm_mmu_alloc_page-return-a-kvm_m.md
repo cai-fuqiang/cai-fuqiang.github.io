@@ -16,6 +16,8 @@ Subject: [PATCH 08/33] [PATCH] KVM: MMU: Make kvm_mmu_alloc_page() return a
 
 This allows further manipulation on the shadow page table.
 
+> manipulation /məˌnɪpjəˈleɪʃən/: 操控变换
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -69,6 +71,9 @@ index 1dcbbd511660..da4d7ddb9bdc 100644
  				return -ENOMEM;
  			}
  
+      /*
+       * pae level pgtable 已经被load了, 所以这里不会在fetch
+       */
 -			if (level == PT32E_ROOT_LEVEL)
 -				table[index] = new_table | PT_PRESENT_MASK;
 -			else

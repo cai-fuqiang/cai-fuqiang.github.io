@@ -18,6 +18,9 @@ Since we're not going to cache the pae-mode shadow root pages, allocate a
 single pae shadow that will hold the four lower-level pages, which will act as
 roots.
 
+> 由于我们不打算缓存 pae-mode shadow ROOT pages，因此分配一个 pae shadow 来保存四个
+> 较低级别的页面，这些页面将充当root。
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -210,7 +213,7 @@ index 0f27beb6c5df..1dcbbd511660 100644
 -	if ((ret = paging64_init_context(vcpu)))
 -		return ret;
 -
--	vcpu->mmu.root_level = PT32E_ROOT_LEVEL;
+-	vcpu->mmu.root_level = PT32E_ROOT_LEVELalloc_mmu_pages;
 -	vcpu->mmu.shadow_root_level = PT32E_ROOT_LEVEL;
 -	return 0;
 +	return paging64_init_context_common(vcpu, PT32E_ROOT_LEVEL);
@@ -236,7 +239,9 @@ index 0f27beb6c5df..1dcbbd511660 100644
  		struct kvm_mmu_page *page_header = &vcpu->page_header_buf[i];
  
  		INIT_LIST_HEAD(&page_header->link);
+    //这样做, 仅让
 -		if ((page = alloc_page(GFP_KVM_MMU)) == NULL)
+    //这里相当于分配non-root level pgtable, 所以不用加 __GFP_DMA32 的限制
 +		if ((page = alloc_page(GFP_KERNEL)) == NULL)
  			goto error_1;
  		page->private = (unsigned long)page_header;
@@ -249,6 +254,9 @@ index 0f27beb6c5df..1dcbbd511660 100644
 +	 * When emulating 32-bit mode, cr3 is only 32 bits even on x86_64.
 +	 * Therefore we need to allocate shadow page tables in the first
 +	 * 4GB of memory, which happens to fit the DMA32 zone.
++	 */
++	/*
++	 * 无论是pae 还是 page32, cr3指向的Root level pgtable都是32bit的.
 +	 */
 +	page = alloc_page(GFP_KERNEL | __GFP_DMA32);
 +	if (!page)

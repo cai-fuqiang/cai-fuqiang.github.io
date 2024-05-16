@@ -7,16 +7,24 @@ categories: [kvm,cache_shadow_pgtable]
 tags:       [cache_shadow_pgtable]
 ---
 
-```diff
+```
 From 6bcbd6aba00fced696fc99f1a4fcd7ac7d42d6ef Mon Sep 17 00:00:00 2001
 From: Avi Kivity <avi@qumranet.com>
 Date: Fri, 5 Jan 2007 16:36:39 -0800
+```
+
 Subject: [PATCH 02/33] [PATCH] KVM: MMU: Teach the page table walker to track
  guest page table gfns
 
 Saving the table gfns removes the need to walk the guest and host page tables
 in lockstep.
+> ```
+> lockstep: 步调一致; 紧密步伐
+> ```
+>
+> 保存table gfns 避免了需要遍历guest 和host 页表来同步
 
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

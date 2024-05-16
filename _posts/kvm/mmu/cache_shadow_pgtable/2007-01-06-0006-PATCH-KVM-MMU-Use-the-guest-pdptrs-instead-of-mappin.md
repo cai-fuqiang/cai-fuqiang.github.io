@@ -17,6 +17,27 @@ Subject: [PATCH 06/33] [PATCH] KVM: MMU: Use the guest pdptrs instead of
 This lets us not write protect a partial page, and is anyway what a real
 processor does.
 
+> 这让我们不必对partial page 进行写保护，无论如何，这都是真正的处理器所做的。
+```
+> 这里为什么要强调硬件怎么做呢?
+>
+> 因为KVM 是模拟真实的硬件, 硬件没有做的事情, KVM 也可以不做避免引起复杂度,
+> 或者避免和hardware 的行为不一致.
+>
+> 在回过头来看这个patch, 在该patch引入之前, KVM 为 pdpte 也分配了一个 shadow pgtable,
+> 但是这个pgtable中只有32-byte的数据存放着. 其他的空间可以供软件做别的用途. 在引入
+> 该系列patch后, 需要wp pgtable, 那么这个"partial pgtable" 可能会被软件频繁修改, 导致
+> 频繁出发VM-exit.
+>
+> 其实硬件层面也有这个问题: 内存中的pgtable和 TLB/pdpte register 不同步的问题.(当然
+> 这里是和pdpte register 不同步), 硬件的做法是需要软件来主动sync, 例如 flush tlb or
+> load pdpte register.
+>
+> 而这里也是用了硬件的这种做法, 不去wp pdpte shadow pgtable, 只有当guest 主动 load 
+> pdpte register时, trap到kvm, kvm再去做sync 
+{: .prompt-tip}
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

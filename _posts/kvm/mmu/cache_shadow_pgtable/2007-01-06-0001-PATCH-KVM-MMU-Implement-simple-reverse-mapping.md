@@ -7,10 +7,12 @@ categories: [kvm,cache_shadow_pgtable]
 tags:       [cache_shadow_pgtable]
 ---
 
-```diff
+```
 From cd4a4e5374110444dc38831af517e51ff5a053c3 Mon Sep 17 00:00:00 2001
 From: Avi Kivity <avi@qumranet.com>
 Date: Fri, 5 Jan 2007 16:36:38 -0800
+```
+
 Subject: [PATCH 01/33] [PATCH] KVM: MMU: Implement simple reverse mapping
 
 Keep in each host page frame's page->private a pointer to the shadow pte which
@@ -18,10 +20,22 @@ maps it.  If there are multiple shadow ptes mapping the page, set bit 0 of
 page->private, and use the rest as a pointer to a linked list of all such
 mappings.
 
+> 在每个host page frame 的 page->private 中保留一个指向映射它的shadow pte 的指针。
+> 如果有多个映射该页的shadow ptes，则设置 page->private 的bit 0，并将其余部分用
+> 作指向所有此类映射的链表的指针。
+
 Reverse mappings are needed because we when we cache shadow page tables, we
 must protect the guest page tables from being modified by the guest, as that
 would invalidate the cached ptes.
 
+> ```
+> reverse /rɪˈvɜːs/ : 使反转；撤销，废除; 交换
+> ```
+>
+> 需要反向映射是因为当我们缓存影子页表时，我们必须保护来guest page table不被guest修改，
+> 因为这会使缓存的 ptes invalidate。
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -86,7 +100,16 @@ index 790423c5f23d..0f27beb6c5df 100644
 @@ -150,6 +158,120 @@ static int is_io_pte(unsigned long pte)
  	return pte & PT_SHADOW_IO_MARK;
  }
- 
+
+/*
+ * 该函数表明, 可以建立 ramp, 这里需要判断spte的值, 必须是
+ *   + present: 如果不是present, 则spte 没有map的 page
+ *   + writeable: 如果不是writeable, 说明该spte 本身就是 wp的,
+ *                而rmap的作用就是, 当某个page变为了pgtable, 需要
+ *                反向映射, 找到其所有相关的spte, 将其修改为 wp.
+ *                用来使modify this guest pgtable 可以notify到
+ *                host. 所以如果本身是wp的. 那就没有必要在做rmap了.
+ */
 +static int is_rmap_pte(u64 pte)
 +{
 +	return (pte & (PT_WRITABLE_MASK | PT_PRESENT_MASK))
@@ -287,6 +310,10 @@ index 09bb9b4ed12d..8c48528a6e89 100644
  	mark_page_dirty(vcpu->kvm, gfn);
  	*shadow_ent |= PT_WRITABLE_MASK;
  	*guest_ent |= PT_DIRTY_MASK;
+    /*
+     * is_rmap_pte() 提到过, 如果是wp的则不需要创建rmap, 在fix_write_pf()中
+     * 会将pte有wp 变为 writeable, 所以在这里需要执行rmap_add()
+     */
 +	rmap_add(vcpu->kvm, shadow_ent);
  
  	return 1;

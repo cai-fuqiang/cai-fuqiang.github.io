@@ -17,6 +17,16 @@ Subject: [PATCH 11/33] [PATCH] KVM: MMU: Let the walker extract the target
 This fixes a problem where set_pte_common() looked for shadowed pages based on
 the page directory gfn (a huge page) instead of the actual gfn being mapped.
 
+> 这修复了 set_pte_common() 根据页面目录 gfn（a huge page）而不是映射的实际 gfn 
+> 查找shadow page 的问题。
+```
+
+> 请看fetch()的处理大页的相关代码: 当处理到大页时, 调用kvm_mmu_get_page() 传入的
+> gfn是 guest entry 中的 gfn, 也就是大页的base address, 所以这里将其记录下来, 然后
+> 在 set_pte_common()中利用该gfn 查找 是否有该shadow pgtable.
+{: .prompt-tip}
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

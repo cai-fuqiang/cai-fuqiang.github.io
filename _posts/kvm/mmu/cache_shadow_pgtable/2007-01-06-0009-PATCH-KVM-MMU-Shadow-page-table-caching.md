@@ -21,17 +21,27 @@ The key to the cache is a combination of
 - the number of paging levels in the guest
    * we can cache real mode, 32-bit mode, pae, and long mode page
      tables simultaneously.  this is useful for smp bootup.
+     > simultaneously /ˌsaɪməlˈteɪniəsli/: 同时的
+     >
+     > 我们可以同时缓存实模式、32位模式、pae和长模式页表。 这对于 
+     > smp bootup 很有用。
 - the guest page table table
    * some kernels use a page as both a page table and a page directory.  this
      allows multiple shadow pages to exist for that page, one per level
+     > 一些内核使用页同时作为页表和页目录。 这允许该页面存在多个影子页面，每个级
+     > 别一个
 - the "quadrant"
    * 32-bit mode page tables span 4MB, whereas a shadow page table spans
      2MB.  similarly, a 32-bit page directory spans 4GB, while a shadow
      page directory spans 1GB.  the quadrant allows caching up to 4 shadow page
      tables for one guest page in one level.
+     > 32 位模式页表跨度为 4MB，而影子页表跨度为 2MB。 同样，32 位页目录的大小为
+     > 4GB，而影子页目录的大小为 1GB。 该象限允许为一级中的一个guest页面缓存最多 
+     > 4 个影子页表。
 - a "metaphysical" bit
    * for real mode, and for pse pages, there is no guest page table, so set
      the bit to avoid write protecting the page.
+     > 对于real mode 和 pse 页，没有guest页表，因此设置该位以避免对页进行写保护。
 
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
@@ -396,6 +406,8 @@ index da4d7ddb9bdc..47c699c21c08 100644
  }
  
 -
+ //因为我们要缓存这些shadow pgtable, 所以在 flush tlb时, 我们不去 release
+ //它们
  static void kvm_mmu_flush_tlb(struct kvm_vcpu *vcpu)
  {
 -	struct kvm_mmu_page *page, *npage;
@@ -428,6 +440,11 @@ index da4d7ddb9bdc..47c699c21c08 100644
  	*shadow_pte |= access_bits << PT_SHADOW_BITS_OFFSET;
  	if (!dirty)
  		access_bits &= ~PT_WRITABLE_MASK;
+
+  /*
+   * 如果access bit 是可写的, 则需要看该page是不是之前缓存过的shadow pgtable,
+   * 如果是, 则需要 wp.
+   */
 +	if (access_bits & PT_WRITABLE_MASK) {
 +		struct kvm_mmu_page *shadow;
 +
@@ -529,6 +546,7 @@ index 11cac9ddf26a..f7cce443ca6f 100644
  		}
  
 -		shadow_page = kvm_mmu_alloc_page(vcpu, shadow_ent);
+    //这里表明是 大页, 将metaphysical置为1, 在guest中没有对应的pgtable, 不需要wp.
 +		if (level - 1 == PT_PAGE_TABLE_LEVEL
 +		    && walker->level == PT_DIRECTORY_LEVEL) {
 +			metaphysical = 1;
@@ -538,6 +556,9 @@ index 11cac9ddf26a..f7cce443ca6f 100644
 +			metaphysical = 0;
 +			table_gfn = walker->table_gfn[level - 2];
 +		}
+    //这里的传入的level 参数应该是是指要分配的shadow pgtable的level, 而
+    //这个位置的level, 实际上是"parent spte" 所在的pgtable的level, 所以
+    //这里要-1
 +		shadow_page = kvm_mmu_get_page(vcpu, table_gfn, addr, level-1,
 +					       metaphysical, shadow_ent);
  		if (!shadow_page)
@@ -557,6 +578,8 @@ index 11cac9ddf26a..f7cce443ca6f 100644
  	}
  
  	gfn = (*guest_ent & PT64_BASE_ADDR_MASK) >> PAGE_SHIFT;
+  //如果发生wp时, 发现出发wp pf的pfn是之前缓存过的影子页表, 则将write_pt置位1, 
+  //并直接返回, 做这个的目的, 是让kvm 进一步emulation.
 +	if (kvm_mmu_lookup_page(vcpu, gfn)) {
 +		pgprintk("%s: found shadow page for %lx, marking ro\n",
 +			 __FUNCTION__, gfn);
@@ -618,6 +641,8 @@ index 11cac9ddf26a..f7cce443ca6f 100644
  	 * pte not present, guest page fault.
  	 */
 -	if (pte_present && !fixed) {
+  //如果发现write_pt置位, 说明需要KVM进一步emulate write cached guest pgtable
+  //的这一动作.
 +	if (pte_present && !fixed && !write_pt) {
  		inject_page_fault(vcpu, addr, error_code);
  		return 0;
@@ -626,6 +651,7 @@ index 11cac9ddf26a..f7cce443ca6f 100644
  	++kvm_stat.pf_fixed;
  
 -	return 0;
+  //将 write_pt 传递到调用者
 +	return write_pt;
  }
  
