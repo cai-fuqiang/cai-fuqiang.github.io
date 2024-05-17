@@ -17,6 +17,11 @@ Since we write protect shadowed guest page tables, there is no need to trap
 page invalidations (the guest will always change the mapping before issuing
 the invlpg instruction).
 
+> interception : 拦截
+>
+> 由于我们 wp 了 shadow guest pgtable，因此无需捕获page invalidation（guest将始终在
+> 发出 invlpg 指令之前更改映射）。
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -158,6 +163,8 @@ index 2a1c37eed711..59178ad4d344 100644
  			       | CPU_BASED_CR8_LOAD_EXITING    /* 20.6.2 */
  			       | CPU_BASED_CR8_STORE_EXITING   /* 20.6.2 */
  			       | CPU_BASED_UNCOND_IO_EXITING   /* 20.6.2 */
+//MSR_IA32_VMX_PROCBASED_CTLS, 如果该bit为1, 则VM-execution相关字段必须设置为1, 如果
+//为0, 则即可以设置为0, 也可以设置为1. 这里想设置为0, 所以不去set该bit.
 -			       | CPU_BASED_INVDPG_EXITING
  			       | CPU_BASED_MOV_DR_EXITING
  			       | CPU_BASED_USE_TSC_OFFSETING   /* 21.3 */

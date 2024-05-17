@@ -17,8 +17,20 @@ Subject: [PATCH 13/33] [PATCH] KVM: MMU: Zap shadow page table entries on
 Iterate over all shadow pages which correspond to a the given guest page table
 and remove the mappings.
 
+> correspond /ˌkɔːrəˈspɑːnd/: 相一致
+>
+> 迭代与给定guest pgtable 相对应的所有影子页并删除映射。
+
 A subsequent page fault will reestablish the new mapping.
 
+> 随后的页面错误将重新建立新的映射。
+```
+
+> 如果修改了guest pgtable, 造成写保护, 在emulate 写入 guest page table之前,
+> 先clear掉spte(实际上也就是取消映射), 并且处理好反向映射.以及pte_chain
+{: .prompt-tip}
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

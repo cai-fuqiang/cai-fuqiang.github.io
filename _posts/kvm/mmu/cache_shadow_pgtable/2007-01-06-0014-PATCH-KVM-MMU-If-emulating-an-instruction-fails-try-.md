@@ -18,6 +18,14 @@ A page table may have been recycled into a regular page, and so any
 instruction can be executed on it.  Unprotect the page and let the cpu do its
 thing.
 
+> 页表可能已被回收到常规页中，因此可以在其上执行任何指令。 取消页面保护并让 cpu 
+> 执行其操作。
+```
+> 走到下面的路径中, 就说明不是常规的内存操作指令, 如果是, 并且模拟了就会返回0
+> 那么就说明该指令不太像是在操作 pgtable, 例如PUSH指令, 是在操作堆栈, 那么该
+> page 很可能被释放, 不用做guest pgtable了. 我们需要zap this shadow pgtable
+{:.prompt-tip}
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -46,7 +54,7 @@ index 047f6f6ed3f6..79032438dd16 100644
 +++ b/drivers/kvm/kvm_main.c
 @@ -1063,6 +1063,8 @@ int emulate_instruction(struct kvm_vcpu *vcpu,
  	}
- 
+  
  	if (r) {
 +		if (kvm_mmu_unprotect_page_virt(vcpu, cr2))
 +			return EMULATE_DONE;
@@ -78,7 +86,7 @@ index 6dbd83b86623..1484b7211717 100644
 +	list_del(&page->link);
 +	list_add(&page->link, &vcpu->free_pages);
 +}
-+
+//和所有的parent pte解除映射
 +static void kvm_mmu_zap_page(struct kvm_vcpu *vcpu,
 +			     struct kvm_mmu_page *page)
 +{
@@ -107,6 +115,7 @@ index 6dbd83b86623..1484b7211717 100644
 +	struct hlist_node *node, *n;
 +	int r;
 +
+  //找到该gfn对应的 shadow pgtable, 并释放他们
 +	pgprintk("%s: looking for gfn %lx\n", __FUNCTION__, gfn);
 +	r = 0;
 +	index = kvm_page_table_hashfn(gfn) % KVM_NUM_MMU_PAGES;

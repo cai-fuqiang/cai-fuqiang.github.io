@@ -21,9 +21,10 @@ the page directory gfn (a huge page) instead of the actual gfn being mapped.
 > 查找shadow page 的问题。
 ```
 
-> 请看fetch()的处理大页的相关代码: 当处理到大页时, 调用kvm_mmu_get_page() 传入的
-> gfn是 guest entry 中的 gfn, 也就是大页的base address, 所以这里将其记录下来, 然后
-> 在 set_pte_common()中利用该gfn 查找 是否有该shadow pgtable.
+> 在set_pte_common()流程中, 需要查看该gfn 所在的page 是不是pgtable, 而pgtable都是
+> normal size的页面, 所以我们需要找到actual gfn 来search shadow pgtable. 该patch
+> 将actual gfn 放到 walk_addr中进行计算, 然后会用在 set_pte_common 中的 gaddr参数,
+> 以及 kvm_mmu_lookup_page() gfn参数中.
 {: .prompt-tip}
 
 ```diff

@@ -16,8 +16,13 @@ Subject: [PATCH 12/33] [PATCH] KVM: MMU: Support emulated writes into RAM
 As the mmu write protects guest page table, we emulate those writes.  Since
 they are not mmio, there is no need to go to userspace to perform them.
 
+> 由于 mmu wp 了 guest 页表，因此我们模拟这些写入。 由于它们不是 mmio，因此
+> 无需进入用户空间来执行它们。
+
 So, perform the writes in the kernel if possible, and notify the mmu about
 them so it can take the approriate action.
+
+> 因此，如果可能的话，在内核中执行写入，并通知 mmu，以便它采取适当的操作。
 
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>

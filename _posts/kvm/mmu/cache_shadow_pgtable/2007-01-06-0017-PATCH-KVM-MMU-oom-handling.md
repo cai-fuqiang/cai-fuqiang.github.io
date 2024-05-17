@@ -16,6 +16,14 @@ Subject: [PATCH 17/33] [PATCH] KVM: MMU: oom handling
 When beginning to process a page fault, make sure we have enough shadow pages
 available to service the fault.  If not, free some pages.
 
+> 当开始处理 PF 时，请确保我们有足够的影子页面可用于处理错误。 如果没有，请释放一些页面。
+```
+
+> 该patch, 主要是在kvm_mmu_page_fault函数中, 增加了 检测 free shadow mmu pages 数量的动作,
+> 如果确实很少(少于KVM_MIN_FREE_MMU_PAGES), 则 zap 一些 shadow pgtable.
+{: .prompt-tip}
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

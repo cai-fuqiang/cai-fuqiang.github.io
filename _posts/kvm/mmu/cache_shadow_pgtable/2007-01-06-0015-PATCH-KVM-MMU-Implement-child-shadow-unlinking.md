@@ -16,6 +16,12 @@ Subject: [PATCH 15/33] [PATCH] KVM: MMU: Implement child shadow unlinking
 When removing a page table, we must maintain the parent_pte field all child
 shadow page tables.
 
+> 当删除页表时，我们必须维护所有子影子页表的parent_pte字段。 
+```
+
+> 该patch, 主要是来解除该shadow pgtable和其child的映射关系
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>
@@ -89,6 +95,7 @@ index 1484b7211717..7e20dbf4f84c 100644
  	mmu_page_remove_parent_pte(page, parent_pte);
 -	if (page->role.level > PT_PAGE_TABLE_LEVEL)
 -		kvm_mmu_page_unlink_children(vcpu, page);
+  //这里不再做限制, 如果是 PT_PAGE_TABLE_LEVEL, 就接触pte和 page之间的反向映射.
 +	kvm_mmu_page_unlink_children(vcpu, page);
  	hlist_del(&page->hash_link);
  	list_del(&page->link);
