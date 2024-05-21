@@ -16,6 +16,9 @@ Subject: [PATCH 28/33] [PATCH] KVM: MMU: Free pages on kvm destruction
 Because mmu pages have attached rmap and parent pte chain structures, we need
 to zap them before freeing so the attached structures are freed.
 
+> 因为 mmu pages 附加了 rmap 和parent pte chain结构，所以我们需要在释放之前对
+> 其进行 zap，以便释放附加结构。
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

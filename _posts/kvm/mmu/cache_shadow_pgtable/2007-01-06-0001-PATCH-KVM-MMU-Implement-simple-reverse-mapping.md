@@ -310,11 +310,11 @@ index 09bb9b4ed12d..8c48528a6e89 100644
  	mark_page_dirty(vcpu->kvm, gfn);
  	*shadow_ent |= PT_WRITABLE_MASK;
  	*guest_ent |= PT_DIRTY_MASK;
-    /*
-     * is_rmap_pte() 提到过, 如果是wp的则不需要创建rmap, 在fix_write_pf()中
-     * 会将pte有wp 变为 writeable, 所以在这里需要执行rmap_add()
-     */
-+	rmap_add(vcpu->kvm, shadow_ent);
+ 	/*
+ 	 * is_rmap_pte() 提到过, 如果是wp的则不需要创建rmap, 在fix_write_pf()中
+ 	 * 会将pte有wp 变为 writeable, 所以在这里需要执行rmap_add()
+ 	 */
+ 	rmap_add(vcpu->kvm, shadow_ent);
  
  	return 1;
  }

@@ -21,7 +21,12 @@ Signed-off-by: Linus Torvalds <torvalds@osdl.org>
 ---
  drivers/kvm/paging_tmpl.h | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
+```
 
+> 因为页表一般都是kernel 侧操作,如果发生了用户态操作了 pgtable, 则说明其已经
+> 不是pgtable[了.
+{: .prompt-tip}
+```diff
 diff --git a/drivers/kvm/paging_tmpl.h b/drivers/kvm/paging_tmpl.h
 index 03c474aaedde..6acb16ea5ce2 100644
 --- a/drivers/kvm/paging_tmpl.h

@@ -115,7 +115,7 @@ index 6dbd83b86623..1484b7211717 100644
 +	struct hlist_node *node, *n;
 +	int r;
 +
-  //找到该gfn对应的 shadow pgtable, 并释放他们
+	//找到该gfn对应的 shadow pgtable, 并释放他们
 +	pgprintk("%s: looking for gfn %lx\n", __FUNCTION__, gfn);
 +	r = 0;
 +	index = kvm_page_table_hashfn(gfn) % KVM_NUM_MMU_PAGES;

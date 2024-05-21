@@ -77,14 +77,14 @@ index f2a6b6f0e929..4512d8c39c84 100644
  {
  	gfn_t pdpt_gfn = cr3 >> PAGE_SHIFT;
 -	unsigned offset = (cr3 & (PAGE_SIZE-1)) >> 5;
-    /*
-     * offset是 u64 pointer, 需要原来的base_address >> 3, 也就是 / 8, 实际上
-     * 也就是 >> 5 << 2, 那为什么需要先 >> 5呢 ?
-     *
-     * 在pae mode下, cr3 [4:0]: 是reserved的. 所以需要 >> 5, (其实也就说明
-     * pdpte base 是32-byte对齐). 如果>>5 再 <<2 比直接 >> 3 可以保证[4, 3]
-     * 这两位是0, 满足手册中 ignored 的语义.
-     */
+	/*
+	 * offset是 u64 pointer, 需要原来的base_address >> 3, 也就是 / 8, 实际上
+	 * 也就是 >> 5 << 2, 那为什么需要先 >> 5呢 ?
+	 *
+	 * 在pae mode下, cr3 [4:0]: 是reserved的. 所以需要 >> 5, (其实也就说明
+	 * pdpte base 是32-byte对齐). 如果>>5 再 <<2 比直接 >> 3 可以保证[4, 3]
+	 * 这两位是0, 满足手册中 ignored 的语义.
+	 */
 +	unsigned offset = ((cr3 & (PAGE_SIZE-1)) >> 5) << 2;
  	int i;
  	u64 pdpte;

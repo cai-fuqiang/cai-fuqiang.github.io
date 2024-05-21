@@ -15,11 +15,27 @@ Subject: [PATCH 26/33] [PATCH] KVM: MMU: Fix cmpxchg8b emulation
 
 cmpxchg8b uses edx:eax as the compare operand, not edi:eax.
 
+> intel sdm said:
+> Compares the 64-bit value in EDX:EAX (or 128-bit value in RDX:RAX
+> if operand size is 128 bits) with the operand
+> (destination operand).
+
 cmpxchg8b is used by 32-bit pae guests to set page table entries atomically,
 and this is emulated touching shadowed guest page tables.
 
+> cmpxchg8b 用来 32-bit pae guest 来atomically 设置 pgtable entries, 并且这是模拟
+> touching影子guest 页表。
+
 Also, implement it for 32-bit hosts.
 
+> 同时在32-bit host实现它.
+```
+
+> 这里主要在host上emulate时, CONFIG_X86_32 所支持的数据类型只能是32-bit的, 所以
+> 64-bit的操作数, 只能拆分成两次传递到 emulator_write_emulated
+{: .prompt-tip}
+
+```diff
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

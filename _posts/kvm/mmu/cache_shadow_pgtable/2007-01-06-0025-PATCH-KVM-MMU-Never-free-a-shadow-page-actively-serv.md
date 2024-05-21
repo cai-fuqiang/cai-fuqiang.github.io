@@ -17,6 +17,9 @@ Subject: [PATCH 25/33] [PATCH] KVM: MMU: Never free a shadow page actively
 We always need cr3 to point to something valid, so if we detect that we're
 freeing a root page, simply push it back to the top of the active list.
 
+> 我们总是需要cr3来指向有效的东西，所以如果我们检测到我们正在释放一个根页面，
+> 只需将其推回到活动列表的顶部。
+
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
 Signed-off-by: Andrew Morton <akpm@osdl.org>

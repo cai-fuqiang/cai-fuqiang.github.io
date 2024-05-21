@@ -15,9 +15,13 @@ Subject: [PATCH 20/33] [PATCH] KVM: MMU: Handle misaligned accesses to write
  protected guest page tables
 
 A misaligned access affects two shadow ptes instead of just one.
+> 未对齐的访问会影响两个影子 pte，而不是仅影响一个。
 
 Since a misaligned access is unlikely to occur on a real page table, just zap
 the page out of existence, avoiding further trouble.
+
+> 由于在实际页表上不太可能发生未对齐的访问，因此只需将该页zap即可，避免进一步
+> 的麻烦。
 
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>
@@ -55,6 +59,15 @@ index 53c3643038bb..50b1432dceee 100644
  		if (page->gfn != gfn || page->role.metaphysical)
  			continue;
 +		pte_size = page->role.glevels == PT32_ROOT_LEVEL ? 4 : 8;
+		/* 这里要比较offset和 offset+bytes-1,两者是不是没有在同一个pte_size中
+		 * 例如,如果pte_size 是8 byte
+		 * |---8------|---8-----|-----8---|
+		 *   offset     offset+
+		 *              byte-1
+		 * 这样就说明, 其没有对齐.
+		 * 所以就需要验证, 在pte_size - 1的其余位, 两者有没有不同的bit, 就需要
+		 * 用到异或运算.
+		 */
 +		misaligned = (offset ^ (offset + bytes - 1)) & ~(pte_size - 1);
 +		if (misaligned) {
 +			/*

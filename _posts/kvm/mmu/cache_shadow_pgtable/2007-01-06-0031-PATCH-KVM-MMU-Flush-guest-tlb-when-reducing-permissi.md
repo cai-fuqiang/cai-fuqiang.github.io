@@ -17,8 +17,13 @@ Subject: [PATCH 31/33] [PATCH] KVM: MMU: Flush guest tlb when reducing
 If we reduce permissions on a pte, we must flush the cached copy of the pte
 from the guest's tlb.
 
+> 如果我们减少了pte 的权限, 我们必须从guest tlb中 flush 该pte的cached copy.
+
 This is implemented at the moment by flushing the entire guest tlb, and can be
 improved by flushing just the relevant virtual address, if it is known.
+
+> 目前，这是通过刷新整个guest tlb 来实现的，并且可以通过仅刷新相关虚拟地址（如果已知）
+> 来改进。
 
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>

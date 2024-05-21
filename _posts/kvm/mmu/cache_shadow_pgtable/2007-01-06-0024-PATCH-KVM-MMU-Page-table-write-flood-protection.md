@@ -17,8 +17,13 @@ In fork() (or when we protect a page that is no longer a page table), we can
 experience floods of writes to a page, which have to be emulated.  This is
 expensive.
 
+> 在 fork() 中（或者当我们保护不再是页表的页面时），我们可能会遇到对页面的大量写
+> 入，必须对其进行模拟。 这是很昂贵的。
+
 So, if we detect such a flood, zap the page so subsequent writes can proceed
 natively.
+
+> 因此，如果我们检测到此类flood，请zap该页面，以便后续写入可以natively进行。
 
 Signed-off-by: Avi Kivity <avi@qumranet.com>
 Acked-by: Ingo Molnar <mingo@elte.hu>

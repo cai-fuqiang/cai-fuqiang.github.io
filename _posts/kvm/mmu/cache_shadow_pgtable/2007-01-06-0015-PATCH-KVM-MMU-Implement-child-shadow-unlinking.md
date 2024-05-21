@@ -95,7 +95,7 @@ index 1484b7211717..7e20dbf4f84c 100644
  	mmu_page_remove_parent_pte(page, parent_pte);
 -	if (page->role.level > PT_PAGE_TABLE_LEVEL)
 -		kvm_mmu_page_unlink_children(vcpu, page);
-  //这里不再做限制, 如果是 PT_PAGE_TABLE_LEVEL, 就接触pte和 page之间的反向映射.
+	//这里不再做限制, 如果是 PT_PAGE_TABLE_LEVEL, 就接触pte和 page之间的反向映射.
 +	kvm_mmu_page_unlink_children(vcpu, page);
  	hlist_del(&page->hash_link);
  	list_del(&page->link);

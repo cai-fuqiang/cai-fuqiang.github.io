@@ -17,9 +17,15 @@ Subject: [PATCH 29/33] [PATCH] KVM: MMU: Replace atomic allocations by
 The mmu sometimes needs memory for reverse mapping and parent pte chains.
 however, we can't allocate from within the mmu because of the atomic context.
 
+> mmu 有时需要内存用于反向映射和parent pte chains。 但是，由于原子上下文，我们无法从 
+> mmu 内部进行分配。
+
 So, move the allocations to a central place that can be executed before the
 main mmu machinery, where we can bail out on failure before any damage is
 done.
+
+> 因此，将分配移动到可以在主 mmu 机器之前执行的中心位置，这样我们就可以在发生任何
+> 损坏之前摆脱故障。
 
 (error handling is deffered for now, but the basic structure is there)
 

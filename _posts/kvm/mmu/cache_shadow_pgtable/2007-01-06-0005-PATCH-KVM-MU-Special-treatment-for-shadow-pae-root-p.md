@@ -255,9 +255,9 @@ index 0f27beb6c5df..1dcbbd511660 100644
 +	 * Therefore we need to allocate shadow page tables in the first
 +	 * 4GB of memory, which happens to fit the DMA32 zone.
 +	 */
-+	/*
-+	 * 无论是pae 还是 page32, cr3指向的Root level pgtable都是32bit的.
-+	 */
+	/*
+	 * 无论是pae 还是 page32, cr3指向的Root level pgtable都是32bit的.
+	 */
 +	page = alloc_page(GFP_KERNEL | __GFP_DMA32);
 +	if (!page)
 +		goto error_1;
