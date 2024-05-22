@@ -3,8 +3,8 @@ layout: post
 title:  "[PATCH] KVM: Update shadow pte on write to guest pte"
 author: fuqiang
 date:   2007-05-01 16:53:31 +0300
-categories: [kvm]
-tags: [kvm]
+categories: [kvm, kvm_mmu_oth]
+tags: [kvm_mmu_oth]
 ---
 
 ```diff

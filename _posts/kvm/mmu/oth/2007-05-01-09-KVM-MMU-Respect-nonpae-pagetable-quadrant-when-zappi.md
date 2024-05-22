@@ -3,8 +3,8 @@ layout: post
 title:  "[PATCH] KVM: MMU: Respect nonpae pagetable quadrant when zapping ptes"
 author: fuqiang
 date:   2007-05-01 16:44:05 +0300
-categories: [kvm]
-tags: [kvm]
+categories: [kvm, kvm_mmu_oth]
+tags: [kvm_mmu_oth]
 ---
 
 ```diff

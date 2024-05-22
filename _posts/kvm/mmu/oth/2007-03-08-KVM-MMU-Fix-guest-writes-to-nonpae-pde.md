@@ -3,8 +3,8 @@ layout: post
 title:  "[PATCH] KVM: MMU: Fix guest writes to nonpae pde"
 author: fuqiang
 date: Thu, 8 Mar 2007 17:13:32 +0200
-categories: [kvm]
-tags: [kvm]
+categories: [kvm, kvm_mmu_oth]
+tags: [kvm_mmu_oth]
 ---
 
 ```diff
