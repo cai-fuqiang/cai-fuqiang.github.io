@@ -22,3 +22,4 @@ assets/js/dist
 
 # vercel
 .vercel
+_posts/*.sh
