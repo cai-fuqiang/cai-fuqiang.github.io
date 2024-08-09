@@ -1,0 +1,231 @@
+---
+layout:     post
+title:      "[PATCH 16/19] mm: vmalloc: pass additional vm_flags to __vmalloc_node_range()"
+author:     "fuqiang"
+date:       "Fri, 13 Feb 2015 14:40:07 -0800"
+categories: [kasan]
+tags:       [kasan_org_patch]
+---
+
+```diff
+From cb9e3c292d0115499c660028ad35ac5501d722b5 Mon Sep 17 00:00:00 2001
+From: Andrey Ryabinin <a.ryabinin@samsung.com>
+Date: Fri, 13 Feb 2015 14:40:07 -0800
+Subject: [PATCH 16/19] mm: vmalloc: pass additional vm_flags to
+ __vmalloc_node_range()
+
+For instrumenting global variables KASan will shadow memory backing memory
+for modules.  So on module loading we will need to allocate memory for
+shadow and map it at address in shadow that corresponds to the address
+allocated in module_alloc().
+
+__vmalloc_node_range() could be used for this purpose, except it puts a
+guard hole after allocated area.  Guard hole in shadow memory should be a
+problem because at some future point we might need to have a shadow memory
+at address occupied by guard hole.  So we could fail to allocate shadow
+for module_alloc().
+
+Now we have VM_NO_GUARD flag disabling guard page, so we need to pass into
+__vmalloc_node_range().  Add new parameter 'vm_flags' to
+__vmalloc_node_range() function.
+
+Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Konstantin Serebryany <kcc@google.com>
+Cc: Dmitry Chernenkov <dmitryc@google.com>
+Signed-off-by: Andrey Konovalov <adech.fo@gmail.com>
+Cc: Yuri Gribov <tetra2005@gmail.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Andi Kleen <andi@firstfloor.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Pekka Enberg <penberg@kernel.org>
+Cc: David Rientjes <rientjes@google.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ arch/arm/kernel/module.c       |  2 +-
+ arch/arm64/kernel/module.c     |  4 ++--
+ arch/mips/kernel/module.c      |  2 +-
+ arch/parisc/kernel/module.c    |  2 +-
+ arch/s390/kernel/module.c      |  2 +-
+ arch/sparc/kernel/module.c     |  2 +-
+ arch/unicore32/kernel/module.c |  2 +-
+ arch/x86/kernel/module.c       |  2 +-
+ include/linux/vmalloc.h        |  4 +++-
+ mm/vmalloc.c                   | 10 ++++++----
+ 10 files changed, 18 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm/kernel/module.c b/arch/arm/kernel/module.c
+index bea7db9e5b80..2e11961f65ae 100644
+--- a/arch/arm/kernel/module.c
++++ b/arch/arm/kernel/module.c
+@@ -41,7 +41,7 @@
+ void *module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+-				GFP_KERNEL, PAGE_KERNEL_EXEC, NUMA_NO_NODE,
++				GFP_KERNEL, PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ #endif
+diff --git a/arch/arm64/kernel/module.c b/arch/arm64/kernel/module.c
+index 9b6f71db2709..67bf4107f6ef 100644
+--- a/arch/arm64/kernel/module.c
++++ b/arch/arm64/kernel/module.c
+@@ -35,8 +35,8 @@
+ void *module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+-				    GFP_KERNEL, PAGE_KERNEL_EXEC, NUMA_NO_NODE,
+-				    __builtin_return_address(0));
++				    GFP_KERNEL, PAGE_KERNEL_EXEC, 0,
++				    NUMA_NO_NODE, __builtin_return_address(0));
+ }
+ 
+ enum aarch64_reloc_op {
+diff --git a/arch/mips/kernel/module.c b/arch/mips/kernel/module.c
+index 2a52568dbcd6..1833f5171ccd 100644
+--- a/arch/mips/kernel/module.c
++++ b/arch/mips/kernel/module.c
+@@ -47,7 +47,7 @@ static DEFINE_SPINLOCK(dbe_lock);
+ void *module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULE_START, MODULE_END,
+-				GFP_KERNEL, PAGE_KERNEL, NUMA_NO_NODE,
++				GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ #endif
+diff --git a/arch/parisc/kernel/module.c b/arch/parisc/kernel/module.c
+index 5822e8e200e6..3c63a820fcda 100644
+--- a/arch/parisc/kernel/module.c
++++ b/arch/parisc/kernel/module.c
+@@ -219,7 +219,7 @@ void *module_alloc(unsigned long size)
+ 	 * init_data correctly */
+ 	return __vmalloc_node_range(size, 1, VMALLOC_START, VMALLOC_END,
+ 				    GFP_KERNEL | __GFP_HIGHMEM,
+-				    PAGE_KERNEL_RWX, NUMA_NO_NODE,
++				    PAGE_KERNEL_RWX, 0, NUMA_NO_NODE,
+ 				    __builtin_return_address(0));
+ }
+ 
+diff --git a/arch/s390/kernel/module.c b/arch/s390/kernel/module.c
+index 409d152585be..36154a2f1814 100644
+--- a/arch/s390/kernel/module.c
++++ b/arch/s390/kernel/module.c
+@@ -50,7 +50,7 @@ void *module_alloc(unsigned long size)
+ 	if (PAGE_ALIGN(size) > MODULES_LEN)
+ 		return NULL;
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+-				    GFP_KERNEL, PAGE_KERNEL, NUMA_NO_NODE,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+ 				    __builtin_return_address(0));
+ }
+ #endif
+diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
+index 97655e0fd243..192a617a32f3 100644
+--- a/arch/sparc/kernel/module.c
++++ b/arch/sparc/kernel/module.c
+@@ -29,7 +29,7 @@ static void *module_map(unsigned long size)
+ 	if (PAGE_ALIGN(size) > MODULES_LEN)
+ 		return NULL;
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+-				GFP_KERNEL, PAGE_KERNEL, NUMA_NO_NODE,
++				GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ #else
+diff --git a/arch/unicore32/kernel/module.c b/arch/unicore32/kernel/module.c
+index dc41f6dfedb6..e191b3448bd3 100644
+--- a/arch/unicore32/kernel/module.c
++++ b/arch/unicore32/kernel/module.c
+@@ -25,7 +25,7 @@
+ void *module_alloc(unsigned long size)
+ {
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+-				GFP_KERNEL, PAGE_KERNEL_EXEC, NUMA_NO_NODE,
++				GFP_KERNEL, PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
+ 				__builtin_return_address(0));
+ }
+ 
+diff --git a/arch/x86/kernel/module.c b/arch/x86/kernel/module.c
+index e69f9882bf95..e830e61aae05 100644
+--- a/arch/x86/kernel/module.c
++++ b/arch/x86/kernel/module.c
+@@ -88,7 +88,7 @@ void *module_alloc(unsigned long size)
+ 	return __vmalloc_node_range(size, 1,
+ 				    MODULES_VADDR + get_module_load_offset(),
+ 				    MODULES_END, GFP_KERNEL | __GFP_HIGHMEM,
+-				    PAGE_KERNEL_EXEC, NUMA_NO_NODE,
++				    PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
+ 				    __builtin_return_address(0));
+ }
+ 
+diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
+index 1526fe712ca0..7d7acb35603d 100644
+--- a/include/linux/vmalloc.h
++++ b/include/linux/vmalloc.h
+@@ -76,7 +76,9 @@ extern void *vmalloc_32_user(unsigned long size);
+ extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot);
+ extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
+ 			unsigned long start, unsigned long end, gfp_t gfp_mask,
+-			pgprot_t prot, int node, const void *caller);
++			pgprot_t prot, unsigned long vm_flags, int node,
++			const void *caller);
++
+ extern void vfree(const void *addr);
+ 
+ extern void *vmap(struct page **pages, unsigned int count,
+diff --git a/mm/vmalloc.c b/mm/vmalloc.c
+index 2e74e99d4cfe..35b25e1340ca 100644
+--- a/mm/vmalloc.c
++++ b/mm/vmalloc.c
+@@ -1619,6 +1619,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+  *	@end:		vm area range end
+  *	@gfp_mask:	flags for the page level allocator
+  *	@prot:		protection mask for the allocated pages
++ *	@vm_flags:	additional vm area flags (e.g. %VM_NO_GUARD)
+  *	@node:		node to use for allocation or NUMA_NO_NODE
+  *	@caller:	caller's return address
+  *
+@@ -1628,7 +1629,8 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+  */
+ void *__vmalloc_node_range(unsigned long size, unsigned long align,
+ 			unsigned long start, unsigned long end, gfp_t gfp_mask,
+-			pgprot_t prot, int node, const void *caller)
++			pgprot_t prot, unsigned long vm_flags, int node,
++			const void *caller)
+ {
+ 	struct vm_struct *area;
+ 	void *addr;
+@@ -1638,8 +1640,8 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
+ 	if (!size || (size >> PAGE_SHIFT) > totalram_pages)
+ 		goto fail;
+ 
+-	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNINITIALIZED,
+-				  start, end, node, gfp_mask, caller);
++	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNINITIALIZED |
++				vm_flags, start, end, node, gfp_mask, caller);
+ 	if (!area)
+ 		goto fail;
+ 
+@@ -1688,7 +1690,7 @@ static void *__vmalloc_node(unsigned long size, unsigned long align,
+ 			    int node, const void *caller)
+ {
+ 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+-				gfp_mask, prot, node, caller);
++				gfp_mask, prot, 0, node, caller);
+ }
+ 
+ void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
+-- 
+2.42.0
+
+```

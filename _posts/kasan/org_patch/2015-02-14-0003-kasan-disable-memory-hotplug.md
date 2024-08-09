@@ -1,0 +1,86 @@
+---
+layout:     post
+title:      "[PATCH 03/19] kasan: disable memory hotplug"
+author:     "fuqiang"
+date:       "Fri, 13 Feb 2015 14:39:21 -0800"
+categories: [kasan]
+tags:       [kasan_org_patch]
+---
+
+```diff
+From 786a8959912eb94fc2381c2ae487a96ce55dabca Mon Sep 17 00:00:00 2001
+From: Andrey Ryabinin <a.ryabinin@samsung.com>
+Date: Fri, 13 Feb 2015 14:39:21 -0800
+Subject: [PATCH 03/19] kasan: disable memory hotplug
+
+Currently memory hotplug won't work with KASan.  As we don't have shadow
+for hotplugged memory, kernel will crash on the first access to it.  To
+make this work we will need to allocate shadow for new memory.
+
+At some future point proper memory hotplug support will be implemented.
+Until then, print a warning at startup and disable memory hot-add.
+
+Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Konstantin Serebryany <kcc@google.com>
+Cc: Dmitry Chernenkov <dmitryc@google.com>
+Signed-off-by: Andrey Konovalov <adech.fo@gmail.com>
+Cc: Yuri Gribov <tetra2005@gmail.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Andi Kleen <andi@firstfloor.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Pekka Enberg <penberg@kernel.org>
+Cc: David Rientjes <rientjes@google.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ mm/kasan/kasan.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
+index 6dc1aa7cefcc..def81104772f 100644
+--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+@@ -20,6 +20,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/memblock.h>
++#include <linux/memory.h>
+ #include <linux/mm.h>
+ #include <linux/printk.h>
+ #include <linux/sched.h>
+@@ -300,3 +301,23 @@ EXPORT_SYMBOL(__asan_storeN_noabort);
+ /* to shut up compiler complaints */
+ void __asan_handle_no_return(void) {}
+ EXPORT_SYMBOL(__asan_handle_no_return);
++
++#ifdef CONFIG_MEMORY_HOTPLUG
++static int kasan_mem_notifier(struct notifier_block *nb,
++			unsigned long action, void *data)
++{
++	return (action == MEM_GOING_ONLINE) ? NOTIFY_BAD : NOTIFY_OK;
++}
++
++static int __init kasan_memhotplug_init(void)
++{
++	pr_err("WARNING: KASan doesn't support memory hot-add\n");
++	pr_err("Memory hot-add will be disabled\n");
++
++	hotplug_memory_notifier(kasan_mem_notifier, 0);
++
++	return 0;
++}
++
++module_init(kasan_memhotplug_init);
++#endif
+-- 
+2.42.0
+
+```

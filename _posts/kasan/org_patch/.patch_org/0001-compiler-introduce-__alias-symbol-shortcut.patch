@@ -1,0 +1,47 @@
+From cb4188ac8e5779f66b9f55888ac2c75b391cde44 Mon Sep 17 00:00:00 2001
+From: Andrey Ryabinin <a.ryabinin@samsung.com>
+Date: Fri, 13 Feb 2015 14:39:14 -0800
+Subject: [PATCH 01/19] compiler: introduce __alias(symbol) shortcut
+
+To be consistent with other compiler attributes introduce __alias(symbol)
+macro expanding into __attribute__((alias(#symbol)))
+
+Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Konstantin Serebryany <kcc@google.com>
+Cc: Dmitry Chernenkov <dmitryc@google.com>
+Signed-off-by: Andrey Konovalov <adech.fo@gmail.com>
+Cc: Yuri Gribov <tetra2005@gmail.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Andi Kleen <andi@firstfloor.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Pekka Enberg <penberg@kernel.org>
+Cc: David Rientjes <rientjes@google.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ include/linux/compiler-gcc.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 02ae99e8e6d3..cdf13ca7cac3 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -66,6 +66,7 @@
+ #define __deprecated			__attribute__((deprecated))
+ #define __packed			__attribute__((packed))
+ #define __weak				__attribute__((weak))
++#define __alias(symbol)		__attribute__((alias(#symbol)))
+ 
+ /*
+  * it doesn't make sense on ARM (currently the only user of __naked) to trace
+-- 
+2.42.0
+

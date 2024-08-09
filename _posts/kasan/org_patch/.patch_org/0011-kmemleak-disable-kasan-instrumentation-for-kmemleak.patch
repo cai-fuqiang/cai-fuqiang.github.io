@@ -1,0 +1,71 @@
+From e79ed2f13faab8fc9d4ad76d5f5a241724e45836 Mon Sep 17 00:00:00 2001
+From: Andrey Ryabinin <a.ryabinin@samsung.com>
+Date: Fri, 13 Feb 2015 14:39:49 -0800
+Subject: [PATCH 11/19] kmemleak: disable kasan instrumentation for kmemleak
+
+kmalloc internally round up allocation size, and kmemleak uses rounded up
+size as object's size.  This makes kasan to complain while kmemleak scans
+memory or calculates of object's checksum.  The simplest solution here is
+to disable kasan.
+
+Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Konstantin Serebryany <kcc@google.com>
+Cc: Dmitry Chernenkov <dmitryc@google.com>
+Signed-off-by: Andrey Konovalov <adech.fo@gmail.com>
+Cc: Yuri Gribov <tetra2005@gmail.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Andi Kleen <andi@firstfloor.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Pekka Enberg <penberg@kernel.org>
+Cc: David Rientjes <rientjes@google.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ mm/kmemleak.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index 3cda50c1e394..5405aff5a590 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -98,6 +98,7 @@
+ #include <asm/processor.h>
+ #include <linux/atomic.h>
+ 
++#include <linux/kasan.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/kmemleak.h>
+ #include <linux/memory_hotplug.h>
+@@ -1113,7 +1114,10 @@ static bool update_checksum(struct kmemleak_object *object)
+ 	if (!kmemcheck_is_obj_initialized(object->pointer, object->size))
+ 		return false;
+ 
++	kasan_disable_current();
+ 	object->checksum = crc32(0, (void *)object->pointer, object->size);
++	kasan_enable_current();
++
+ 	return object->checksum != old_csum;
+ }
+ 
+@@ -1164,7 +1168,9 @@ static void scan_block(void *_start, void *_end,
+ 						  BYTES_PER_POINTER))
+ 			continue;
+ 
++		kasan_disable_current();
+ 		pointer = *ptr;
++		kasan_enable_current();
+ 
+ 		object = find_and_get_object(pointer, 1);
+ 		if (!object)
+-- 
+2.42.0
+
