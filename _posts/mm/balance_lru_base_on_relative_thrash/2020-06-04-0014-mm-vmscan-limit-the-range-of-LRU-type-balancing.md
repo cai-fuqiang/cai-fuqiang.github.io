@@ -1,0 +1,92 @@
+---
+layout:     post
+title:      "[PATCH 14/14] mm: vmscan: limit the range of LRU type balancing"
+author:     "fuqiang"
+date:       "Wed, 3 Jun 2020 16:03:13 -0700"
+categories: [lru_balancing]
+tags:       [lru_balancing]
+---
+
+```diff
+From d483a5dd009a091d3dab3bc873335989e2cd5b08 Mon Sep 17 00:00:00 2001
+From: Johannes Weiner <hannes@cmpxchg.org>
+Date: Wed, 3 Jun 2020 16:03:13 -0700
+Subject: [PATCH 14/14] mm: vmscan: limit the range of LRU type balancing
+
+When LRU cost only shows up on one list, we abruptly stop scanning that
+list altogether.  That's an extreme reaction: by the time the other list
+starts thrashing and the pendulum swings back, we may have no recent age
+information on the first list anymore, and we could have significant
+latencies until the scanner has caught up.
+
+Soften this change in the feedback system by ensuring that no list
+receives less than a third of overall pressure, and only distribute the
+other 66% according to LRU cost.  This ensures that we maintain a minimum
+rate of aging on the entire workingset while it's being pressured, while
+still allowing a generous rate of convergence when the relative sizes of
+the lists need to adjust.
+
+Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Rik van Riel <riel@surriel.com>
+Link: http://lkml.kernel.org/r/20200520232525.798933-15-hannes@cmpxchg.org
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ mm/vmscan.c | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 14ffe9ccf7ef..3792dd19788c 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -2237,12 +2237,11 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
+ 			   unsigned long *nr)
+ {
+ 	struct mem_cgroup *memcg = lruvec_memcg(lruvec);
++	unsigned long anon_cost, file_cost, total_cost;
+ 	int swappiness = mem_cgroup_swappiness(memcg);
+ 	u64 fraction[2];
+ 	u64 denominator = 0;	/* gcc */
+-	unsigned long anon_prio, file_prio;
+ 	enum scan_balance scan_balance;
+-	unsigned long totalcost;
+ 	unsigned long ap, fp;
+ 	enum lru_list lru;
+ 
+@@ -2301,17 +2300,22 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
+ 	 * the relative IO cost of bringing back a swapped out
+ 	 * anonymous page vs reloading a filesystem page (swappiness).
+ 	 *
++	 * Although we limit that influence to ensure no list gets
++	 * left behind completely: at least a third of the pressure is
++	 * applied, before swappiness.
++	 *
+ 	 * With swappiness at 100, anon and file have equal IO cost.
+ 	 */
+-	anon_prio = swappiness;
+-	file_prio = 200 - anon_prio;
++	total_cost = sc->anon_cost + sc->file_cost;
++	anon_cost = total_cost + sc->anon_cost;
++	file_cost = total_cost + sc->file_cost;
++	total_cost = anon_cost + file_cost;
+ 
+-	totalcost = sc->anon_cost + sc->file_cost;
+-	ap = anon_prio * (totalcost + 1);
+-	ap /= sc->anon_cost + 1;
++	ap = swappiness * (total_cost + 1);
++	ap /= anon_cost + 1;
+ 
+-	fp = file_prio * (totalcost + 1);
+-	fp /= sc->file_cost + 1;
++	fp = (200 - swappiness) * (total_cost + 1);
++	fp /= file_cost + 1;
+ 
+ 	fraction[0] = ap;
+ 	fraction[1] = fp;
+-- 
+2.42.0
+
+```

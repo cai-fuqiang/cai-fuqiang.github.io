@@ -1,0 +1,114 @@
+---
+layout:     post
+title:      "[PATCH 03/14] mm: allow swappiness that prefers reclaiming anon over the file workingset"
+author:     "fuqiang"
+date:       "Wed, 3 Jun 2020 16:02:37 -0700"
+categories: [lru_balancing]
+tags:       [lru_balancing]
+---
+
+```diff
+From c843966c556d7370bb32e7319a6d164cb8c70ae2 Mon Sep 17 00:00:00 2001
+From: Johannes Weiner <hannes@cmpxchg.org>
+Date: Wed, 3 Jun 2020 16:02:37 -0700
+Subject: [PATCH 03/14] mm: allow swappiness that prefers reclaiming anon over
+ the file workingset
+
+With the advent of fast random IO devices (SSDs, PMEM) and in-memory swap
+devices such as zswap, it's possible for swap to be much faster than
+filesystems, and for swapping to be preferable over thrashing filesystem
+caches.
+
+Allow setting swappiness - which defines the rough relative IO cost of
+cache misses between page cache and swap-backed pages - to reflect such
+situations by making the swap-preferred range configurable.
+
+Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Rik van Riel <riel@surriel.com>
+Link: http://lkml.kernel.org/r/20200520232525.798933-4-hannes@cmpxchg.org
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ Documentation/admin-guide/sysctl/vm.rst | 23 ++++++++++++++++++-----
+ kernel/sysctl.c                         |  3 ++-
+ mm/vmscan.c                             |  2 +-
+ 3 files changed, 21 insertions(+), 7 deletions(-)
+
+diff --git a/Documentation/admin-guide/sysctl/vm.rst b/Documentation/admin-guide/sysctl/vm.rst
+index 0329a4d3fa9e..d46d5b7013c6 100644
+--- a/Documentation/admin-guide/sysctl/vm.rst
++++ b/Documentation/admin-guide/sysctl/vm.rst
+@@ -831,14 +831,27 @@ tooling to work, you can do::
+ swappiness
+ ==========
+ 
+-This control is used to define how aggressive the kernel will swap
+-memory pages.  Higher values will increase aggressiveness, lower values
+-decrease the amount of swap.  A value of 0 instructs the kernel not to
+-initiate swap until the amount of free and file-backed pages is less
+-than the high water mark in a zone.
++This control is used to define the rough relative IO cost of swapping
++and filesystem paging, as a value between 0 and 200. At 100, the VM
++assumes equal IO cost and will thus apply memory pressure to the page
++cache and swap-backed pages equally; lower values signify more
++expensive swap IO, higher values indicates cheaper.
++
++Keep in mind that filesystem IO patterns under memory pressure tend to
++be more efficient than swap's random IO. An optimal value will require
++experimentation and will also be workload-dependent.
+ 
+ The default value is 60.
+ 
++For in-memory swap, like zram or zswap, as well as hybrid setups that
++have swap on faster devices than the filesystem, values beyond 100 can
++be considered. For example, if the random IO against the swap device
++is on average 2x faster than IO from the filesystem, swappiness should
++be 133 (x + 2x = 200, 2x = 133.33).
++
++At 0, the kernel will not initiate swap until the amount of free and
++file-backed pages is less than the high watermark in a zone.
++
+ 
+ unprivileged_userfaultfd
+ ========================
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 8a176d8727a3..7f15d292e44c 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -131,6 +131,7 @@ static unsigned long zero_ul;
+ static unsigned long one_ul = 1;
+ static unsigned long long_max = LONG_MAX;
+ static int one_hundred = 100;
++static int two_hundred = 200;
+ static int one_thousand = 1000;
+ #ifdef CONFIG_PRINTK
+ static int ten_thousand = 10000;
+@@ -1391,7 +1392,7 @@ static struct ctl_table vm_table[] = {
+ 		.mode		= 0644,
+ 		.proc_handler	= proc_dointvec_minmax,
+ 		.extra1		= SYSCTL_ZERO,
+-		.extra2		= &one_hundred,
++		.extra2		= &two_hundred,
+ 	},
+ #ifdef CONFIG_HUGETLB_PAGE
+ 	{
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 1fa2417f7c2a..c711efc42cfc 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -161,7 +161,7 @@ struct scan_control {
+ #endif
+ 
+ /*
+- * From 0 .. 100.  Higher means more swappy.
++ * From 0 .. 200.  Higher means more swappy.
+  */
+ int vm_swappiness = 60;
+ /*
+-- 
+2.42.0
+
+```

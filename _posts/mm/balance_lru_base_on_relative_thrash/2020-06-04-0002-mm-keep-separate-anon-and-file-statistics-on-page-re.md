@@ -1,0 +1,121 @@
+---
+layout:     post
+title:      "[PATCH 02/14] mm: keep separate anon and file statistics on page reclaim activity"
+author:     "fuqiang"
+date:       "Wed, 3 Jun 2020 16:02:34 -0700"
+categories: [lru_balancing]
+tags:       [lru_balancing]
+---
+
+```diff
+From 497a6c1b09902b22ceccc0f25ba4dd623e1ddb7d Mon Sep 17 00:00:00 2001
+From: Johannes Weiner <hannes@cmpxchg.org>
+Date: Wed, 3 Jun 2020 16:02:34 -0700
+Subject: [PATCH 02/14] mm: keep separate anon and file statistics on page
+ reclaim activity
+
+Having statistics on pages scanned and pages reclaimed for both anon and
+file pages makes it easier to evaluate changes to LRU balancing.
+
+While at it, clean up the stat-keeping mess for isolation, putback,
+reclaim stats etc.  a bit: first the physical LRU operation (isolation and
+putback), followed by vmstats, reclaim_stats, and then vm events.
+
+Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Rik van Riel <riel@surriel.com>
+Link: http://lkml.kernel.org/r/20200520232525.798933-3-hannes@cmpxchg.org
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ include/linux/vm_event_item.h |  4 ++++
+ mm/vmscan.c                   | 17 +++++++++--------
+ mm/vmstat.c                   |  4 ++++
+ 3 files changed, 17 insertions(+), 8 deletions(-)
+
+diff --git a/include/linux/vm_event_item.h b/include/linux/vm_event_item.h
+index ffef0f279747..24fc7c3ae7d6 100644
+--- a/include/linux/vm_event_item.h
++++ b/include/linux/vm_event_item.h
+@@ -35,6 +35,10 @@ enum vm_event_item { PGPGIN, PGPGOUT, PSWPIN, PSWPOUT,
+ 		PGSCAN_KSWAPD,
+ 		PGSCAN_DIRECT,
+ 		PGSCAN_DIRECT_THROTTLE,
++		PGSCAN_ANON,
++		PGSCAN_FILE,
++		PGSTEAL_ANON,
++		PGSTEAL_FILE,
+ #ifdef CONFIG_NUMA
+ 		PGSCAN_ZONE_RECLAIM_FAILED,
+ #endif
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 779edd05b75e..1fa2417f7c2a 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -1913,7 +1913,7 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
+ 	unsigned int nr_reclaimed = 0;
+ 	unsigned long nr_taken;
+ 	struct reclaim_stat stat;
+-	int file = is_file_lru(lru);
++	bool file = is_file_lru(lru);
+ 	enum vm_event_item item;
+ 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
+ 	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
+@@ -1941,11 +1941,12 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
+ 
+ 	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, nr_taken);
+ 	reclaim_stat->recent_scanned[file] += nr_taken;
+-
+ 	item = current_is_kswapd() ? PGSCAN_KSWAPD : PGSCAN_DIRECT;
+ 	if (!cgroup_reclaim(sc))
+ 		__count_vm_events(item, nr_scanned);
+ 	__count_memcg_events(lruvec_memcg(lruvec), item, nr_scanned);
++	__count_vm_events(PGSCAN_ANON + file, nr_scanned);
++
+ 	spin_unlock_irq(&pgdat->lru_lock);
+ 
+ 	if (nr_taken == 0)
+@@ -1956,16 +1957,16 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
+ 
+ 	spin_lock_irq(&pgdat->lru_lock);
+ 
++	move_pages_to_lru(lruvec, &page_list);
++
++	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, -nr_taken);
++	reclaim_stat->recent_rotated[0] += stat.nr_activate[0];
++	reclaim_stat->recent_rotated[1] += stat.nr_activate[1];
+ 	item = current_is_kswapd() ? PGSTEAL_KSWAPD : PGSTEAL_DIRECT;
+ 	if (!cgroup_reclaim(sc))
+ 		__count_vm_events(item, nr_reclaimed);
+ 	__count_memcg_events(lruvec_memcg(lruvec), item, nr_reclaimed);
+-	reclaim_stat->recent_rotated[0] += stat.nr_activate[0];
+-	reclaim_stat->recent_rotated[1] += stat.nr_activate[1];
+-
+-	move_pages_to_lru(lruvec, &page_list);
+-
+-	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, -nr_taken);
++	__count_vm_events(PGSTEAL_ANON + file, nr_reclaimed);
+ 
+ 	spin_unlock_irq(&pgdat->lru_lock);
+ 
+diff --git a/mm/vmstat.c b/mm/vmstat.c
+index 068706a0a1a7..e55eda3b1a71 100644
+--- a/mm/vmstat.c
++++ b/mm/vmstat.c
+@@ -1203,6 +1203,10 @@ const char * const vmstat_text[] = {
+ 	"pgscan_kswapd",
+ 	"pgscan_direct",
+ 	"pgscan_direct_throttle",
++	"pgscan_anon",
++	"pgscan_file",
++	"pgsteal_anon",
++	"pgsteal_file",
+ 
+ #ifdef CONFIG_NUMA
+ 	"zone_reclaim_failed",
+-- 
+2.42.0
+
+```
