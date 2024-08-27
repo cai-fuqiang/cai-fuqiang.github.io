@@ -12,11 +12,16 @@ From fbbb602e40c270e884bc545161b238074b20aaae Mon Sep 17 00:00:00 2001
 From: Johannes Weiner <hannes@cmpxchg.org>
 Date: Wed, 3 Jun 2020 16:02:57 -0700
 Subject: [PATCH 09/14] mm: deactivations shouldn't bias the LRU balance
+```
 
 Operations like MADV_FREE, FADV_DONTNEED etc.  currently move any affected
 active pages to the inactive list to accelerate their reclaim (good) but
 also steer page reclaim toward that LRU type, or away from the other
 (bad).
+
+> 操作如 MADV_FREE 和 FADV_DONTNEED 等当前会将任何受影响的活动页移到不活跃列
+> 表中，以加速它们的回收（这是好的），但也会将页面回收引导向该 LRU 类型，
+> 或者远离其他类型（这是不好的）。
 
 The reason why this is undesirable is that such operations are not part of
 the regular page aging cycle, and rather a fluke that doesn't say much
@@ -26,12 +31,15 @@ apply elevated pressure on those remaining hot pages.  The other LRU,
 meanwhile, might have easily reclaimable pages, and there was never a need
 to steer away from it in the first place.
 
+> 
+
 As the previous patch outlined, we should focus on recording actually
 observed cost to steer the balance rather than speculating about the
 potential value of one LRU list over the other.  In that spirit, leave
 explicitely deactivated pages to the LRU algorithm to pick up, and let
 rotations decide which list is the easiest to reclaim.
 
+```diff
 [cai@lca.pw: fix set-but-not-used warning]
   Link: http://lkml.kernel.org/r/20200522133335.GA624@Qians-MacBook-Air.local
 Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
