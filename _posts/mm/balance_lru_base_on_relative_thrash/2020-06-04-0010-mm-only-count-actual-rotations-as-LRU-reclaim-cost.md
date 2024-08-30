@@ -12,6 +12,7 @@ From 264e90cc07f177adec17ee7cc154ddaa132f0b2d Mon Sep 17 00:00:00 2001
 From: Johannes Weiner <hannes@cmpxchg.org>
 Date: Wed, 3 Jun 2020 16:03:00 -0700
 Subject: [PATCH 10/14] mm: only count actual rotations as LRU reclaim cost
+```
 
 When shrinking the active file list we rotate referenced pages only when
 they're in an executable mapping.  The others get deactivated.  When it
@@ -22,12 +23,16 @@ deactivation is tangible progress toward freeing pages; rotations on the
 other hand cost time and effort without getting any closer to freeing
 memory.
 
+> 在缩减活动文件列表时，我们仅在引用的页面位于可执行映射中时才进行旋转。其他
+> 页面则被停用。
+
 Don't treat both events as equal.  The following patch will hook up LRU
 balancing to cache and anon refaults, which are a much more concrete cost
 signal for reclaiming one list over the other.  Thus, remove the maybe-IO
 cost bias from page references, and only note the CPU cost for actual
 rotations that prevent the pages from getting reclaimed.
 
+```diff
 Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 Acked-by: Minchan Kim <minchan@kernel.org>
@@ -39,6 +44,7 @@ Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 ---
  mm/vmscan.c | 8 +++-----
  1 file changed, 3 insertions(+), 5 deletions(-)
+
 
 diff --git a/mm/vmscan.c b/mm/vmscan.c
 index c5b2a68f4ef6..3c89eac629f3 100644

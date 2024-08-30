@@ -31,13 +31,33 @@ apply elevated pressure on those remaining hot pages.  The other LRU,
 meanwhile, might have easily reclaimable pages, and there was never a need
 to steer away from it in the first place.
 
-> 
+> ```
+> undesirable [ˌʌndɪˈzaɪərəbl]: 不受欢迎的;不想要的;不得人心的
+> fluke [fluːk]: 侥幸;偶然;意外
+> page aging cycle: 页面老化周期
+> victims [ˈvɪktɪmz]: 受害者
+> purge [pɜːrdʒ]: 净化;清晰;清除;排除
+> ```
+> 这之所以不可取，是因为这样的操作并不属于常规的页面老化周期，而更像是一次偶然
+> 事件，这并不能说明该列表上剩余页面的情况；这些页面可能都在被大量使用中，一旦
+> 这些容易回收的页面被清除，VM 会继续对那些剩余的hot page 施加更大的压力。另
+> 一方面，另一个LRU（最近最少使用算法）列表中可能有容易回收的页面，原本就没有必要
+> 避开它。
 
 As the previous patch outlined, we should focus on recording actually
 observed cost to steer the balance rather than speculating about the
 potential value of one LRU list over the other.  In that spirit, leave
 explicitely deactivated pages to the LRU algorithm to pick up, and let
 rotations decide which list is the easiest to reclaim.
+
+> ```
+> outline [ˈaʊtlaɪn]: 概述; 略述
+> speculating: 投机
+> ```
+> 正如上一个补丁所概述的那样，我们应该专注于记录实际观察到的成本以控制
+> 平衡，而不是推测一个 LRU 列表相对于另一个 LRU 列表的潜在价值。本着这
+> 种精神，将明确停用的页面留给 LRU 算法来拾取，并让轮换决定哪个列表最容
+> 易回收。
 
 ```diff
 [cai@lca.pw: fix set-but-not-used warning]
