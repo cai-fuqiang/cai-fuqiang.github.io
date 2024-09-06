@@ -111,3 +111,17 @@ from thrashing and rebalance the page cache lists when appropriate.
 # 参考链接:
 
 https://lore.kernel.org/all/1375827778-12357-1-git-send-email-hannes@cmpxchg.org/
+
+# 其他术语
+1. inter-reference distance
+
+   "Inter-reference distance" 指的是在内存管理和缓存策略中，两次对同一数据对象
+   （如文件、数据库表、内存页等）的访问之间的距离。这个距离可以用时间或者访问的
+   数量来衡量。例如，在文件访问的情况下，"inter-reference distance" 可以表示在两
+   次访问同一个文件之间，所读取的其他文件的数量。如果这个距离较大，就意味着在同
+   一段时间内对该数据的访问频率较低。
+
+   在内存管理中，较大的 "inter-reference distance" 可能会导致数据被交换出内存
+   （页置换），因为系统认为它不再是"工作集"的一部分。反之，较小的距离表示该数据
+   被频繁访问，通常会被保留在内存中。
+2. 
