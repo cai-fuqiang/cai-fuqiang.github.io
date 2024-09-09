@@ -376,6 +376,13 @@ index 5ad7c8531083..3ce8a1629330 100644
 +
 +	sec_exec_control = vmcs_read32(SECONDARY_VM_EXEC_CONTROL);
 +
+/*
+ * Intel sdm 11.12.2 x2APIC Register Availability
+ *
+ * In x2APIC mode, the memory mapped interface is not available 
+ * and any access to the MMIO interface will behave similar to
+ * that of a legacy xAPIC in globally disabled state.
+ */
 +	if (set) {
 +		sec_exec_control &= ~SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES;
 +		sec_exec_control |= SECONDARY_EXEC_VIRTUALIZE_X2APIC_MODE;
@@ -479,3 +486,4 @@ index 5ad7c8531083..3ce8a1629330 100644
 2.41.0
 
 ```
+

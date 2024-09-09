@@ -50,5 +50,4 @@ index f16321498093..0bd2a19709ce 100644
  		list_del(&page->link);
 -- 
 2.42.0
-
 ```
