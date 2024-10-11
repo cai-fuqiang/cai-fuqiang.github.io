@@ -1,0 +1,243 @@
+<!doctype html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f7"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1b1b1e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="viewport" content="width=device-width, user-scalable=no initial-scale=1, shrink-to-fit=no, viewport-fit=cover" ><meta name="generator" content="Jekyll v4.3.3" /><meta property="og:title" content="pgcacher" /><meta name="author" content="fuqiang" /><meta property="og:locale" content="en" /><meta name="description" content="简介" /><meta property="og:description" content="简介" /><link rel="canonical" href="/posts/pgcacher/" /><meta property="og:url" content="/posts/pgcacher/" /><meta property="og:site_name" content="one step at a time" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2024-10-10T10:10:00+08:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="pgcacher" /><meta name="twitter:site" content="@fuqiang_cai" /><meta name="twitter:creator" content="@fuqiang" /> <script type="application/ld+json"> {"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"fuqiang"},"dateModified":"2024-10-10T10:10:00+08:00","datePublished":"2024-10-10T10:10:00+08:00","description":"简介","headline":"pgcacher","mainEntityOfPage":{"@type":"WebPage","@id":"/posts/pgcacher/"},"url":"/posts/pgcacher/"}</script><title>pgcacher | one step at a time</title><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/site.webmanifest"><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico"><meta name="apple-mobile-web-app-title" content="one step at a time"><meta name="application-name" content="one step at a time"><meta name="msapplication-TileColor" content="#da532c"><meta name="msapplication-config" content="/assets/img/favicons/browserconfig.xml"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.googleapis.com" ><link rel="dns-prefetch" href="https://fonts.googleapis.com" ><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" ><link rel="dns-prefetch" href="https://fonts.googleapis.com" ><link rel="preconnect" href="https://cdn.jsdelivr.net" ><link rel="dns-prefetch" href="https://cdn.jsdelivr.net" ><link rel="preconnect" href="https://cdnjs.cloudflare.com" ><link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" ><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&family=Source+Sans+Pro:wght@400;600;700;900&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="/assets/css/jekyll-theme-chirpy.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tocbot@4.25.0/dist/tocbot.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/loading-attribute-polyfill@2.1.1/dist/loading-attribute-polyfill.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/magnific-popup@1.1.0/dist/magnific-popup.min.css"> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return 'mode'; } static get MODE_ATTR() { return 'data-mode'; } static get DARK_MODE() { return 'dark'; } static get LIGHT_MODE() { return 'light'; } static get ID() { return 'mode-toggle'; } constructor() { if (this.hasMode) { if (this.isDarkMode) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } let self = this; /* always follow the system prefers */ this.sysDarkPrefers.addEventListener('change', () => { if (self.hasMode) { if (self.isDarkMode) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } self.notify(); }); } /* constructor() */ get sysDarkPrefers() { return window.matchMedia('(prefers-color-scheme: dark)'); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode === ModeToggle.DARK_MODE; } get isLightMode() { return this.mode === ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } /* get the current mode on screen */ get modeStatus() { if (this.isDarkMode || (!this.hasMode && this.isSysDarkPrefer)) { return ModeToggle.DARK_MODE; } else { return ModeToggle.LIGHT_MODE; } } setDark() { document.documentElement.setAttribute(ModeToggle.MODE_ATTR, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { document.documentElement.setAttribute(ModeToggle.MODE_ATTR, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { document.documentElement.removeAttribute(ModeToggle.MODE_ATTR); sessionStorage.removeItem(ModeToggle.MODE_KEY); } /* Notify another plugins that the theme mode has changed */ notify() { window.postMessage( { direction: ModeToggle.ID, message: this.modeStatus }, '*' ); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } this.notify(); } /* flipMode() */ } /* ModeToggle */ const modeToggle = new ModeToggle(); </script><body><aside aria-label="Sidebar" id="sidebar" class="d-flex flex-column align-items-end"><header class="profile-wrapper"> <a href="/" id="avatar" class="rounded-circle"></a><h1 class="site-title"> <a href="/">one step at a time</a></h1><p class="site-subtitle fst-italic mb-0">a noob's growing diary</p></header><nav class="flex-column flex-grow-1 w-100 ps-0"><ul class="nav"><li class="nav-item"> <a href="/" class="nav-link"> <i class="fa-fw fas fa-home"></i> <span>HOME</span> </a><li class="nav-item"> <a href="/categories/" class="nav-link"> <i class="fa-fw fas fa-stream"></i> <span>CATEGORIES</span> </a><li class="nav-item"> <a href="/tags/" class="nav-link"> <i class="fa-fw fas fa-tags"></i> <span>TAGS</span> </a><li class="nav-item"> <a href="/archives/" class="nav-link"> <i class="fa-fw fas fa-archive"></i> <span>ARCHIVES</span> </a><li class="nav-item"> <a href="/about/" class="nav-link"> <i class="fa-fw fas fa-info-circle"></i> <span>ABOUT</span> </a></ul></nav><div class="sidebar-bottom d-flex flex-wrap align-items-center w-100"> <button type="button" class="mode-toggle btn" aria-label="Switch Mode"> <i class="fas fa-adjust"></i> </button> <span class="icon-border"></span> <a href="https://github.com/cai-fuqiang" aria-label="github" target="_blank" rel="noopener noreferrer" > <i class="fab fa-github"></i> </a> <a href="https://twitter.com/fuqiang_cai" aria-label="twitter" target="_blank" rel="noopener noreferrer" > <i class="fa-brands fa-x-twitter"></i> </a> <a href="javascript:location.href = 'mailto:' + ['iwng86','163.com'].join('@')" aria-label="email" > <i class="fas fa-envelope"></i> </a> <a href="/feed.xml" aria-label="rss" > <i class="fas fa-rss"></i> </a></div></aside><div id="main-wrapper" class="d-flex justify-content-center"><div class="container d-flex flex-column px-xxl-5"><header id="topbar-wrapper" aria-label="Top Bar"><div id="topbar" class="d-flex align-items-center justify-content-between px-lg-3 h-100" ><nav id="breadcrumb" aria-label="Breadcrumb"> <span> <a href="/">Home</a> </span> <span>pgcacher</span></nav><button type="button" id="sidebar-trigger" class="btn btn-link"> <i class="fas fa-bars fa-fw"></i> </button><div id="topbar-title"> Post</div><button type="button" id="search-trigger" class="btn btn-link"> <i class="fas fa-search fa-fw"></i> </button> <search class="align-items-center ms-3 ms-lg-0"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" autocomplete="off" placeholder="Search..." > </search> <button type="button" class="btn btn-link text-decoration-none" id="search-cancel">Cancel</button></div></header><div class="row flex-grow-1"><main aria-label="Main Content" class="col-12 col-lg-11 col-xl-9 px-md-4"><article class="px-1"><header><h1 data-toc-skip>pgcacher</h1><div class="post-meta text-muted"> <span> Posted <time data-ts="1728526200" data-df="ll" data-bs-toggle="tooltip" data-bs-placement="bottom" > Oct 10, 2024 </time> </span><div class="d-flex justify-content-between"> <span> By <em> </em> </span><div> <span class="readtime" data-bs-toggle="tooltip" data-bs-placement="bottom" title="1771 words" > <em>9 min</em> read</span></div></div></div></header><div class="content"><h2 id="简介"><span class="me-2">简介</span><a href="#简介" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><p>pgcacher可以用来获取当前系统中pagecache相关信息。pgclear打印的信息 格式大致如下:</p><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre># sudo pgcacher -pid=933 -worker=5  -limit 2
++---------------------------------+----------------+-------------+----------------+-------------+---------+
+| Name                            | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|---------------------------------+----------------+-------------+----------------+-------------+---------|
+| /usr/lib64/libc.so.6            | 2.131M         | 546         | 2.131M         | 546         | 100.000 |
+| /usr/lib64/libsystemd.so.0.36.0 | 939.391K       | 235         | 939.391K       | 235         | 100.000 |
+|---------------------------------+----------------+-------------+----------------+-------------+---------|
+│ Sum                             │ 3.048M         │ 781         │ 3.048M         │ 781         │ 100.000 │
++---------------------------------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><ul><li>name: 文件名称<li>size: 文件大小<li>page<li>cached size: pagecache 占用的大小<li>cached pages: pagecache 占用的 page 数量<li>percent: cached size / size</ul><p>pgcacher大致的原理:</p><p>从系统中的<code class="language-plaintext highlighter-rouge">/proc/{pid}/maps</code>和<code class="language-plaintext highlighter-rouge">/proc/{pid}/fd</code>获取进程所使用的文件 路径, 然后将文件mmap到当前进程，通过<code class="language-plaintext highlighter-rouge">syscall.mincore</code>获取该文件 block在内存中有pagecache。</p><p><img src="pic/pgcacher_design.png" alt="pgcacher design" /></p><blockquote class="prompt-tip"><p>这里面只画了mmap一条线，没有画FD的，不知道是作者漏画了，还是别有 深意</p></blockquote><p>下面是<code class="language-plaintext highlighter-rouge">syscall.mincore</code>的原理图，我们再另一篇文章中展示</p><p><img src="pic/syscall_mincore.png" alt="syscall.mincore" /></p><h2 id="常用命令"><span class="me-2">常用命令</span><a href="#常用命令" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><ol><li>查看某个进程 pgcache 占用情况<div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre>wang@fedora ~ <span class="nb">sudo </span>pgcacher <span class="nt">-pid</span><span class="o">=</span>1 <span class="nt">-worker</span> 5 <span class="nt">-limit</span> 3
+2024/10/10 13:03:02 skipping <span class="s2">"/sys/fs/cgroup"</span>: file is a directory
++-------------------------------------------------------+----------------+-------------+----------------+-------------+---------+
+| Name                                                  | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|-------------------------------------------------------+----------------+-------------+----------------+-------------+---------|
+| /usr/lib64/libcrypto.so.3.0.9                         | 4.237M         | 1085        | 4.237M         | 1085        | 100.000 |
+| /usr/lib64/systemd/libsystemd-shared-253.12-1.fc38.so | 3.651M         | 935         | 3.651M         | 935         | 100.000 |
+| /usr/lib64/libc.so.6                                  | 2.131M         | 546         | 2.131M         | 546         | 100.000 |
+|-------------------------------------------------------+----------------+-------------+----------------+-------------+---------|
+│ Sum                                                   │ 10.019M        │ 2566        │ 10.019M        │ 2566        │ 100.000 │
++-------------------------------------------------------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><ul><li>pid: 指定进程号<li>worker: 指定多线程数量，加快处理速度<li>limit: 限制打印条目</ul><li>查看某些文件的pgcache占用<div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre> wang@fedora  ~/workspace/vm/centos-qcow2  pgcacher cgdb.sh test.sh dange.xml
++-----------+----------------+-------------+----------------+-------------+---------+
+| Name      | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|-----------+----------------+-------------+----------------+-------------+---------|
+| test.sh   | 4.166K         | 2           | 4.166K         | 2           | 100.000 |
+| cgdb.sh   | 1.471K         | 1           | 1.471K         | 1           | 100.000 |
+| dange.xml | 6.869K         | 2           | 0B             | 0           | 0.000   |
+|-----------+----------------+-------------+----------------+-------------+---------|
+│ Sum       │ 12.506K        │ 5           │ 5.637K         │ 3           │ 60.000  │
++-----------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><p>本次测试，只cat了<code class="language-plaintext highlighter-rouge">test.sh</code>, <code class="language-plaintext highlighter-rouge">cgdb.sh</code> 没有cat <code class="language-plaintext highlighter-rouge">dange.xml</code></p><li>查看某个目录的文件pgcache占用（递归）<div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre> wang@fedora  ~  pgcacher <span class="nt">--depth</span> 4 a
++-----------+----------------+-------------+----------------+-------------+---------+
+| Name      | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|-----------+----------------+-------------+----------------+-------------+---------|
+| a/b/a.md  | 16B            | 1           | 16B            | 1           | 100.000 |
+| a/b/a.txt | 69B            | 1           | 0B             | 0           | 0.000   |
+|-----------+----------------+-------------+----------------+-------------+---------|
+│ Sum       │ 85B            │ 2           │ 16B            │ 1           │ 50.000  │
++-----------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><li>查看系统中所有进程占用的 pgcache 情况<div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre> wang@fedora  ~  pgcacher <span class="nt">-top</span> <span class="nt">-limit</span> 3<span class="p">;</span>
++--------------------------------+----------------+-------------+----------------+-------------+---------+
+| Name                           | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|--------------------------------+----------------+-------------+----------------+-------------+---------|
+| /usr/lib/locale/locale-archive | 213.972M       | 54777       | 213.972M       | 54777       | 100.000 |
+| /usr/lib64/firefox/libxul.so   | 125.989M       | 32254       | 125.989M       | 32254       | 100.000 |
+| /usr/lib64/libLLVM-16.so       | 117.789M       | 30154       | 117.789M       | 30154       | 100.000 |
+|--------------------------------+----------------+-------------+----------------+-------------+---------|
+│ Sum                            │ 457.750M       │ 117185      │ 457.750M       │ 117185      │ 100.000 │
++--------------------------------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><blockquote class="prompt-info"><p>该命令只能查询当前系统中，进程打开的文件，以及mmap的文件占用。并不是系统中 所有文件的pgcache占用统计</p><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>-top: scan the open files of all processes, show the top few files that 
+occupy the most memory space in the page cache, default: false
+</pre></table></code></div></div></blockquote></ol><h2 id="pgcacher-执行流程"><span class="me-2">pgcacher 执行流程</span><a href="#pgcacher-执行流程" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><p><code class="language-plaintext highlighter-rouge">pgcacher</code>流程主要分为以下几个步骤</p><ol><li>汇总所有要统计的文件<li>对这些文件进行<code class="language-plaintext highlighter-rouge">mmap</code>, 然后调用<code class="language-plaintext highlighter-rouge">mincore</code>, 获取该文件在内存中的有哪些block申请了<code class="language-plaintext highlighter-rouge">pgcache</code><li>统计打印</ol><p>我们先看下如何汇总所有要统计的文件</p><h3 id="汇总所有统计的文件"><span class="me-2">汇总所有统计的文件</span><a href="#汇总所有统计的文件" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><p>主要分为种方式:</p><ol><li>从进程角度出发, 统计某个或者某些进程使用的文件, 而从进程角度出发主要又分两种方式:<ul><li><strong>-pid</strong> : 统计某个进程<li><strong>-top</strong>: 统计所有进程</ul><li>从文件系统角度出发, 统计某些文件，或者某个目录下的所有文件</ol><h4 id="从进程角度出发"><span class="me-2">从进程角度出发</span><a href="#从进程角度出发" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h4><p>该方式主要分为两种, <code class="language-plaintext highlighter-rouge">-pid</code>获取某一个进程。<code class="language-plaintext highlighter-rouge">-top</code>获取所有进程， 我们分别来看下:</p><ul><li><strong>-pid</strong><div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre>main
+  <span class="o">=&gt;</span> pg.appendProcessFiles<span class="o">(</span>pid<span class="o">)</span>
+     <span class="o">=&gt;</span> pg.getProcessFiles<span class="o">(</span>pid<span class="o">)</span>
+       <span class="o">=&gt;</span> pg.getProcessFdFiles<span class="o">(</span>pid<span class="o">)</span>
+          <span class="o">=&gt;</span> loop /proc/<span class="k">${</span><span class="nv">pid</span><span class="k">}</span>/fd       <span class="c"># 获取所有打开fd的 文件路径</span>
+       <span class="o">=&gt;</span> pg.getProcessMaps<span class="o">(</span>pid<span class="o">)</span>        <span class="c"># 获取mmap 的文件路径</span>
+          <span class="o">=&gt;</span> loop /proc/<span class="k">${</span><span class="nv">pid</span><span class="k">}</span>/maps
+       <span class="o">=&gt;</span>  AREADY GET THIS PROCESS ALL FILEs
+  <span class="o">=&gt;</span> pg.getPageCacheStats<span class="o">()</span>             <span class="c"># 获取 files pagecache 情况</span>
+  <span class="o">=&gt;</span> pg.output<span class="o">()</span>                        <span class="c"># 以一定格式输出</span>
+</pre></table></code></div></div><li><strong>-top</strong><div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre>main
+   <span class="o">=&gt;</span> pg.handleTop<span class="o">()</span>
+      <span class="o">=&gt;</span> psutils.Processes<span class="o">()</span>
+         <span class="o">=&gt;</span> processes<span class="o">()</span>      <span class="c"># return all process</span>
+      <span class="o">=&gt;</span> loop all process
+         <span class="o">=&gt;</span> pg.getProcessFiles<span class="o">(</span>process.Pid<span class="o">())</span>
+      <span class="o">=&gt;</span> pg.getPageCacheStats<span class="o">()</span>
+      <span class="o">=&gt;</span> pg.output<span class="o">()</span>
+</pre></table></code></div></div></ul><p>两者流程差不多，<code class="language-plaintext highlighter-rouge">-top</code>就是先获取所有进程，然后收集每个进程使用的文件</p><h4 id="从文件角度出发"><span class="me-2">从文件角度出发</span><a href="#从文件角度出发" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h4><p>从文件角度出发，这个比较简单，从文件系统tree，或者参数中的文件列表就可以 只要所需要统计的文件的路径，流程不再展开</p><h3 id="统计文件的pgcache占用情况"><span class="me-2">统计文件的pgcache占用情况</span><a href="#统计文件的pgcache占用情况" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><p>该流程主要在<code class="language-plaintext highlighter-rouge">pg.getPageCacheStats()</code>流程</p><div class="language-sh highlighter-rouge"><div class="code-header"> <span data-label-text="Shell"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre>pg.getPageCacheStats<span class="o">()</span>
+  <span class="o">=&gt;</span> pcstats.GetPcStatus<span class="o">()</span>
+     <span class="o">=&gt;</span> GetFileMincore<span class="o">()</span>
+        <span class="o">=&gt;</span> unix.Mmap<span class="o">()</span>               <span class="c"># 先mmap文件，目的是为了下面调用sys_mincore</span>
+        <span class="o">=&gt;</span> unix.Syscall<span class="o">(</span>unix.SYS_MINCORE, ...<span class="o">)</span> <span class="c"># 调用mincore</span>
+  <span class="c"># 根据mincore的返回，获取各种</span>
+  <span class="o">=&gt;</span> Get Cached
+  <span class="o">=&gt;</span> Get Pages
+  <span class="o">=&gt;</span> Get Uncached
+  <span class="o">=&gt;</span> Calculate Percent
+</pre></table></code></div></div><p>该流程也比较简单，对文件依次，进行<code class="language-plaintext highlighter-rouge">sys_mmap()</code>, 然后对<code class="language-plaintext highlighter-rouge">mmap()</code>的地址空间 做<code class="language-plaintext highlighter-rouge">sys_mincore()</code>, 查看这些地址所在的page, 是否存在其pgcache</p><blockquote class="prompt-tip"><p>虽然此时 VA-&gt;PA 没有建立起映射， 但是<code class="language-plaintext highlighter-rouge">sys_mincore</code>流程，仍然可以 通过<code class="language-plaintext highlighter-rouge">address_space-&gt;i_pages</code>获取到该地址空间是否有pgcache，我们在另外 一篇文章中，看下<code class="language-plaintext highlighter-rouge">sys_mincore()</code>原理</p></blockquote><h2 id="pgcacher遗漏-pgcache--blockdev"><span class="me-2">pgcacher遗漏 pgcache – blockdev</span><a href="#pgcacher遗漏-pgcache--blockdev" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><p>目前，<code class="language-plaintext highlighter-rouge">pgcacher</code> 发现对blockdev 有忽略, 例如执行下面命令:</p><h3 id="简单测试"><span class="me-2">简单测试</span><a href="#简单测试" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><ul><li>从文件角度查看<div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre>  # sudo ./pgcacher /dev/nvme0n1
+  +--------------+----------------+-------------+----------------+-------------+---------+
+  | Name         | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+  |--------------+----------------+-------------+----------------+-------------+---------|
+  | /dev/nvme0n1 | 0B             | 0           | 0B             | 0           | 0.000   |
+  |--------------+----------------+-------------+----------------+-------------+---------|
+  │ Sum          │ 0B             │ 0           │ 0B             │ 0           │ NaN     │
+  +--------------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div><li>从进程调度<div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre># sudo xxd /dev/nvme0n1|less
+# sudo ~/workspace/tools/mm/pgcacher_org/pgcacher -pid $(ps aux |grep xxd |grep -v -E 'grep|sudo' |awk '{print $2}')
++---------------------------------+----------------+-------------+----------------+-------------+---------+
+| Name                            | Size           │ Pages       │ Cached Size    │ Cached Pages│ Percent │
+|---------------------------------+----------------+-------------+----------------+-------------+---------|
+| /usr/lib64/libc.so.6            | 2.131M         | 546         | 2.131M         | 546         | 100.000 |
+| /usr/lib64/ld-linux-x86-64.so.2 | 829.688K       | 208         | 829.688K       | 208         | 100.000 |
+| /usr/bin/xxd                    | 23.758K        | 6           | 23.758K        | 6           | 100.000 |
+|---------------------------------+----------------+-------------+----------------+-------------+---------|
+│ Sum                             │ 2.964M         │ 760         │ 2.964M         │ 760         │ 100.000 │
++---------------------------------+----------------+-------------+----------------+-------------+---------+
+</pre></table></code></div></div></ul><h3 id="相关代码"><span class="me-2">相关代码</span><a href="#相关代码" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h3><p>从进程角度出发, 在获取进程所使用的文件列表时(<code class="language-plaintext highlighter-rouge">getProcessFiles()</code>), 忽略了<code class="language-plaintext highlighter-rouge">/dev下的所有文件</code>.</p><div class="language-go highlighter-rouge"><div class="code-header"> <span data-label-text="Go"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre><span class="k">func</span> <span class="p">(</span><span class="n">pg</span> <span class="o">*</span><span class="n">pgcacher</span><span class="p">)</span> <span class="n">getProcessFdFiles</span><span class="p">(</span><span class="n">pid</span> <span class="kt">int</span><span class="p">)</span> <span class="p">[]</span><span class="kt">string</span> <span class="p">{</span>
+        <span class="o">...</span>
+        <span class="n">readlink</span> <span class="o">:=</span> <span class="k">func</span><span class="p">(</span><span class="n">file</span> <span class="n">fs</span><span class="o">.</span><span class="n">DirEntry</span><span class="p">)</span> <span class="p">{</span>
+                <span class="o">...</span>
+                <span class="k">if</span> <span class="n">strings</span><span class="o">.</span><span class="n">HasPrefix</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s">"/dev"</span><span class="p">)</span> <span class="p">{</span> <span class="c">// ignore devices</span>
+                        <span class="k">return</span>
+                <span class="p">}</span>
+                <span class="o">...</span>
+        <span class="p">}</span>
+        <span class="o">...</span>
+<span class="p">}</span>
+</pre></table></code></div></div><blockquote class="prompt-warning"><p>个人建议，可以增加选择统计下<code class="language-plaintext highlighter-rouge">blockdev</code>file.</p></blockquote><p>从文件角度出发，似乎也有问题:</p><div class="language-go highlighter-rouge"><div class="code-header"> <span data-label-text="Go"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre><span class="k">func</span> <span class="n">GetPcStatus</span><span class="p">(</span><span class="n">fname</span> <span class="kt">string</span><span class="p">,</span> <span class="n">filter</span> <span class="k">func</span><span class="p">(</span><span class="n">f</span> <span class="o">*</span><span class="n">os</span><span class="o">.</span><span class="n">File</span><span class="p">)</span> <span class="kt">error</span><span class="p">)</span> <span class="p">(</span><span class="n">PcStatus</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+        <span class="o">...</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="o">...</span>
+        <span class="n">finfo</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">Stat</span><span class="p">()</span>
+        <span class="o">...</span>
+        <span class="n">pcs</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="n">finfo</span><span class="o">.</span><span class="n">Size</span><span class="p">()</span>
+        <span class="o">...</span>
+        <span class="n">mincore</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">GetFileMincore</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">finfo</span><span class="o">.</span><span class="n">Size</span><span class="p">())</span>
+        <span class="o">...</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>通过<code class="language-plaintext highlighter-rouge">os.Stat()</code>并不能统计到block_dev文件大小，导致<code class="language-plaintext highlighter-rouge">finfo.Size()</code>输出为0,</p><blockquote class="prompt-warning"><p>个人建议, 对于block_dev, 可以使用下面的接口获取文件大小</p><div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre>unix.Syscall(unix.SYS_IOCTL, , BLKGETSIZE64,,)
+</pre></table></code></div></div></blockquote><h2 id="参考链接"><span class="me-2">参考链接</span><a href="#参考链接" class="anchor text-muted"><i class="fas fa-hashtag"></i></a></h2><p>[1]. <a href="https://github.com/rfyiamcool/pgcacher">[GITHUB PROTECT]: pgcacher</a></p><p>[2]. <a href="https://github.com/rfyiamcool/pgcacher/issues/15">[GITHUB ISSUE]: pgcache ignore block_dev file</a></p></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw me-1"></i> <a href="/categories/mm/">mm</a>, <a href="/categories/pgcacher/">pgcacher</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw me-1"></i> <a href="/tags/pgcacher/" class="post-tag no-text-decoration" >pgcacher</a></div><div class=" post-tail-bottom d-flex justify-content-between align-items-center mt-5 pb-2 " ><div class="license-wrapper"> This post is licensed under <a href="https://creativecommons.org/licenses/by/4.0/"> CC BY 4.0 </a> by the author.</div><div class="share-wrapper d-flex align-items-center"> <span class="share-label text-muted">Share</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=pgcacher%20-%20one%20step%20at%20a%20time&url=%2Fposts%2Fpgcacher%2F" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Twitter" aria-label="Twitter"> <i class="fa-fw fa-brands fa-square-x-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=pgcacher%20-%20one%20step%20at%20a%20time&u=%2Fposts%2Fpgcacher%2F" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Facebook" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://t.me/share/url?url=%2Fposts%2Fpgcacher%2F&text=pgcacher%20-%20one%20step%20at%20a%20time" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-placement="top" title="Telegram" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <button id="copy-link" aria-label="Copy link" class="btn small" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy link" data-title-succeed="Link copied successfully!" > <i class="fa-fw fas fa-link pe-none fs-6"></i> </button> </span></div></div></div></article></main><aside aria-label="Panel" id="panel-wrapper" class="col-xl-3 ps-2 mb-5 text-muted"><div class="access"><section id="access-lastmod"><h2 class="panel-heading">Recently Updated</h2><ul class="content list-unstyled ps-0 pb-1 ms-1 mt-2"><li class="text-truncate lh-lg"> <a href="/posts/pgcacher/">pgcacher</a><li class="text-truncate lh-lg"> <a href="/posts/kcs/">Keyboard Controller Style (KCS) Interface</a><li class="text-truncate lh-lg"> <a href="/posts/unrestricted-guests/">unrestricted guests</a><li class="text-truncate lh-lg"> <a href="/posts/vmx-operation-restrict/">restrictions of VMX operation</a><li class="text-truncate lh-lg"> <a href="/posts/user-timer/">user-timer event and interrupt</a></ul></section><section><h2 class="panel-heading">Trending Tags</h2><div class="d-flex flex-wrap mt-3 mb-1 me-3"> <a class="post-tag btn btn-outline-primary" href="/tags/virt/">virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/para-virt/">para_virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/html-details/">html-details</a> <a class="post-tag btn btn-outline-primary" href="/tags/ipmi/">ipmi</a> <a class="post-tag btn btn-outline-primary" href="/tags/markdown/">markdown</a> <a class="post-tag btn btn-outline-primary" href="/tags/pgcacher/">pgcacher</a> <a class="post-tag btn btn-outline-primary" href="/tags/protect-mode/">protect-mode</a></div></section></div><section id="toc-wrapper" class="ps-0 pe-4"><h2 class="panel-heading ps-3 pt-2 mb-2">Contents</h2><nav id="toc"></nav></section></aside></div><div class="row"><div id="tail-wrapper" class="col-12 col-lg-11 col-xl-9 px-md-4"><nav class="post-navigation d-flex justify-content-between" aria-label="Post Navigation"> <a href="/posts/kcs/" class="btn btn-outline-primary" aria-label="Older" ><p>Keyboard Controller Style (KCS) Interface</p></a><div class="btn btn-outline-primary disabled" aria-label="Newer"><p>-</p></div></nav><footer aria-label="Site Info" class=" d-flex flex-column justify-content-center text-muted flex-lg-row justify-content-lg-between align-items-lg-center pb-lg-3 " ><p>© <time>2024</time> <a href="https://twitter.com/fuqiang_cai">fuqiang wang</a>. <span data-bs-toggle="tooltip" data-bs-placement="top" title="Except where otherwise noted, the blog posts on this site are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author." >Some rights reserved.</span></p><p>Using the <a data-bs-toggle="tooltip" data-bs-placement="top" title="v6.5.5" href="https://github.com/cotes2020/jekyll-theme-chirpy" target="_blank" rel="noopener" >Chirpy</a> theme for <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a>.</p></footer></div></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-11 content"><div id="search-hints"><section><h2 class="panel-heading">Trending Tags</h2><div class="d-flex flex-wrap mt-3 mb-1 me-3"> <a class="post-tag btn btn-outline-primary" href="/tags/virt/">virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/para-virt/">para_virt</a> <a class="post-tag btn btn-outline-primary" href="/tags/html-details/">html-details</a> <a class="post-tag btn btn-outline-primary" href="/tags/ipmi/">ipmi</a> <a class="post-tag btn btn-outline-primary" href="/tags/markdown/">markdown</a> <a class="post-tag btn btn-outline-primary" href="/tags/pgcacher/">pgcacher</a> <a class="post-tag btn btn-outline-primary" href="/tags/protect-mode/">protect-mode</a></div></section></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><aside aria-label="Scroll to Top"> <button id="back-to-top" type="button" class="btn btn-lg btn-box-shadow"> <i class="fas fa-angle-up"></i> </button></aside></div><div id="mask"></div><aside id="notification" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-animation="true" data-bs-autohide="false" ><div class="toast-header"> <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Close" ></button></div><div class="toast-body text-center pt-0"><p class="px-2 mb-3">A new version of content is available.</p><button type="button" class="btn btn-primary" aria-label="Update"> Update </button></div></aside><script src="https://cdn.jsdelivr.net/combine/npm/jquery@3.7.1/dist/jquery.min.js,npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js,npm/simple-jekyll-search@1.10.0/dest/simple-jekyll-search.min.js,npm/loading-attribute-polyfill@2.1.1/dist/loading-attribute-polyfill.umd.min.js,npm/magnific-popup@1.1.0/dist/jquery.magnific-popup.min.js,npm/clipboard@2.0.11/dist/clipboard.min.js,npm/dayjs@1.11.10/dayjs.min.js,npm/dayjs@1.11.10/locale/en.min.js,npm/dayjs@1.11.10/plugin/relativeTime.min.js,npm/dayjs@1.11.10/plugin/localizedFormat.min.js,npm/tocbot@4.25.0/dist/tocbot.min.js"></script> <script defer src="/assets/js/dist/post.min.js"></script> <script defer src="/assets/js/dist/app.min.js"></script> <script> /* Note: dependent library will be loaded in `js-selector.html` */ SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<article class="px-1 px-sm-2 px-lg-4 px-xl-0"><header><h2><a href="{url}">{title}</a></h2><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"> {categories} {tags}</div></header><p>{snippet}</p></article>', noResultsText: '<p class="mt-5">Oops! No results found.</p>', templateMiddleware: function(prop, value, template) { if (prop === 'categories') { if (value === '') { return `${value}`; } else { return `<div class="me-sm-4"><i class="far fa-folder fa-fw"></i>${value}</div>`; } } if (prop === 'tags') { if (value === '') { return `${value}`; } else { return `<div><i class="fa fa-tag fa-fw"></i>${value}</div>`; } } } }); </script>
