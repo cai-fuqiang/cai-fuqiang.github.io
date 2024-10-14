@@ -82,6 +82,12 @@ VM status: running
    问题原因: 不知道
 
    解决方法: 越过loongarch 编译，增加 `--targe-list-exclude=loongarch64-softmmu`
+   > Note
+   >
+   > 为了加快编译速度，可以只编译x86_64
+   > ```
+   > --target-list=x86_64-softmmu
+   > ```
 
 4. <font color=red size=4> 这里问题忘记记录了, 之后测试在记录</font>
 
@@ -92,6 +98,14 @@ VM status: running
 ./configure --extra-cflags="-g -Wno-maybe-uninitialized  \
    -Wno-dangling-pointer -Wno-enum-int-mismatch" --enable-spice  \
    --disable-werror --target-list-exclude=loongarch64-softmmu
+```
+
+fedora 38 缺少依赖:
+```
+ninja-build
+glib2-devel
+pixman-devel
+spice-server-devel
 ```
 
 ## 简单测试
@@ -234,7 +248,7 @@ $4 = IDE_HD
 
 此时我们如果不修改kind值，则会在:
 ```sh
-ide_init_driver
+ide_init_drive
   => if kind != IDE_CD:
        blk_is_inserted return true
      
@@ -319,7 +333,203 @@ bus: main-system-bus
 ```
 发现dst端，居然多了一个`bus: ide.0`，上居然多添加了一个`ide0-hd0` device
 
+> 为了方便后续调试
+>
+> 我们将代码暂时做下面的微调:
+> ```
+> @@ -2525,6 +2527,7 @@ int ide_init_drive(IDEState *s, BlockBackend *blk, IDEDriveKind kind,
+>      uint64_t nb_sectors;
+> 
+>      s->blk = blk;
+> +    kind=1;
+>      s->drive_kind = kind;
+> ```
+
+
+> !!!!!
+>
+> 2024-10-14在另外一台机器上测试不再复现!!!!
+{: .prompt-warning}
+
+## 子进程异常退出，产生僵尸进程
+
+上面的测试虽然在`2024-10-14`在另一台机器上无法复现，但是暴露了另一个问题，
+子进程异常退出后，似乎父进程没有回收到子进程资源，从而导致子进程变为僵尸
+进程。该僵尸进程会在父进程迁移成功后，随着父进程退出，僵尸进程消失。
+
+但是, 从需求上来说，还是应该尽量避免僵尸进程产生，此问题是一个BUG().
+
+
+### 模拟测试
+我们修改代码, 模拟下子进程异常退出:
+```diff
+@@ -47,6 +47,8 @@ int main(int argc, char **argv)
+
+ int main(int argc, char **argv, char **envp)
+ {
++    printf("NOLY FOR test, exit!!!\n");
++    return -1;
+     qemu_init(argc, argv, envp);
+     qemu_log("qemu enter main_loop\n");
+     qemu_main_loop();
+
+```
+我们让其在main函数开始，退出子进程.
+
+执行`cpr-exec`相关命令
+```
+(qemu) migrate file:/tmp/file.txt
+NOLY FOR test, exit!!!
+qemu-system-x86_64: write ptoc eventnotifier failed
+```
+查看相关进程:
+```
+fedora :: ~/qemu_test/build % ps aux |grep qemu
+wang      492077  5.0  0.1 3474956 43948 pts/12  Sl+  16:09   0:04 ./qemu-system-x86_64 -machine type=q35 -object memory-backend-memfd,size=2G,id=ram0,share=on -m 2G -monitor stdio -migrate-mode-enable cpr-exec -numa node,memdev=ram0 -nographic --serial telnet:localhost:6666,server,nowait
+wang      496565  0.1  0.0      0     0 pts/12   Z+   16:10   0:00 [qemu-system-x86] <defunct>
+```
+
+### 问题原因
+在下面流程中:
+```cpp
+qmp_migrate
+  => if (strstart(uri, "file:", &p))
+  {
+     ...
+     cpr_exec();
+     if (fork > 0) {
+        ...
+        父进程动作:
+        ...
+     } else {
+        execvp();
+     }
+    
+  }
+```
+
+父进程在fork后，没有获取子进程pid，也就没有wait()子进程. 我们需要添加该流程,
+增加如下 PATCH
+
+<details markdown=1>
+<summary>patch代码折叠</summary>
+
+```diff
+diff --git a/include/sysemu/sysemu.h b/include/sysemu/sysemu.h
+index 3e58f9cbaf..5fa7b01551 100644
+--- a/include/sysemu/sysemu.h
++++ b/include/sysemu/sysemu.h
+@@ -18,6 +18,7 @@ extern GStrv exec_argv;
+ extern int eventnotifier_ptoc[2];
+ extern int eventnotifier_ctop[2];
+ extern RunState vm_run_state;
++extern pid_t cpr_exec_child;
+
+ void qemu_add_exit_notifier(Notifier *notify);
+ void qemu_remove_exit_notifier(Notifier *notify);
+diff --git a/migration/migration.c b/migration/migration.c
+index d878d512b9..22b8641676 100644
+--- a/migration/migration.c
++++ b/migration/migration.c
+@@ -2567,6 +2567,7 @@ void qmp_migrate(const char *uri, bool has_blk, bool blk,
+     Error *local_err = NULL;
+     MigrationState *s = migrate_get_current();
+     const char *p = NULL;
++    pid_t child_pid;
+
+     if (!migrate_prepare(s, has_blk && blk, has_inc && inc,
+                          has_resume && resume, errp)) {
+@@ -2603,9 +2604,11 @@ void qmp_migrate(const char *uri, bool has_blk, bool blk,
+         cpr_preserve_fds();
+         cpr_exec();
+         vm_run_state = runstate_get();
+-        if (fork() > 0) {
++        child_pid=fork();
++        if (child_pid > 0) {
+             close(eventnotifier_ptoc[0]);
+             close(eventnotifier_ctop[1]);
++            cpr_exec_child = child_pid;
+             while (read(eventnotifier_ctop[0], &data, sizeof(data)) < 0) {
+                 if (errno == EINTR)
+                     continue;
+diff --git a/softmmu/globals.c b/softmmu/globals.c
+index 4f940bd7f3..29118f7313 100644
+--- a/softmmu/globals.c
++++ b/softmmu/globals.c
+@@ -75,3 +75,4 @@ bool cpr_exec_migrating = false;
+ int eventnotifier_ptoc[2] = {-1, -1};
+ int eventnotifier_ctop[2] = {-1, -1};
+ RunState vm_run_state;
++pid_t cpr_exec_child = -1;
+diff --git a/softmmu/runstate.c b/softmmu/runstate.c
+index 4496ed564b..f365894a47 100644
+--- a/softmmu/runstate.c
++++ b/softmmu/runstate.c
+@@ -749,6 +749,8 @@ static bool main_loop_should_exit(void)
+ {
+     RunState r;
+     ShutdownCause request;
++    int status;
++    pid_t child_pid;
+
+     if (qemu_debug_requested()) {
+         vm_stop(RUN_STATE_DEBUG);
+@@ -768,6 +770,8 @@ static bool main_loop_should_exit(void)
+             } while (ret < 0 && errno == EINTR);
+             if (ret <= 0) {
+                 error_report("write ptoc eventnotifier failed");
++                child_pid = waitpid(cpr_exec_child, &status, WNOHANG);
++                error_report("child process %d exit, status %d\n", child_pid, status);
+                 MigrationState *s = migrate_get_current();
+                 bdrv_invalidate_cache_all(&err);
+                 exec_argv = NULL;
+```
+
+</details>
+
+简单测试:
+
+执行测试命令:
+```
+(qemu) migrate file:/tmp/file.txt
+NOLY FOR test, exit!!!
+qemu-system-x86_64: write ptoc eventnotifier failed
+qemu-system-x86_64: child process 568774 exit, status 65280  # 回收到子进程
+(qemu)
+```
+
+查看是否有僵尸进程:
+```
+fedora :: ~/qemu_test/build % ps aux |grep qemu |grep -v grep
+wang      568716  4.1  0.1 3474956 45052 pts/3   Sl+  16:33   0:04 ./qemu-system-x86_64 -machine type=q35 -object memory-backend-memfd,size=2G,id=ram0,share=on -m 2G -monitor stdio -migrate-mode-enable cpr-exec -numa node,memdev=ram0 -nographic --serial telnet:localhost:6666,server,nowait
+```
+
+可以发现该patch，规避了这个问题.
+
+<!--
 ## unwarranted ide0-hd0
+
+### tmp
+```
+115│ static void pc_q35_init(MachineState *machine)
+116│ {
+         ...
+290│     if (pcms->sata_enabled) {
+291│         /* ahci and SATA device, for q35 1 ahci controller is built-in */
+292│         ahci = pci_create_simple_multifunction(host_bus,
+293│                                                PCI_DEVFN(ICH9_SATA1_DEV,
+294│                                                          ICH9_SATA1_FUNC),
+295│                                                true, "ich9-ahci");
+296│         idebus[0] = qdev_get_child_bus(&ahci->qdev, "ide.0");
+297│         idebus[1] = qdev_get_child_bus(&ahci->qdev, "ide.1");
+298│         g_assert(MAX_SATA_PORTS == ahci_get_num_ports(ahci));
+299│         ide_drive_get(hd, ahci_get_num_ports(ahci));
+300├───────> ahci_ide_create_devs(ahci, hd);
+301│     } else {
+302│         idebus[0] = idebus[1] = NULL;
+303│     }
+```
+-->
 
 ## 参考链接
 
