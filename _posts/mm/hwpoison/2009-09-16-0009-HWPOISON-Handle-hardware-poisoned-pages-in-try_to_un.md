@@ -1,0 +1,68 @@
+---
+layout:     post
+title:      "[PATCH 09/21] HWPOISON: Handle hardware poisoned pages in try_to_unmap"
+author:     "fuqiang"
+date:       "Wed, 16 Sep 2009 11:50:11 +0200"
+categories: [mm,hwpoison]
+tags:       [hwpoison]
+---
+
+```diff
+From 888b9f7c58ebe8303bad817cd554df887a683957 Mon Sep 17 00:00:00 2001
+From: Andi Kleen <ak@linux.intel.com>
+Date: Wed, 16 Sep 2009 11:50:11 +0200
+Subject: [PATCH 09/21] HWPOISON: Handle hardware poisoned pages in
+ try_to_unmap
+
+When a page has the poison bit set replace the PTE with a poison entry.
+This causes the right error handling to be done later when a process runs
+into it.
+
+v2: add a new flag to not do that (needed for the memory-failure handler
+later) (Fengguang)
+v3: remove unnecessary is_migration_entry() test (Fengguang, Minchan)
+
+Reviewed-by: Minchan Kim <minchan.kim@gmail.com>
+Reviewed-by: Wu Fengguang <fengguang.wu@intel.com>
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ include/linux/rmap.h | 1 +
+ mm/rmap.c            | 9 ++++++++-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/rmap.h b/include/linux/rmap.h
+index 4c4a2d4d289e..ce989f1fc2ed 100644
+--- a/include/linux/rmap.h
++++ b/include/linux/rmap.h
+@@ -93,6 +93,7 @@ enum ttu_flags {
+ 
+ 	TTU_IGNORE_MLOCK = (1 << 8),	/* ignore mlock */
+ 	TTU_IGNORE_ACCESS = (1 << 9),	/* don't age */
++	TTU_IGNORE_HWPOISON = (1 << 10),/* corrupted page is recoverable */
+ };
+ #define TTU_ACTION(x) ((x) & TTU_ACTION_MASK)
+ 
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 08c112a776a7..7e72ca19d68b 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -820,7 +820,14 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 	/* Update high watermark before we lower rss */
+ 	update_hiwater_rss(mm);
+ 
+-	if (PageAnon(page)) {
++	if (PageHWPoison(page) && !(flags & TTU_IGNORE_HWPOISON)) {
++		if (PageAnon(page))
++			dec_mm_counter(mm, anon_rss);
++		else
++			dec_mm_counter(mm, file_rss);
++		set_pte_at(mm, address, pte,
++				swp_entry_to_pte(make_hwpoison_entry(page)));
++	} else if (PageAnon(page)) {
+ 		swp_entry_t entry = { .val = page_private(page) };
+ 
+ 		if (PageSwapCache(page)) {
+-- 
+2.39.3 (Apple Git-146)
+
+```

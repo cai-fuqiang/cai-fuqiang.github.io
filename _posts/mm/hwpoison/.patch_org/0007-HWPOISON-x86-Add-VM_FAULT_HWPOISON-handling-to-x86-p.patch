@@ -1,0 +1,76 @@
+From a6e04aa92965565968573a220a35b4e907385697 Mon Sep 17 00:00:00 2001
+From: Andi Kleen <andi@firstfloor.org>
+Date: Wed, 16 Sep 2009 11:50:09 +0200
+Subject: [PATCH 07/21] HWPOISON: x86: Add VM_FAULT_HWPOISON handling to x86
+ page fault handler v2
+
+Add VM_FAULT_HWPOISON handling to the x86 page fault handler. This is
+very similar to VM_FAULT_OOM, the only difference is that a different
+si_code is passed to user space and the new addr_lsb field is initialized.
+
+v2: Make the printk more verbose/unique
+
+Cc: x86@kernel.org
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ arch/x86/mm/fault.c | 19 +++++++++++++++----
+ 1 file changed, 15 insertions(+), 4 deletions(-)
+
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 775a020990a5..8ba562408200 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -167,6 +167,7 @@ force_sig_info_fault(int si_signo, int si_code, unsigned long address,
+ 	info.si_errno	= 0;
+ 	info.si_code	= si_code;
+ 	info.si_addr	= (void __user *)address;
++	info.si_addr_lsb = si_code == BUS_MCEERR_AR ? PAGE_SHIFT : 0;
+ 
+ 	force_sig_info(si_signo, &info, tsk);
+ }
+@@ -790,10 +791,12 @@ out_of_memory(struct pt_regs *regs, unsigned long error_code,
+ }
+ 
+ static void
+-do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address)
++do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
++	  unsigned int fault)
+ {
+ 	struct task_struct *tsk = current;
+ 	struct mm_struct *mm = tsk->mm;
++	int code = BUS_ADRERR;
+ 
+ 	up_read(&mm->mmap_sem);
+ 
+@@ -809,7 +812,15 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address)
+ 	tsk->thread.error_code	= error_code;
+ 	tsk->thread.trap_no	= 14;
+ 
+-	force_sig_info_fault(SIGBUS, BUS_ADRERR, address, tsk);
++#ifdef CONFIG_MEMORY_FAILURE
++	if (fault & VM_FAULT_HWPOISON) {
++		printk(KERN_ERR
++	"MCE: Killing %s:%d due to hardware memory corruption fault at %lx\n",
++			tsk->comm, tsk->pid, address);
++		code = BUS_MCEERR_AR;
++	}
++#endif
++	force_sig_info_fault(SIGBUS, code, address, tsk);
+ }
+ 
+ static noinline void
+@@ -819,8 +830,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
+ 	if (fault & VM_FAULT_OOM) {
+ 		out_of_memory(regs, error_code, address);
+ 	} else {
+-		if (fault & VM_FAULT_SIGBUS)
+-			do_sigbus(regs, error_code, address);
++		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON))
++			do_sigbus(regs, error_code, address, fault);
+ 		else
+ 			BUG();
+ 	}
+-- 
+2.39.3 (Apple Git-146)
+

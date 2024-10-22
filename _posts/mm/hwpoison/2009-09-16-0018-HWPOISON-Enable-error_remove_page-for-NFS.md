@@ -1,0 +1,44 @@
+---
+layout:     post
+title:      "[PATCH 18/21] HWPOISON: Enable error_remove_page for NFS"
+author:     "fuqiang"
+date:       "Wed, 16 Sep 2009 11:50:17 +0200"
+categories: [mm,hwpoison]
+tags:       [hwpoison]
+---
+
+```diff
+From f590f333fb15444d2971f979d434ecad56c09698 Mon Sep 17 00:00:00 2001
+From: Andi Kleen <andi@firstfloor.org>
+Date: Wed, 16 Sep 2009 11:50:17 +0200
+Subject: [PATCH 18/21] HWPOISON: Enable error_remove_page for NFS
+
+Enable hardware memory error handling for NFS
+
+Truncation of data pages at runtime should be safe in NFS,
+even when it doesn't support migration so far.
+
+Trond tells me migration is also queued up for 2.6.32.
+
+Acked-by: Trond.Myklebust@netapp.com
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ fs/nfs/file.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fs/nfs/file.c b/fs/nfs/file.c
+index 5021b75d2d1e..86d6b4db1096 100644
+--- a/fs/nfs/file.c
++++ b/fs/nfs/file.c
+@@ -525,6 +525,7 @@ const struct address_space_operations nfs_file_aops = {
+ 	.direct_IO = nfs_direct_IO,
+ 	.migratepage = nfs_migrate_page,
+ 	.launder_page = nfs_launder_page,
++	.error_remove_page = generic_error_remove_page,
+ };
+ 
+ /*
+-- 
+2.39.3 (Apple Git-146)
+
+```

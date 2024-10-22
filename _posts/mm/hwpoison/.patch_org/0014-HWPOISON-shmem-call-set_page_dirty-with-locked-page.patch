@@ -1,0 +1,88 @@
+From 6746aff74da293b5fd24e5c68b870b721e86cd5f Mon Sep 17 00:00:00 2001
+From: Wu Fengguang <fengguang.wu@intel.com>
+Date: Wed, 16 Sep 2009 11:50:14 +0200
+Subject: [PATCH 14/21] HWPOISON: shmem: call set_page_dirty() with locked page
+
+The dirtying of page and set_page_dirty() can be moved into the page lock.
+
+- In shmem_write_end(), the page was dirtied while the page lock was held,
+  but it's being marked dirty just after dropping the page lock.
+- In shmem_symlink(), both dirtying and marking can be moved into page lock.
+
+It's valuable for the hwpoison code to know whether one bad page can be dropped
+without losing data. It mainly judges by testing the PG_dirty bit after taking
+the page lock. So it becomes important that the dirtying of page and the
+marking of dirtiness are both done inside the page lock. Which is a common
+practice, but sadly not a rule.
+
+The noticeable exceptions are
+- mapped pages
+- pages with buffer_heads
+The above pages could go dirty at any time. Fortunately the hwpoison will
+unmap the page and release the buffer_heads beforehand anyway.
+
+Many other types of pages (eg. metadata pages) can also be dirtied at will by
+their owners, the hwpoison code cannot do meaningful things to them anyway.
+Only the dirtiness of pagecache pages owned by regular files are interested.
+
+v2: AK: Add comment about set_page_dirty rules (suggested by Peter Zijlstra)
+
+Acked-by: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+Reviewed-by: WANG Cong <xiyou.wangcong@gmail.com>
+Signed-off-by: Wu Fengguang <fengguang.wu@intel.com>
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ mm/page-writeback.c | 7 +++++++
+ mm/shmem.c          | 4 ++--
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/mm/page-writeback.c b/mm/page-writeback.c
+index dd73d29c15a8..bba82c414ba8 100644
+--- a/mm/page-writeback.c
++++ b/mm/page-writeback.c
+@@ -1149,6 +1149,13 @@ int redirty_page_for_writepage(struct writeback_control *wbc, struct page *page)
+ EXPORT_SYMBOL(redirty_page_for_writepage);
+ 
+ /*
++ * Dirty a page.
++ *
++ * For pages with a mapping this should be done under the page lock
++ * for the benefit of asynchronous memory errors who prefer a consistent
++ * dirty state. This rule can be broken in some special cases,
++ * but should be better not to.
++ *
+  * If the mapping doesn't provide a set_page_dirty a_op, then
+  * just fall through and assume that it wants buffer_heads.
+  */
+diff --git a/mm/shmem.c b/mm/shmem.c
+index 5a0b3d4055f3..46936601e37f 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -1630,8 +1630,8 @@ shmem_write_end(struct file *file, struct address_space *mapping,
+ 	if (pos + copied > inode->i_size)
+ 		i_size_write(inode, pos + copied);
+ 
+-	unlock_page(page);
+ 	set_page_dirty(page);
++	unlock_page(page);
+ 	page_cache_release(page);
+ 
+ 	return copied;
+@@ -1968,13 +1968,13 @@ static int shmem_symlink(struct inode *dir, struct dentry *dentry, const char *s
+ 			iput(inode);
+ 			return error;
+ 		}
+-		unlock_page(page);
+ 		inode->i_mapping->a_ops = &shmem_aops;
+ 		inode->i_op = &shmem_symlink_inode_operations;
+ 		kaddr = kmap_atomic(page, KM_USER0);
+ 		memcpy(kaddr, symname, len);
+ 		kunmap_atomic(kaddr, KM_USER0);
+ 		set_page_dirty(page);
++		unlock_page(page);
+ 		page_cache_release(page);
+ 	}
+ 	if (dir->i_mode & S_ISGID)
+-- 
+2.39.3 (Apple Git-146)
+

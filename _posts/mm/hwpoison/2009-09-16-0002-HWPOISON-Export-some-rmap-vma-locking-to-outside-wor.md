@@ -1,0 +1,70 @@
+---
+layout:     post
+title:      "[PATCH 02/21] HWPOISON: Export some rmap vma locking to outside world"
+author:     "fuqiang"
+date:       "Wed, 16 Sep 2009 11:50:04 +0200"
+categories: [mm,hwpoison]
+tags:       [hwpoison]
+---
+
+```diff
+From 10be22dfe1e6ad978269dc275147e0ed049187bb Mon Sep 17 00:00:00 2001
+From: Andi Kleen <andi@firstfloor.org>
+Date: Wed, 16 Sep 2009 11:50:04 +0200
+Subject: [PATCH 02/21] HWPOISON: Export some rmap vma locking to outside world
+
+Needed for later patch that walks rmap entries on its own.
+
+This used to be very frowned upon, but memory-failure.c does
+some rather specialized rmap walking and rmap has been stable
+for quite some time, so I think it's ok now to export it.
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ include/linux/rmap.h | 6 ++++++
+ mm/rmap.c            | 4 ++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/include/linux/rmap.h b/include/linux/rmap.h
+index bf116d0dbf23..8dff2ffab82c 100644
+--- a/include/linux/rmap.h
++++ b/include/linux/rmap.h
+@@ -112,6 +112,12 @@ int page_mkclean(struct page *);
+  */
+ int try_to_munlock(struct page *);
+ 
++/*
++ * Called by memory-failure.c to kill processes.
++ */
++struct anon_vma *page_lock_anon_vma(struct page *page);
++void page_unlock_anon_vma(struct anon_vma *anon_vma);
++
+ #else	/* !CONFIG_MMU */
+ 
+ #define anon_vma_init()		do {} while (0)
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 0895b5c7cbff..5a35c030e779 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -191,7 +191,7 @@ void __init anon_vma_init(void)
+  * Getting a lock on a stable anon_vma from a page off the LRU is
+  * tricky: page_lock_anon_vma rely on RCU to guard against the races.
+  */
+-static struct anon_vma *page_lock_anon_vma(struct page *page)
++struct anon_vma *page_lock_anon_vma(struct page *page)
+ {
+ 	struct anon_vma *anon_vma;
+ 	unsigned long anon_mapping;
+@@ -211,7 +211,7 @@ static struct anon_vma *page_lock_anon_vma(struct page *page)
+ 	return NULL;
+ }
+ 
+-static void page_unlock_anon_vma(struct anon_vma *anon_vma)
++void page_unlock_anon_vma(struct anon_vma *anon_vma)
+ {
+ 	spin_unlock(&anon_vma->lock);
+ 	rcu_read_unlock();
+-- 
+2.39.3 (Apple Git-146)
+
+```

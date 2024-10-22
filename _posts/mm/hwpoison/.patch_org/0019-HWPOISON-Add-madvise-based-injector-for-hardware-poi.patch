@@ -1,0 +1,90 @@
+From 9893e49d64a4874ea67849ee2cfbf3f3d6817573 Mon Sep 17 00:00:00 2001
+From: Andi Kleen <andi@firstfloor.org>
+Date: Wed, 16 Sep 2009 11:50:17 +0200
+Subject: [PATCH 19/21] HWPOISON: Add madvise() based injector for hardware
+ poisoned pages v4
+
+Impact: optional, useful for debugging
+
+Add a new madvice sub command to inject poison for some
+pages in a process' address space.  This is useful for
+testing the poison page handling.
+
+This patch can allow root to tie up large amounts of memory.
+I got feedback from container developers and they didn't see any
+problem.
+
+v2: Use write flag for get_user_pages to make sure to always get
+a fresh page
+v3: Don't request write mapping (Fengguang Wu)
+v4: Move MADV_* number to avoid conflict with KSM (Hugh Dickins)
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ include/asm-generic/mman-common.h |  1 +
+ mm/madvise.c                      | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
+
+diff --git a/include/asm-generic/mman-common.h b/include/asm-generic/mman-common.h
+index 3b69ad34189a..c325d1ef42ab 100644
+--- a/include/asm-generic/mman-common.h
++++ b/include/asm-generic/mman-common.h
+@@ -34,6 +34,7 @@
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
++#define MADV_HWPOISON	100		/* poison a page for testing */
+ 
+ /* compatibility flags */
+ #define MAP_FILE	0
+diff --git a/mm/madvise.c b/mm/madvise.c
+index 76eb4193acdd..8dbd38b8e4a4 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -207,6 +207,32 @@ static long madvise_remove(struct vm_area_struct *vma,
+ 	return error;
+ }
+ 
++#ifdef CONFIG_MEMORY_FAILURE
++/*
++ * Error injection support for memory error handling.
++ */
++static int madvise_hwpoison(unsigned long start, unsigned long end)
++{
++	int ret = 0;
++
++	if (!capable(CAP_SYS_ADMIN))
++		return -EPERM;
++	for (; start < end; start += PAGE_SIZE) {
++		struct page *p;
++		int ret = get_user_pages(current, current->mm, start, 1,
++						0, 0, &p, NULL);
++		if (ret != 1)
++			return ret;
++		printk(KERN_INFO "Injecting memory failure for page %lx at %lx\n",
++		       page_to_pfn(p), start);
++		/* Ignore return value for now */
++		__memory_failure(page_to_pfn(p), 0, 1);
++		put_page(p);
++	}
++	return ret;
++}
++#endif
++
+ static long
+ madvise_vma(struct vm_area_struct *vma, struct vm_area_struct **prev,
+ 		unsigned long start, unsigned long end, int behavior)
+@@ -307,6 +333,10 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
+ 	int write;
+ 	size_t len;
+ 
++#ifdef CONFIG_MEMORY_FAILURE
++	if (behavior == MADV_HWPOISON)
++		return madvise_hwpoison(start, start+len_in);
++#endif
+ 	if (!madvise_behavior_valid(behavior))
+ 		return error;
+ 
+-- 
+2.39.3 (Apple Git-146)
+

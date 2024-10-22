@@ -1,0 +1,90 @@
+---
+layout:     post
+title:      "[PATCH 01/21] HWPOISON: Add page flag for poisoned pages"
+author:     "fuqiang"
+date:       "Wed, 16 Sep 2009 11:50:03 +0200"
+categories: [mm,hwpoison]
+tags:       [hwpoison]
+---
+
+```diff
+From d466f2fcb32cd97fd586bfa33f5dba3ac78aadb0 Mon Sep 17 00:00:00 2001
+From: Andi Kleen <andi@firstfloor.org>
+Date: Wed, 16 Sep 2009 11:50:03 +0200
+Subject: [PATCH 01/21] HWPOISON: Add page flag for poisoned pages
+
+Hardware poisoned pages need special handling in the VM and shouldn't be
+touched again. This requires a new page flag. Define it here.
+
+The page flags wars seem to be over, so it shouldn't be a problem
+to get a new one.
+
+> 硬件损坏的页面在虚拟内存中需要特殊处理，不应再次被访问。
+> 这需要一个新的页面标志。在这里定义它。
+
+> 页面标志的争夺似乎已经结束，因此获取一个新的标志应该不是问题。
+
+v2: Add TestSetHWPoison (suggested by Johannes Weiner)
+
+Acked-by: Christoph Lameter <cl@linux.com>
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ include/linux/page-flags.h | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+index 2b87acfc5f87..9bc5fd9fdbf6 100644
+--- a/include/linux/page-flags.h
++++ b/include/linux/page-flags.h
+@@ -51,6 +51,9 @@
+  * PG_buddy is set to indicate that the page is free and in the buddy system
+  * (see mm/page_alloc.c).
+  *
++ * PG_hwpoison indicates that a page got corrupted in hardware and contains
++ * data with incorrect ECC bits that triggered a machine check. Accessing is
++ * not safe since it may cause another machine check. Don't touch!
+  */
+
+> PG_hwpoison 表示某个页面在硬件中发生了损坏，并且包含了触发machine check 的不正确
+> ECC位数据。访问该页面是不安全的，因为可能会导致另一次machine check。请勿触碰！
+
+ /*
+@@ -101,6 +104,9 @@ enum pageflags {
+ #endif
+ #ifdef CONFIG_ARCH_USES_PG_UNCACHED
+ 	PG_uncached,		/* Page has been mapped as uncached */
++#endif
++#ifdef CONFIG_MEMORY_FAILURE
++	PG_hwpoison,		/* hardware poisoned page. Don't touch */
+ #endif
+ 	__NR_PAGEFLAGS,
+ 
+@@ -263,6 +269,15 @@ PAGEFLAG(Uncached, uncached)
+ PAGEFLAG_FALSE(Uncached)
+ #endif
+ 
++#ifdef CONFIG_MEMORY_FAILURE
++PAGEFLAG(HWPoison, hwpoison)
++TESTSETFLAG(HWPoison, hwpoison)
++#define __PG_HWPOISON (1UL << PG_hwpoison)
++#else
++PAGEFLAG_FALSE(HWPoison)
++#define __PG_HWPOISON 0
++#endif
++
+ static inline int PageUptodate(struct page *page)
+ {
+ 	int ret = test_bit(PG_uptodate, &(page)->flags);
+@@ -387,7 +402,7 @@ static inline void __ClearPageTail(struct page *page)
+ 	 1 << PG_private | 1 << PG_private_2 | \
+ 	 1 << PG_buddy	 | 1 << PG_writeback | 1 << PG_reserved | \
+ 	 1 << PG_slab	 | 1 << PG_swapcache | 1 << PG_active | \
+-	 1 << PG_unevictable | __PG_MLOCKED)
++	 1 << PG_unevictable | __PG_MLOCKED | __PG_HWPOISON)
+ 
+ /*
+  * Flags checked when a page is prepped for return by the page allocator.
+-- 
+2.39.3 (Apple Git-146)
+
+```
