@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "auto-converge"
+title:  "live migration"
 author: fuqiang
 date:   2024-11-12 23:20:00 +0800
 categories: [live_migration]
