@@ -277,6 +277,45 @@ void qemu_savevm_state_header(QEMUFile *f)
 ```sh
 ram_save_setup
 # save ram总大小
+=> ram_init_all
+   => ram_init_bitmaps
+      => ram_list_init_bitmaps
+         => foreach RAMBlock
+            # 新申请一个bmap, 并且bitmap_set全部设置为1,
+            # 表示所有页都是脏的，需要全部copy到目的端
+            => block->bmap = bitmap_new()
+            => bitmap_set(block->bmap, 0, pages)
+            => block->clear_bmap()
+      => memory_global_dirty_log_start
+         => set global_dirty_tracking  bit GLOBAL_DIRTY_MIGRATION
+         => memory_region_transaction_commit
+            => flatview_reset()
+               => flatview_init()
+               => foreach(as) 
+                  => physmr = memory_region_get_flatview_root(as->root);
+                  => generate_memory_topology(physmr);
+                     => render_memory_region()  ## 根据新的拓扑，更新flatview，而在
+                                                ## 该流程中，实际上只是FlatRange的 
+                                                ## dirty_log_mask需要更改
+                        => fr.dirty_log_mask = memory_region_get_dirty_log_mask(mr);
+                           => if (global_dirty_tracking && (qemu_ram_is_migratable(rb)
+                               ||memory_region_is_iommu(mr))
+                              => return mr->dirty_log_mask | 
+                                (1 < < DIRTY_MEMORY_MIGRATION)
+            => address_space_set_flatview       ## new view `dirty_log_mask` has 
+               => address_space_update_topology_pass
+                  ## 如果两个flatview完全一样
+                  => compare oldview and newview every ranges[]
+                     => if (frold && frnew && flatrange_equal(frold, frnew))
+                        ## 需要看下是否是dirty_log_mask改变
+                        ## 如果是新增 dirty_log_mask
+                        => if (frnew->dirty_log_mask & ~frold->dirty_log_mask)
+                           => call all memorylisteners log_start()
+                              => kvm_log_start
+                        ## 如果是减少 dirty_log_mask
+                        => if (frold->dirty_log_mask & ~frnew->dirty_log_mask) 
+                           => call all memorylisteners log_stop()
+                              => kvm_log_stop
 => qemu_put_be64(f, ram_bytes_total_with_ignored()
                  | RAM_SAVE_FLAG_MEM_SIZE);
 # 遍历每一个memblock
@@ -316,14 +355,41 @@ ram_save_setup
 => qemu_fflush(f)
    将信息flush,  也就是发送到目的端
 ```
-总结下，该流程会将一些内存的基本信息息，例如:
+总结下，该流程一共有几件事:
+* 调用 log_start 通知各个memorylistener 要记录dirty log
+* 将一些基本信息发送到dist 端
+* 做一些multifd, 以及rdma相关初始化
+
+### kvm_log_start
+
+`kvm_log_start`流程比较简单, 主要有:
+* 申请dirty_bitmap
+* 更新KVMSlots flags, 重新提交 memslots->kvm
+
+流程如下:
+```sh
+kvm_log_start
+  => kvm_section_update_flags
+     => get slot by mr_section
+     => kvm_slot_update_flags
+        => KVMSlot->flags = kvm_mem_flags()  # 更新KVMSlots flags
+           => memory_region_get_dirty_log_mask
+              => return flags |= KVM_MEM_LOG_DIRTY_PAGES
+        => kvm_slot_init_dirty_bitmap
+           => mem->dirty_bitmap = g_malloc()  # 申请dirty_bitmap
+           => mem->dirty_bmap_size = xxx;
+        => kvm_set_user_memory_region
+           => kvm_vm_ioctl(,KVM_SET_USER_MEMORY_REGION,); # 重新提交给KVM
+```
+
+### 内存信息send
+将一些内存的基本信息息，例如:
 * 内存总大小，
 * RAMBlock相关信息
 
 发送到dst端，并且做一些multifd, 以及rdma 相关流程的初始化
 
 我们下面看下，具体的RAMBlock setup的流程:
-
 
 ```cpp
 static void mapped_ram_setup_ramblock(QEMUFile *file, RAMBlock *block)
@@ -485,5 +551,3 @@ migration_bitmap_sync_precopy
    将内存进行压缩传输，从而提升压缩效率
 
    上面两种迁移优化的策略, 我们会在后面的章节中介绍
-
-

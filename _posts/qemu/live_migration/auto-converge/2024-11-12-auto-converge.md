@@ -439,7 +439,7 @@ $$
 +            async_run_on_cpu(cpu, cpu_throttle_thread, cpu);
 +        }
 +    }
-+
++throttle-trigger-threshold
 +    pct = (double)cpu_throttle_get_percentage()/100;
      //这里是再次触发timer的时间, 上面说到`CPU_THROTTLE_TIMESLICE_NS / (1-pct)`
      //是总的时间片，所以包含了vcpu time slice和sleep time slice
