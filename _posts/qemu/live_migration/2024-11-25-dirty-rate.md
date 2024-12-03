@@ -91,25 +91,64 @@ qmp_query_migrate
 ```sh
 global_dirty_log_sync
   => memory_global_dirty_log_sync
-  => memory_region_sync_dirty_bitmap
-     => foreach memorylistener
-        => if listener->log_sync
-           => view = address_space_get_flatview()
-              => foreach flat range   ## foreach mr
-                  => listener->log_sync() ## dirty bitmap
-                     (kvm_log_sync)
-        => if listener->log_sync_global
-           => listener->log_sync_global() ## dirty ring
-              (kvm_log_sync_global)
-  => if one_shot
-     => memory_global_dirty_log_stop(flag)
+     => memory_region_sync_dirty_bitmap
+        => foreach memorylistener
+           => if listener->log_sync
+              => view = address_space_get_flatview()
+                 => foreach flat range   ## foreach mr
+                     => listener->log_sync() ## dirty bitmap
+                        (kvm_log_sync)
+           => if listener->log_sync_global
+              => listener->log_sync_global() ## dirty ring
+                 (kvm_log_sync_global)
+     => if one_shot
+        => memory_global_dirty_log_stop(flag)
 ```
 
 kvm_log_sync:
 ```sh
-kvm_physical_sync_dirty_bitmap
-=> kvm_slot_get_dirty_log()
-   => kvm_vm_ioctl(s, KVM_GET_DIRTY_LOG, &d);
-=> kvm_slot_sync_dirty_pages()
-   => cpu_physical_memory_set_dirty_lebitmap()
+kvm_log_sync
+=> kvm_physical_sync_dirty_bitmap
+   => foreach KVMSlot
+      => kvm_slot_get_dirty_log()
+         => kvm_vm_ioctl(s, KVM_GET_DIRTY_LOG, &d);
+      => kvm_slot_sync_dirty_pages()
+         => cpu_physical_memory_set_dirty_lebitmap()
 ```
+kvm_log_sync_global:
+```sh
+kvm_log_sync_global
+=> kvm_dirty_ring_flush()
+   => kvm_cpu_synchronize_kick_all
+      => kvm_dirty_ring_reap
+         => kvm_dirty_ring_reap_locked
+            => if (cpu)
+               => total = kvm_dirty_ring_reap_one(s, cpu);
+                  => foreach dirty_gfns[]
+                     => kvm_dirty_ring_mark_page
+                     => dirty_gfn_set_collected(cur)
+                  ## !!!!!! 更新dirty_pages
+                  => cpu->dirty_pages += count
+            => else foreach_cpu
+               => total += kvm_dirty_ring_reap_one(s, cpu);
+            => ret = kvm_vm_ioctl(s, KVM_RESET_DIRTY_RINGS);
+=> foreach KVMSlot
+   => kvm_slot_sync_dirty_pages
+      => cpu_physical_memory_set_dirty_lebitmap
+   ## 这个指使用了dirty_ring_with_bitmap, 并且是last stage,
+   ## 这种情况就说明，dirty_bitmap涉及的memory 并不多，不需要iter
+   => if (s->kvm_dirty_ring_with_bitmap && last_stage &&
+             kvm_slot_get_dirty_log(s, mem))
+      => kvm_slot_sync_dirty_pages(mem);
+   => kvm_slot_reset_dirty_pages
+```
+
+两者`foreach KVMSlot`的方式不同，但是个人感觉，应该最终结果是一样的.
+并且最终都调用到了`cpu_physical_memory_set_dirty_lebitmap`.
+
+`kvm_log_sync`和`kvm_log_sync_global`不同的是，`kvm_log_sync`需要调用
+`get_dirty_log`来获取当前的`dirty_bitmap`, 而`dirty_ring`则调用
+`kvm_dirty_ring_reap_locked`来完成"sync"动作，并更新`cpu->dirty_pages`
+
+
+
