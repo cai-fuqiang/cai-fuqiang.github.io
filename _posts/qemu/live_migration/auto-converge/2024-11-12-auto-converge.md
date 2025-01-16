@@ -7,6 +7,10 @@ categories: [live_migration,autoconverge]
 tags: [autoconverge]
 ---
 
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js">
+</script>
+#
 ## 简介
 
 在大型机器，并且系统负载高时热迁移，工作负载往往比热迁移速度更快，从而导致
@@ -413,9 +417,10 @@ timer 触发时，使用`CPU_THROTTLE_TIMESLICE_NS/(1-pct)`, 我们来看下该�
 
 $$
 \begin{align}
-timer\_val = \frac{CPU\_THROTTLE\_TIMESLICE\_NS}{1-pct}
-= \frac{vcpu时间片}{vcpu时间比例}
-= 总的时间片
+timer\_val \\
+=& 总的时间片 \\
+=& \frac{vcpu时间片}{vcpu时间比例} \\
+=& \frac{CPU\_THROTTLE\_TIMESLICE\_NS}{1-pct} \\
 \end{align}
 $$
 
