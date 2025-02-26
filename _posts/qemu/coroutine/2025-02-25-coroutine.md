@@ -8,12 +8,14 @@ tags: [qemu_coroutine]
 ---
 
 * [Introduction](#introduction)
-* [Linux User Context Switch]()
-* [coroutine example]()
-* [qemu coroutine]()
-  + [coroutine ucontext]()
-  + [coroutine sigalstack]()
-* [Use Case for QEMU]()
+* [Linux User Context Switch](#linux-user-context-switch)
+* [qemu coroutine](#qemu-coroutine)
+  + [协程状态机](#协程状态机)
+  + [CREATE and INIT](#create-and-init)
+  + [enter](#enter)
+  + [switch](#switch)
+  + [yield](#yield)
+* [Use Case for QEMU](#user-case-for-qemu)
 
 ## Introduction
 
@@ -246,18 +248,98 @@ new context, 为`sigjmp`接口埋点, 而`sigjmp` 系列接口负责协程切换
 
 ## qemu coroutine
 
-### create
+### 协程状态机
 
-create流程主要是为协程准备好上下文环境, 包括:
+![协程状态机](./pic/协程状态机.svg)
+
+这是一个典型的由 leader 创建协程的状态机，进入协程上下文会做两种事:
+
+* 埋sigxxxjmp跳转点, 为之后再次切换进协程做准备
+* work...
+
+协程运行期间，可能因为wait io等事件选择先切出协程(COROUTINE_YIELD),
+此时协程是suspend状态。
+
+等待协程处理完完整的事物后，会切出协程上下文，并置为terminal 状态.
+
+另外除了首次进入协程是使用`ucontext`接口, 剩余的协程/leader之间的切换，
+均使用`sigxxxjmp`系列接口，这样可以尽量减少因切换上下文带来性能损耗。
+
+### CREATE and INIT
+create流程主要是为协程准备好上下文环境, init 流程主要是在协程中
+打好跳转点, 流程包括:
 
 1. 为协程分配堆栈空间
 2. 使用makecontext(), swapcontext() 执行到一个新的上下文
-3. 在新的上下文中，埋 sig jmp的点
-4. 跳转会当前上下文
+3. 在协程上下文中，埋 sig jmp的点
+4. 跳转回leader 上下文
 
 整个流程如下图:
 
 ![qemu 埋点](./pic/qemu_埋点.svg)
+
+INIT流程只是为协程搭建了一个上下文，但是该上下文接下来要执行什么任务，
+需要leader指明，所以在切回leader上下文后，leader还需要为协程准备协程要
+执行的函数，以及函数参数(<span style="background-color: #CC0066; color: #00FFFF;">红底蓝字部分</span>)
+
+### enter
+
+在`create && INIT` 章节中，我们介绍到首次进入协程是通过`swapcontext()`接口,
+而之后再次进入协程，就需要使用`sigxxxjmp`系列接口，本章节主要介绍第二种。
+
+而`enter`这个动作既有可能发生在`leader`上下文，也有可能发生在协程上下文,
+所以我们以下面的场景为例子，看下qemu是怎么处理的。
+
+* leader enter 协程A
+* 协程A enter 协程B
+* 假设协程A, 协程B 在处理过程中不会yield, 直接terminal.
+
+整个流程如下图:
+
+![协程enter](./pic/协程enter.svg)
+
+这样处理，会导致协程只能串行，不能嵌套执行。
+
+我们来想下为什么要这样做, 首先我们来看下，两者上下文切换次数:
+* 串行执行
+  ```
+  leader->A->leader->B->leader
+  ```
+  切换4次
+* 嵌套执行
+  ```
+  leader->A->B->A->leader
+  ```
+  切换4次
+
+两者切换次数相同。
+
+下面章节会介绍switch的详细过程，便可以注意到，使用第一种方式可以更
+方便的处理协程状态机. 另外的原因(猜测)很可能是，防止协程可能带来的
+同步问题(死锁).
+
+
+### switch
+
+接下来，我们再来看下switch过程。switch过程比较简单。主要的函数是,
+`qemu_coroutine_switch()`, 函数原型:
+
+```cpp
+CoroutineAction qemu_coroutine_switch(Coroutine *from_, Coroutine *to_,
+                                    CoroutineAction action);
+```
+
+参数有三个:
+* from: 切出的协程
+* to: 切入的协程
+* action: 本次操作的类型
+  + `COROUTINE_YIELD`: 暂停from协程
+  + `COROUTINE_TERMINATE`: 终止from协程
+  + `COROUTINE_ENTER`: 进入to协程
+
+### yield
+
+## Use Case for QEMU
 
 ## 附录
 ### virtio-blk触发堆栈
