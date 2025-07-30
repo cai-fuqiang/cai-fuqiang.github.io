@@ -1,0 +1,150 @@
+[   23.965294] Filesystems sync: 0.008 seconds
+[   23.965297] Freezing user space processes ... (elapsed 0.001 seconds) done.
+[   23.966609] OOM killer disabled.
+[   23.970124] PM: hibernation: Preallocating image memory
+[   24.097607] PM: hibernation: Allocated 248090 pages for snapshot
+[   24.097611] PM: hibernation: Allocated 992360 kbytes in 0.12 seconds (8269.66 MB/s)
+[   24.097613] Freezing remaining freezable tasks ... (elapsed 0.001 seconds) done.
+[   24.099260] printk: Suspending console(s) (use no_console_suspend to debug)
+[   24.354717] ACPI: PM: Preparing to enter system sleep state S4
+[   24.354778] ACPI: PM: Saving platform NVS memory
+[   24.356608] Disabling non-boot CPUs ...
+[   24.359197] smpboot: CPU 1 is now offline
+[   24.361658] smpboot: CPU 2 is now offline
+[   24.364292] smpboot: CPU 3 is now offline
+[   24.366842] smpboot: CPU 4 is now offline
+[   24.369140] smpboot: CPU 5 is now offline
+[   24.371391] smpboot: CPU 6 is now offline
+[   24.373711] smpboot: CPU 7 is now offline
+[   24.376000] smpboot: CPU 8 is now offline
+[   24.378230] smpboot: CPU 9 is now offline
+[   24.380567] smpboot: CPU 10 is now offline
+[   24.382787] smpboot: CPU 11 is now offline
+[   24.383853] IRQ 30: no longer affine to CPU12
+[   24.384965] smpboot: CPU 12 is now offline
+[   24.387084] smpboot: CPU 13 is now offline
+[   24.388044] IRQ 116: no longer affine to CPU14
+[   24.389135] smpboot: CPU 14 is now offline
+[   24.390066] IRQ 35: no longer affine to CPU15
+[   24.391163] smpboot: CPU 15 is now offline
+[   24.392062] IRQ 25: no longer affine to CPU16
+[   24.393146] smpboot: CPU 16 is now offline
+[   24.395145] smpboot: CPU 17 is now offline
+[   24.397323] smpboot: CPU 18 is now offline
+[   24.398118] IRQ 36: no longer affine to CPU19
+[   24.399205] smpboot: CPU 19 is now offline
+[   24.400228] IRQ 32: no longer affine to CPU20
+[   24.401337] smpboot: CPU 20 is now offline
+[   24.402111] IRQ 9: no longer affine to CPU21
+[   24.403241] smpboot: CPU 21 is now offline
+[   24.403998] IRQ 39: no longer affine to CPU22
+[   24.405086] smpboot: CPU 22 is now offline
+[   24.407005] smpboot: CPU 23 is now offline
+[   24.407801] IRQ 16: no longer affine to CPU24
+[   24.408877] smpboot: CPU 24 is now offline
+[   24.409943] IRQ 43: no longer affine to CPU25
+[   24.411074] smpboot: CPU 25 is now offline
+[   24.412898] smpboot: CPU 26 is now offline
+[   24.414686] smpboot: CPU 27 is now offline
+[   24.416536] smpboot: CPU 28 is now offline
+[   24.418233] smpboot: CPU 29 is now offline
+[   24.420073] smpboot: CPU 30 is now offline
+[   24.421906] smpboot: CPU 31 is now offline
+[   24.422618] PM: hibernation: Creating image:
+[   24.505218] PM: hibernation: Need to copy 236355 pages
+[   24.758267] PM: hibernation: Image created (236355 pages copied)
+[   24.758416] ACPI: PM: Restoring platform NVS memory
+[   24.759948] Enabling non-boot CPUs ...
+[   24.760025] x86: Booting SMP configuration:
+[   24.760026] smpboot: Booting Node 0 Processor 1 APIC 0x1
+[   24.780865] CPU1 is up
+[   24.780900] smpboot: Booting Node 0 Processor 2 APIC 0x2
+[   24.801494] CPU2 is up
+[   24.801527] smpboot: Booting Node 0 Processor 3 APIC 0x3
+[   24.822076] CPU3 is up
+[   24.822112] smpboot: Booting Node 0 Processor 4 APIC 0x4
+[   24.842793] CPU4 is up
+[   24.842829] smpboot: Booting Node 0 Processor 5 APIC 0x5
+[   24.863494] CPU5 is up
+[   24.863530] smpboot: Booting Node 0 Processor 6 APIC 0x6
+[   24.884170] CPU6 is up
+[   24.884204] smpboot: Booting Node 0 Processor 7 APIC 0x7
+[   24.905023] CPU7 is up
+[   24.905059] smpboot: Booting Node 0 Processor 8 APIC 0x8
+[   24.925780] CPU8 is up
+[   24.925817] smpboot: Booting Node 0 Processor 9 APIC 0x9
+[   24.946486] CPU9 is up
+[   24.946519] smpboot: Booting Node 0 Processor 10 APIC 0xa
+[   24.967279] CPU10 is up
+[   24.967329] smpboot: Booting Node 0 Processor 11 APIC 0xb
+[   24.988069] CPU11 is up
+[   24.988101] smpboot: Booting Node 0 Processor 12 APIC 0xc
+[   25.008790] CPU12 is up
+[   25.008825] smpboot: Booting Node 0 Processor 13 APIC 0xd
+[   25.029657] CPU13 is up
+[   25.029692] smpboot: Booting Node 0 Processor 14 APIC 0xe
+[   25.050503] CPU14 is up
+[   25.050538] smpboot: Booting Node 0 Processor 15 APIC 0xf
+[   25.071358] CPU15 is up
+[   25.071392] smpboot: Booting Node 0 Processor 16 APIC 0x10
+[   25.092208] CPU16 is up
+[   25.092247] smpboot: Booting Node 0 Processor 17 APIC 0x11
+[   25.113091] CPU17 is up
+[   25.113125] smpboot: Booting Node 0 Processor 18 APIC 0x12
+[   25.134185] CPU18 is up
+[   25.134219] smpboot: Booting Node 0 Processor 19 APIC 0x13
+[   25.155029] CPU19 is up
+[   25.155063] smpboot: Booting Node 0 Processor 20 APIC 0x14
+[   25.176264] CPU20 is up
+[   25.176316] smpboot: Booting Node 0 Processor 21 APIC 0x15
+[   25.197233] CPU21 is up
+[   25.197265] smpboot: Booting Node 0 Processor 22 APIC 0x16
+[   25.218133] CPU22 is up
+[   25.218175] smpboot: Booting Node 0 Processor 23 APIC 0x17
+[   25.239254] CPU23 is up
+[   25.239317] smpboot: Booting Node 0 Processor 24 APIC 0x18
+[   25.260241] CPU24 is up
+[   25.260280] smpboot: Booting Node 0 Processor 25 APIC 0x19
+[   25.281365] CPU25 is up
+[   25.281399] smpboot: Booting Node 0 Processor 26 APIC 0x1a
+[   25.302429] CPU26 is up
+[   25.302477] smpboot: Booting Node 0 Processor 27 APIC 0x1b
+[   25.323463] CPU27 is up
+[   25.323500] smpboot: Booting Node 0 Processor 28 APIC 0x1c
+[   25.344538] CPU28 is up
+[   25.344571] smpboot: Booting Node 0 Processor 29 APIC 0x1d
+[   25.365605] CPU29 is up
+[   25.365641] smpboot: Booting Node 0 Processor 30 APIC 0x1e
+[   25.386706] CPU30 is up
+[   25.386743] smpboot: Booting Node 0 Processor 31 APIC 0x1f
+[   25.407836] CPU31 is up
+[   25.411086] ACPI: PM: Waking up from system sleep state S4
+[   25.428800] xhci_hcd 0000:01:00.0: xHC error in resume, USBSTS 0x401, Reinit
+[   25.428805] usb usb1: root hub lost power or was reset
+[   25.428807] usb usb2: root hub lost power or was reset
+[   25.430029] virtio_blk virtio4: 32/0/0 default/read/poll queues
+[   25.430049] virtio_blk virtio3: 32/0/0 default/read/poll queues
+[   25.735630] ata3: SATA link down (SStatus 0 SControl 300)
+[   25.743550] ata4: SATA link down (SStatus 0 SControl 300)
+[   25.744108] ata1: SATA link down (SStatus 0 SControl 300)
+[   25.744701] ata2: SATA link down (SStatus 0 SControl 300)
+[   25.745342] ata6: SATA link down (SStatus 0 SControl 300)
+[   25.746036] ata5: SATA link down (SStatus 0 SControl 300)
+[   25.850068] PM: Using 3 thread(s) for compression
+[   25.850069] PM: Compressing and saving image data (236817 pages)...
+[   25.850085] PM: Image saving progress:   0%
+[   25.946268] PM: Image saving progress:  10%
+[   26.041170] PM: Image saving progress:  20%
+[   26.141886] PM: Image saving progress:  30%
+[   26.236248] PM: Image saving progress:  40%
+[   26.337807] PM: Image saving progress:  50%
+[   26.442704] PM: Image saving progress:  60%
+[   26.559038] PM: Image saving progress:  70%
+[   26.674912] PM: Image saving progress:  80%
+[   26.794979] PM: Image saving progress:  90%
+[   26.890776] PM: Image saving progress: 100%
+[   26.891044] PM: Image saving done
+[   26.891045] PM: hibernation: Wrote 947268 kbytes in 1.04 seconds (910.83 MB/s)
+[   26.891161] PM: S|
+[   26.926693] printk: Suspending console(s) (use no_console_suspend to debug)
+Connection closed by foreign host.
