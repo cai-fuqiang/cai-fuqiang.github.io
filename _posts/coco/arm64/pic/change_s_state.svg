@@ -1,0 +1,38 @@
+<svg height="270" id="Layer_1" viewbox="0 0 870 270" width="870" xmlns="http://www.w3.org/2000/svg">
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(253.84 44.95)"><tspan letter-spacing="-.02em" x="0" y="0">N</tspan><tspan x="13.5" y="0">on-secu</tspan><tspan letter-spacing="-.02em" x="76.54" y="0">r</tspan><tspan x="82.79" y="0">e</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(543.13 44.95)"><tspan letter-spacing="0em" x="0" y="0">S</tspan><tspan x="9.75" y="0">ecu</tspan><tspan letter-spacing="-.02em" x="37.95" y="0">r</tspan><tspan x="44.21" y="0">e</tspan></text>
+<rect fill="#0091bd" height="45" width="105" x="180" y="60"></rect>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(216.26 89.14)"><tspan letter-spacing="0em" x="0" y="0">A</tspan><tspan x="12.23" y="0">pp</tspan></text>
+<rect fill="#0091bd" height="45" width="240" x="180" y="120"></rect>
+<rect fill="#0091bd" height="45" width="105" x="315" y="60"></rect>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(351.26 89.14)"><tspan letter-spacing="0em" x="0" y="0">A</tspan><tspan x="12.23" y="0">pp</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(268.46 149.14)"><tspan letter-spacing="0em" x="0" y="0">R</tspan><tspan x="11.22" y="0">ich OS</tspan></text>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 5 3" stroke-miterlimit="10" x1="300" x2="300" y1="60" y2="105"></line>
+<rect fill="#002b49" height="45" width="240" x="450" y="60"></rect>
+<rect fill="#002b49" height="45" width="510" x="180" y="195"></rect>
+<text fill="#fff" font-family="Courier" font-size="18" transform="translate(316.18 223.02)"><tspan x="0" xml:space="preserve" y="0">(2) SCR_EL3.NS: 1    0</tspan></text>
+<g>
+<line fill="none" stroke="#333e48" stroke-miterlimit="10" x1="180" x2="182.5" y1="180" y2="180"></line>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 4.98 2.99" stroke-miterlimit="10" x1="185.49" x2="431.01" y1="180" y2="180"></line>
+<polyline fill="none" points="432.5 180 435 180 435 177.5" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 5 3" stroke-miterlimit="10" x1="435" x2="435" y1="174.5" y2="64"></line>
+<line fill="none" stroke="#333e48" stroke-miterlimit="10" x1="435" x2="435" y1="62.5" y2="60"></line>
+</g>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(505.36 89.14)"><tspan letter-spacing="-.11em" x="0" y="0">T</tspan><tspan x="8.74" y="0">rus</tspan><tspan letter-spacing="0em" x="33.22" y="0">t</tspan><tspan x="39.68" y="0">ed </tspan><tspan letter-spacing="0em" x="63.87" y="0">S</tspan><tspan x="73.62" y="0">ervi</tspan><tspan letter-spacing="0em" x="103.47" y="0">c</tspan><tspan x="111.92" y="0">es</tspan></text>
+<rect fill="#002b49" height="45" width="240" x="450" y="120"></rect>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(525.95 149.14)"><tspan letter-spacing="-.11em" x="0" y="0">T</tspan><tspan x="8.74" y="0">rus</tspan><tspan letter-spacing="0em" x="33.22" y="0">t</tspan><tspan x="39.68" y="0">ed OS</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(31.04 165.04)"><tspan x="0" y="0">(1) E</tspan><tspan letter-spacing="-.02em" x="35.05" y="0">x</tspan><tspan letter-spacing="0em" x="43.72" y="0">c</tspan><tspan x="52.17" y="0">e</tspan><tspan letter-spacing="0em" x="61.7" y="0">p</tspan><tspan x="71.71" y="0">tion </tspan><tspan x="2.03" y="21.6">causes e</tspan><tspan letter-spacing="0em" x="68.95" y="21.6">n</tspan><tspan x="78.89" y="21.6">tr</tspan><tspan letter-spacing="-.02em" x="92" y="21.6">y</tspan><tspan x="100.9" y="21.6"> </tspan><tspan letter-spacing="0em" x="25.79" y="43.2">t</tspan><tspan x="32.25" y="43.2">o EL3</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(736.04 175.84)"><tspan x="0" y="0">(3) E</tspan><tspan letter-spacing="-.02em" x="35.05" y="0">x</tspan><tspan letter-spacing="0em" x="43.72" y="0">c</tspan><tspan x="52.17" y="0">e</tspan><tspan letter-spacing="0em" x="61.7" y="0">p</tspan><tspan x="71.71" y="0">tion </tspan><tspan letter-spacing="-.02em" x="-.96" y="21.6">r</tspan><tspan letter-spacing="0em" x="5.29" y="21.6">e</tspan><tspan x="14.75" y="21.6">turn </tspan><tspan letter-spacing="0em" x="52.54" y="21.6">t</tspan><tspan x="59" y="21.6">o EL1</tspan></text>
+<g>
+<line fill="none" stroke="#fff" stroke-miterlimit="10" x1="505.63" x2="529.89" y1="217.5" y2="217.5"></line>
+<polygon fill="#fff" points="528.72 221.49 535.63 217.5 528.72 213.51 528.72 221.49"></polygon>
+</g>
+<g>
+<polyline fill="none" points="690 217.5 720 217.5 720 142.5 695.74 142.5" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<polygon fill="#333e48" points="696.91 138.51 690 142.5 696.91 146.49 696.91 138.51"></polygon>
+</g>
+<g>
+<polyline fill="none" points="180 142.5 150 142.5 150 217.5 174.26 217.5" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<polygon fill="#333e48" points="173.09 221.49 180 217.5 173.09 213.51 173.09 221.49"></polygon>
+</g>
+</svg>
