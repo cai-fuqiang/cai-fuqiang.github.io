@@ -1,3 +1,12 @@
+---
+layout: post
+title:  "[arm] TrustZone"
+author: fuqiang
+date:   2025-08-13 09:39:00 +0800
+categories: [coco,trustzone]
+tags: [trustzone]
+---
+
 ## What is TrustZone?
 
 TrustZone is the name of the Security architecture in the Arm A-profile
@@ -129,7 +138,7 @@ Figure 1. Non-secure and Secure state
 > Support for Secure EL2 was first introduced in Armv8.4 - A and support remains
 > optional in Armv8-A.
 
-## Switching between Security states
+### Switching between Security states
 
 If the processor is in NS.EL1 and software wants to move into S.EL1, how does it
 do this?
@@ -225,7 +234,7 @@ ICC_BPR1_ EL1 (S) and ICC_BPR1_EL1 (NS).
 >> 在 Armv6 和 Armv7-A 架构中，大多数系统寄存器会根据安全状态进行分组（banked），
 >> 但通用寄存器和向量寄存器仍然是共用的。
 
-## Virtual address spaces
+### Virtual address spaces
 
 The memory management guide in this series introduced the idea of multiple
 virtual address spaces, or translation regimes. For example, there is a
@@ -278,7 +287,7 @@ state.
 > 在安全状态下不会使用 NS.EL1 的转换机制，在非安全状态下也不会使用 S.EL1 的转换
 > 机制。
 
-## Physical address spaces
+### Physical address spaces
 
 In addition to two Security states, the architecture provides two physical
 address spaces: Secure and Non-secure.
@@ -357,7 +366,7 @@ Realm Management Extension Guide.
 > 新增的物理地址空间是 Root 和 Realm。运行在安全状态下的软件仍然只能访问非安全和
 > 安全物理地址空间。关于 RME 的更多信息，请参阅《Realm 管理扩展指南》。
 
-## Data, instruction, and unified caches
+### Data, instruction, and unified caches
 
 In the Arm architecture, data caches are physically tagged. The physical address
 includes which address space the line is from, shown here:
@@ -437,7 +446,7 @@ invalidate Non-secure data.
 > 这意味着，只有在安全状态下，软件才能完全失效或清除整个缓存；在非安全状态下，软
 > 件只能清除或失效非安全数据。
 
-## Translation Look aside Buffer
+### Translation Look aside Buffer
 
 Translation Look aside Buffer (TLBs) cache recently used translations. The
 processor has multiple independent translation regimes. The TLB records which
@@ -477,7 +486,7 @@ For example, executing TBLI ALLE1 at EL3 with:
 * SCR_EL3.NS==0: Affects Secure EL0/1 translation regime
 * SCR_EL3.NS==1: Affects Non-secure EL0/1 translation regime
 
-## SMC exceptions
+### SMC exceptions
 
 As part of the support for two Security states, the architecture includes the
 Secure Monitor Call (SMC) instruction. Executing SMC causes a Secure Monitor
@@ -524,7 +533,8 @@ a virtual machine.
 >
 >> 在任一安全状态下，EL0 都无法使用 SMC 指令。关于异常的内容，我们将在后续“中断”
 >> 部分讨论中断控制器时再进行介绍。
-## Secure virtualization
+
+### Secure virtualization
 
 When virtualization was first introduced in Armv7-A, it was only added in the
 Non-secure state. Until Armv8.3, the same was true for Armv8 as illustrated in
@@ -624,6 +634,292 @@ translate to Non-secure PAs and the Secure IPAs translate to Secure PAs.
 > IPA 空间，所有的地址转换结果要么都是安全物理地址，要么都是非安全物理地址，这由
 > 一个寄存器位进行控制。非安全 IPA 会被转换为非安全物理地址，安全 IPA 会被转换为
 > 安全物理地址。
+
+## System architecture
+
+So far in this guide, we have concentrated on the processor, but TrustZone is
+much more than just a set of processor features. To take advantage of the
+TrustZone features, we need support in the rest of the system as well.
+
+> 到目前为止，本指南主要关注的是处理器，但 TrustZone 远不止是一组处理器特性。要
+> 充分利用 TrustZone 的功能，系统的其他部分也需要相应的支持。
+
+Here is an example of a TrustZone-enabled system:
+
+> 下面是一个支持 TrustZone 的系统示例：
+
+<center><font><strong>
+Figure 1. System architecture
+</strong></font></center>
+
+![System  architecture](./pic/system_arch.svg)
+
+### Completers: peripherals, and memories
+
+Earlier in Physical address spaces we introduced the idea of two physical
+address spaces, Secure and Non-secure. The processor exports the address space
+that is being accessed to the memory system. The memory system uses this
+information to enforce the isolation.
+
+> 在前文“物理地址空间”部分，我们介绍了安全（Secure）和非安全（Non-secure）两种物
+> 理地址空间的概念。处理器会将当前访问的地址空间类型传递给内存系统，内存系统则利
+> 用这些信息来实现隔离。
+
+In this topic, we refer to bus Secure and bus Non-secure. Bus Secure means a bus
+access to the Secure physical address space. Bus Non-secure means a bus access
+to the Non-secure physical address space. Remember that in Secure state software
+can access both physical address spaces. This means that the security of the bus
+access is not necessarily the same as the Security state of the processor that
+generated that access.
+
+> 在本节中，我们提到总线安全（bus Secure）和总线非安全（bus Non-secure）。总线安
+> 全指的是对安全物理地址空间的总线访问，总线非安全则指对非安全物理地址空间的总线
+> 访问。请记住，在安全状态下，软件可以访问两种物理地址空间。这意味着总线访问的安
+> 全属性不一定与发起访问的处理器的安全状态一致。
+
+> Note
+>
+> In AMBA AXI and ACE, the AxPROT[1] signal is used to specify which address
+> space is being accessed. Like with the NS bit in the translation tables, 0
+> indicates Secure and 1 indicates Non-secure.
+> 
+>> 在 AMBA AXI 和 ACE 总线协议中，AxPROT[1] 信号用于指定当前访问的是哪个物理地址
+>> 空间。类似于转换表中的 NS 位，值为 0 表示安全，值为 1 表示非安全。
+
+In theory, a system could have two entirely separate memory systems, using the
+accessed physical address space (AxPROT) to select between them. In practice
+this is unlikely. Instead, systems use the physical address space like an
+attribute, controlling access to different devices in the memory system.
+
+> 理论上，系统可以有两套完全独立的内存系统，通过访问的物理地址空间（AxPROT）来选
+> 择使用哪一套。但实际中，这种做法并不常见。通常，系统会将物理地址空间作为一种属
+> 性，用于控制对内存系统中不同设备的访问权限。
+
+In general, we can talk about two types of memories and peripherals, and bus
+completers:
+> 一般来说，我们可以将内存、外设和总线终端（completer）分为两类：
+
+* TrustZone aware
+
+  This is a device that is built with some knowledge of TrustZone and uses the
+  security of the access internally.
+
+  An example is the Generic Interrupt Controller (GIC). The GIC is accessed by
+  software in both Secure and Non-secure state. Non-secure accesses are only
+  able to see Non-secure interrupts. Secure accesses can see all interrupts. The
+  GIC implements uses the security of the bus transaction to determine which
+  view to present.
+
+  > 这类设备具备 TrustZone 相关的设计，能够在内部利用访问的安全属性。
+  >
+  > 一个例子是通用中断控制器（Generic Interrupt Controller, GIC）。GIC 可以被安
+  > 全和非安全状态下的软件访问。非安全访问只能看到非安全中断，安全访问则可以看到
+  > 所有中断。GIC 利用总线事务的安全属性来决定展示哪种视图。
+
+* Non-TrustZone aware
+
+  This represents most completers in a typical system. The device does not use
+  the security of the bus access internally.
+
+  > 这类设备占据了大多数典型系统中的终端。它们在内部不会利用总线访问的安全属性。
+
+  An example is a simple peripheral like a timer, or an on-chip memory. Each
+  would be either Secure or Non-secure, but not both.
+
+  > 例如一个简单的外设（如定时器）或片上内存（on-chip memory），它们要么是安全的，
+  > 要么是非安全的，但不会同时支持两种状态。
+
+
+## Enforcing isolation
+
+TrustZone is sometimes referred to as a completer-enforced protection system.
+The requester signals the security of its access and the memory system decides
+whether to allow the access. How is the memory system-based checking done?
+
+> TrustZone 有时被称为“由终端强制保护的系统”（completer-enforced protection
+> system）。请求方会发出其访问的安全属性信号，内存系统则决定是否允许该访问。那么，
+> 内存系统是如何进行检查的呢？
+
+In most modern systems, the memory system-based checking is done by the
+interconnect. For example, the Arm NIC-400 allows system designers to specify
+for each connected completer:
+
+> 在现代系统中，内存系统的检查通常由互连（interconnect）完成。例如，Arm 的
+> NIC-400 互连允许系统设计者为每个连接的终端（completer）指定如下类型：
+
+* Secure
+
+  Only Secure accesses are passed to device. Interconnect generates a fault for
+  all Non-secure accesses, without the access being presented to the device.
+
+  > 只有安全访问会被传递到设备。互连会对所有非安全访问直接产生错误（fault），而
+  > 不会将该访问传递给设备。
+
+* Non-secure
+
+  Only Non-secure accesses are passed to device. Interconnect generates a fault
+  for all Secure accesses, without the access being presented to the device.
+
+  > 只有非安全访问会被传递到设备。互连会对所有安全访问直接产生错误，而不会将该访
+  > 问传递给设备。
+
+* Boot time configurable
+
+  At boot time, system initialization software can program the device as Secure
+  or Non-secure. The default is Secure.
+
+  > 在系统启动时，初始化软件可以将设备配置为安全或非安全。默认配置为安全。
+
+* TrustZone aware
+
+  The interconnect allows all accesses through. The connected device must
+  implement isolation.
+
+  > 互连允许所有访问通过。连接的设备自身必须实现隔离机制。
+
+For example:
+
+<center><font><strong>
+Figure 1. Implement isolation
+</strong></font></center>
+
+![Implement isolation](./pic/implement_isolation.svg)
+
+> NOTE
+>
+> 这相当于将整个的ram device划分为 Trusted or unTrusted, 然后
+> 相应属性的访问只能访问对应属性的target
+{: .prompt-info}
+
+This approach works well for either TrustZone-aware devices or those devices
+that live entirely within one address space. For larger memories, like off-chip
+DDR, we might want to partition the memory into Secure and Non-secure regions. A
+TrustZone Address Space Controller (TZASC) allows us to do this, as you can see
+in the following diagram:
+
+> 这种方法对于支持 TrustZone 的设备，或者完全属于某一个地址空间的设备来说效果很
+> 好。但对于更大的内存，比如片外 DDR，我们可能希望将内存划分为安全和非安全区域。
+> TrustZone 地址空间控制器（TrustZone Address Space Controller，TZASC）可以帮助
+> 我们实现这一目标，如下图所示：
+
+<center><font><strong>
+Figure 2. Partition memory
+</strong></font></center>
+
+![Partition memory](./pic/partition_memory.svg)
+
+The TZASC is similar to a Memory Protection Unit (MPU), and allows the address
+space of a device to split into several regions. With each region specified as
+Secure or Non-secure. The registers to control the TZASC are Secure access only,
+permitting only Secure software to partition memory.
+
+> TZASC 类似于内存保护单元（Memory Protection Unit，MPU），允许将设备的地址空间
+> 划分为多个区域，每个区域都可以被指定为安全或非安全。用于控制 TZASC 的寄存器只
+> 能通过安全访问进行操作，这样只有安全软件才能对内存进行分区。
+
+An example of a TZASC is the Arm TZC-400, which supports up to nine regions.
+
+> Note
+>
+> Off-chip memory is less Secure than on-chip memory, because it is easier for
+> an attacker to read or modify its contents. On-chip memories are more secure
+> but are much more expensive and of limited size. As always, we must balance
+> cost, usability, and security. Be careful when deciding which assets you want
+> in off-chip memories and which assets need to be kept on-chip.
+
+>> 片外内存（off-chip memory）比片上内存（on-chip memory）安全性更低，因为攻击者
+>> 更容易读取或篡改其内容。片上内存更加安全，但成本更高且容量有限。和往常一样，我们
+>> 需要在成本、可用性和安全性之间进行权衡。在决定哪些资产存放在片外内存、哪些资产需
+>> 要留在片上内存时要格外小心。
+
+
+When the Armv9-A Realm Management Extension (RME) is implemented, memory can by
+dynamically moved between physical address spaces via the Granule Protection
+Table. For more information, see Introducing Arm’s Dynamic TrustZone technology
+blog.
+
+> 当实现了 Armv9-A 的 Realm 管理扩展（RME）后，可以通过颗粒保护表（Granule
+> Protection Table, GPT）在不同物理地址空间之间动态移动内存。更多信息请参见
+> 《Introducing Arm’s Dynamic TrustZone technology》博客。
+
+## Bus requesters
+
+Next, we will look at the bus requesters in the system, as you can see in the
+following diagram:
+
+<center><font><strong>
+Figure 1. Bus requesters in the system
+</strong></font></center>
+
+![Bus requesters in the system]()
+
+The A-profile processors in the system are TrustZone aware and send the correct
+security status with each bus access. However, most modern SoCs also contain
+non-processor bus requesters, for example, GPUs and DMA controllers.
+
+> 系统中的 A-profile 处理器是支持 TrustZone 的，并且每次总线访问都会携带正确的安
+> 全状态。然而，大多数现代 SoC 还包含非处理器类型的总线请求方，例如 GPU 和 DMA
+> 控制器。
+
+Like with completer devices, we can roughly divide the requester devices in the
+system into groups:
+
+* TrustZone aware
+
+  Some requesters are TrustZone aware, and like the processor, provide the
+  appropriate security information with each bus access. Examples of this
+  include System MMUs (SMMUs) that are built to the Arm SMMUv3 specification.
+
+  > 有些请求方是支持 TrustZone 的，就像处理器一样，每次总线访问都会提供相应的安
+  > 全信息。例如，符合 Arm SMMUv3 规范的系统 MMU（SMMU）就是这样的请求方。
+
+* Non-TrustZone aware
+
+  Not all requesters are built with TrustZone awareness, particularly when
+  reusing legacy IP. Such requesters typically provide no security information
+  with its bus accesses, or always send the same value.
+
+  > 并非所有的请求方都具备 TrustZone 感知能力，尤其是在复用旧版 IP 时。这类请求
+  > 方通常不会在总线访问中提供安全信息，或者始终发送同一个固定值。
+
+  What system resources do non-TrustZone-aware requesters need to access? Based
+  on the answer to this question, we could pick one of several approaches:
+
+  > 非 TrustZone 感知请求方需要访问哪些系统资源？根据这个问题的答案，我们可以选
+  > 择以下几种方法之一：
+
+  + Design time tie-off
+
+    Where the requester only needs to access a single physical address space, a
+    system designer can fix the address spaces to which it has access, by tying
+    off the appropriate signal. This solution is simple, but is not flexible.
+
+    > 如果请求方只需要访问单一的物理地址空间，系统设计者可以通过拉高（tie-off）
+    > 相关信号，将其访问权限固定到某个地址空间。这种方案简单，但灵活性较差。
+
+  + Configurable logic
+
+    Logic is provided to add the security information to the requester’s bus
+    accesses. Some interconnects, like the Arm NIC-400, provide registers that
+    Secure software can use at boot time to set the security of an attached
+    requester accesses. This overrides whatever value the requester provided
+    itself. This approach still only allows the requester to access a single
+    physical address space but is more flexible than a tie-off.
+
+    > 可以通过逻辑电路为请求方的总线访问添加安全信息。有些互连（如 Arm NIC-400）
+    > 提供寄存器，安全软件可以在启动时配置，设置某个连接请求方的访问安全属性，从
+    > 而覆盖请求方自身提供的值。该方法仍然只能让请求方访问单一物理地址空间，但比
+    > 设计时固定更灵活。
+
+  + SMMU
+
+    A more flexible option is an SMMU. For a trusted requester, the SMMU behaves
+    like the MMU in Secure state. This includes the NS bit in the translation
+    table entries, controlling which physical address space is accessed.
+
+    > 更灵活的方案是使用 SMMU（系统内存管理单元）。对于受信任的请求方，SMMU 的行
+    > 为类似于安全状态下的 MMU，包括转换表项中的 NS 位，用于控制访问哪个物理地址
+    > 空间。
 
 ## 参考链接
 1. [Learn the architecture - TrustZone for AArch64](https://developer.arm.com/documentation/102418/0102/What-is-TrustZone-)
