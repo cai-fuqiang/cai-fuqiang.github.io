@@ -730,7 +730,7 @@ completers:
   > 要么是非安全的，但不会同时支持两种状态。
 
 
-## Enforcing isolation
+### Enforcing isolation
 
 TrustZone is sometimes referred to as a completer-enforced protection system.
 The requester signals the security of its access and the memory system decides
@@ -842,7 +842,7 @@ blog.
 > Protection Table, GPT）在不同物理地址空间之间动态移动内存。更多信息请参见
 > 《Introducing Arm’s Dynamic TrustZone technology》博客。
 
-## Bus requesters
+### Bus requesters
 
 Next, we will look at the bus requesters in the system, as you can see in the
 following diagram:
@@ -851,7 +851,7 @@ following diagram:
 Figure 1. Bus requesters in the system
 </strong></font></center>
 
-![Bus requesters in the system]()
+![Bus requesters in the system](./pic/bus_requesters.svg)
 
 The A-profile processors in the system are TrustZone aware and send the correct
 security status with each bus access. However, most modern SoCs also contain
@@ -920,6 +920,162 @@ system into groups:
     > 更灵活的方案是使用 SMMU（系统内存管理单元）。对于受信任的请求方，SMMU 的行
     > 为类似于安全状态下的 MMU，包括转换表项中的 NS 位，用于控制访问哪个物理地址
     > 空间。
+ 
+> NOTE (Bus requester information)
+>
+> `<<AMBA AXI and ACE Protocol Specificatio>> Section A4.7 Access permissions`
+> 中讲解了AXI总线上的事物的access attr, 其中包括secure mode相关属性, 如下
+>
+> > AXI provides access permissions signals that can be used to protect against
+> > illegal transactions:
+> > * ARPROT[2:0] defines the access permissions for read accesses
+> > * AWPROT[2:0] defines the access permissions for write accesses. 
+> >
+> > The term AxPROT refers collectively to the ARPROT and AWPROT signals.
+> > 
+> > ![AXI_protection_encoding](pic/AXI_protection_encoding.png)
+>
+> AxPROT[1]表示该属性.
+>
+> 那如果按照, 前面的知识来看, 在CPU 侧，是通过EL3 切换`SCR_EL3.NS` 来决定`eret` 
+> 后的世界是secure world or Non-secure world, 从而决定最终MMU(可能时MMU) 向AXI
+> 发送的AxPROT[1] 是什么值.
+>
+>> 那像上文说的SMMU 是怎么控制的呢? 难道我们通过修改SMMU pgtable就可以让device
+>> 访问secure world? 那么控制SMMU的软件是secure world还是Non-secure world，还是
+>> smmu像带有 TZASC 的mem一样，也分secure/Non-secure world resource, 只让CPU对应
+>> 的secure mode来处理?
+> {: .prompt-warning}
+{: .prompt-tip}
+
+### M and R profile Arm processors
+
+(略)
+
+### Interrupts
+
+Next, we will look at the interrupts in the system, as you can see in the
+following diagram:
+
+> 接下来，我们将查看系统中的总线请求者，如下图所示：
+
+<center><font><strong>
+Figure 1. Interrupts in the system
+</strong></font></center>
+
+![Interrupts in the system](./pic/intr_in_the_sys.svg)
+
+The Generic Interrupt Controller (GIC), supports TrustZone. Each interrupt
+source, called an INTID in the GIC specification, is assigned to one of three
+Groups:
+
+> 通用中断控制器（GIC）支持 TrustZone。每个中断源（在 GIC 规范中称为 INTID）被分
+> 配到三个组中的一个：
+
+* Group 0: Secure interrupt, signaled as FIQ
+* Secure Group 1: Secure interrupt, signaled as IRQ or FIQ
+* Non-secure Group 1: Non-secure interrupt, signaled as IRQ or FIQ
+
+> * 组 0：安全中断，以 FIQ 方式信号通知
+> * 安全组 1：安全中断，以 IRQ 或 FIQ 方式信号通知
+> * 非安全组 1：非安全中断，以 IRQ 或 FIQ 方式信号通知
+
+This is controlled by software writing to the `GIC[D|R]_IGROUPR<n>` and `GIC[D|R]_IGRPMODR<n>`
+registers, which can only be done from Secure state. The allocation
+is not static. Software can update the allocations at run-time.
+
+> 这个分组通过软件写入 GIC[D|R]_IGROUPR 和 GIC[D|R]_IGRPMODR 寄存器来控制，且只
+> 能在安全状态下进行。分配不是静态的，软件可以在运行时动态更新分配。
+
+
+For INTIDs that are configured as Secure, only bus Secure accesses can modify
+state and configuration. Register fields corresponding to Secure interrupts are
+read as 0s to Non-secure bus accesses.
+
+> 对于被配置为安全的 INTID，只有安全总线访问才能修改其状态和配置。对应安全中断的
+> 寄存器字段，对于非安全总线访问会读取为 0。
+
+For INTIDs that are configured as Non-secure, both Secure and Non-secure bus
+accesses can modify state and configuration.
+
+> 对于被配置为非安全的 INTID，安全和非安全总线访问都可以修改其状态和配置。
+
+Why are there two Secure Groups? Typically, Group 0 is used for interrupts that
+are handled by the EL3 firmware. These relate to low-level system management
+functions. Secure Group 1 is used for all the other Secure interrupt sources and
+is typically handled by the S.EL1 or S.EL2 software.
+
+> 为什么会有两个安全组？通常，组 0 用于由 EL3 固件处理的中断，这些中断与底层系统
+> 管理功能相关。安全组 1 用于所有其他安全中断源，通常由 S.EL1 或 S.EL2 软件处理。
+
+### Handling interrupts
+
+The processor has two interrupt exceptions, IRQ and FIQ. When an interrupt
+becomes pending, the GIC uses different interrupt signals depending on the group
+of the interrupt and the current Security state of the processor:
+
+> 处理器有两种中断异常：IRQ 和 FIQ。当有中断挂起时，GIC 会根据中断所属的组以及处
+> 理器当前的安全状态，使用不同的中断信号：
+
+* Group 0 interrupt
+  + Always signaled as FIQ exception
+* Secure Group 1
+  + Processor currently in Secure state – IRQ exception 
+  + Processor currently in Non-secure state – FIQ exception
+* Non-secure Group 1
+  + Processor currently in Secure state – FIQ exception 
+  + Processor currently in Non-secure state – IRQ exception
+
+> NOTE
+>
+> 当收到了一个不属于当前 secure-state的 interrupt, 都是FIQ, 否则为IRQ
+> (Group 0 除外，因为Group 0都是FIQ)
+>
+> * Group 0 --- El3
+> * Secure Group1 -- Secure state
+> * Non-Secure Group1 -- Non-Secure state
+>
+> 其目的是想让对应的Secure state 处理相应的interrupt，但是Secure state <-->
+> Non-secure state的切换需要EL3参与
+{: .prompt-tip}
+
+Remember that Group 0 interrupts are typically used for the EL3 firmware. This
+means that:
+
+> 请记住，组 0 的中断通常用于 EL3 固件。这意味着：
+
+* IRQ means a Group 1 interrupt for the current Security state.
+* FIQ means that we need to enter EL3, either to switch Security state or to
+  have the firmware handle the interrupt.
+
+> * IRQ 表示当前安全状态下的组 1 中断。
+> * FIQ 表示需要进入 EL3，要么是为了切换安全状态，要么是让固件处理该中断。
+>   以下示例展示了异常路由控制如何进行配置：
+
+The following example shows how the exception routing controls could be
+configured:
+
+> 以下示例展示了异常路由控制可以如何配置：
+
+<center><font><strong>
+Figure 1. Exception routing controls
+</strong></font></center>
+
+![Exception routing controls](./pic/exp_routing_ctrls.svg)
+
+The preceding diagram shows one possible configuration. Another option that is
+commonly seen is for FIQs to be routed to EL1 while in Secure state. The Trusted
+OS treats the FIQ as a request to yield to either the firmware or to Non-secure
+state. This approach to routing interrupts gives the Trusted OS the opportunity
+to be exited in a controlled manor.
+
+> 前面的图展示了一种可能的配置。另一种常见的选择是在安全状态下将 FIQ 路由到 EL1。
+> 此时，受信任操作系统（Trusted OS）会将 FIQ 视为让出执行权给固件或非安全状态的
+> 请求。这种中断路由方式，使得受信任操作系统能够以可控的方式退出。
+
+> 优雅switch, 让trust OS 在退出前，做一些事情
+{: .prompt-tip}
 
 ## 参考链接
 1. [Learn the architecture - TrustZone for AArch64](https://developer.arm.com/documentation/102418/0102/What-is-TrustZone-)
+2. [ARM CoreLink TZC-400 TrustZone Address Space Controller Technical Reference Manual r0p1 Rate this page:](https://developer.arm.com/documentation/ddi0504/c/introduction/about-the-tzc-400/tzc-400-example-system?lang=en)
