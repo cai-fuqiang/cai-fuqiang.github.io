@@ -736,6 +736,20 @@ that is specific to the CD and STEs that are used determines whether the
 transaction is terminated or whether it is stalled, pending software fault
 resolution, see section 3.12 Fault models, recording and reporting.
 
+> 注意：此流程展示了非安全流（Non-secure stream）上的事务路径。如果系统支持安全
+> 状态（Secure state），则安全流上的事务路径类似，但由 SMMU_S_CR0.SMMUEN 和
+> SMMU_S_GBPA 控制旁路行为。
+>
+> 具体实现可能会在这些步骤的任意阶段按需缓存数据。第 16.2 节“缓存”描述了配置和转
+> 换结构的缓存机制。
+>
+> 此外，在处理过程中，多个阶段都可能发生事件，导致事务无法继续进行。如果事务无法
+> 找到有效的配置，或属于不支持的类型，则会被终止（abort），并可能记录相关事件。
+> 如果事务进入到地址转换阶段，则在任意转换阶段都可能产生错误。最终是否终止或挂起
+> （stalled，等待软件处理故障），取决于所使用的 CD 和 STE 的具体配置。详见第
+> 3.12 节“故障模型、记录与报告”。
+{: .prompt-trans}
+
 The two translation stages are described using the VA to IPA and IPA to PA
 stages of the Armv8-A Virtualization terminology.
 
@@ -752,6 +766,20 @@ as though that stage is configured to permanently bypass translation. Other
 restrictions are also relevant, for example it is not valid to configure a
 non-present stage to translate. An SMMU must support at least one stage of
 translation.
+
+> 这两个地址转换阶段使用 Armv8-A 虚拟化术语中的 VA 到 IPA 和 IPA 到 PA 两个阶段
+> 进行描述。
+>
+> 注意：有些系统将 SMMU 的输入称为总线地址（Bus Address，BA）。术语 VA 强调，
+> SMMU 的输入地址实际上可以来自与 PE 进程相同的虚拟地址空间（即使用虚拟地址）。
+>
+> 除非另有说明，翻译表及其配置字段的行为与 Armv8-A 处理单元（PE）翻译系统中的对
+> 应项完全一致。
+>
+> 如果 SMMU 未实现其中一个转换阶段，则其行为就像该阶段被永久配置为旁路转换一样。
+> 此外还有一些相关限制，例如，不允许将一个未实现的阶段配置为进行转换。SMMU 必须
+> 至少支持一个转换阶段。
+{: .prompt-trans}
 
 ### 3.3.3 Configuration and Translation lookup
 
@@ -772,6 +800,19 @@ function of the:
 * Incoming transaction StreamID.
 * Incoming transaction SubstreamID (if supplied).
 
+> 图 3.7 展示了本规范在涉及配置查找和转换查找时所采用的相关概念。
+>
+> 如上文 3.3.2 “StreamID 到上下文描述符”所述，传入的事务首先会经过一次配置查找，
+> SMMU 据此决定如何开始对该事务进行地址转换。这个过程包括定位合适的 STE（流表
+> 项），如果需要，还要定位一个 CD（上下文描述符）。
+>
+> 配置查找阶段不依赖于输入地址，而是由以下因素决定：
+> 
+> + SMMU 的全局寄存器配置；
+> + 传入事务的 StreamID；
+> + 传入事务的 SubstreamID（如果有提供）。
+{: .prompt-trans}
+
 The result of the configuration lookup is the stream or substream-specific
 configuration that locates the translation, including:
 
@@ -784,6 +825,14 @@ configuration that locates the translation, including:
 * Stream-specific properties, such as the StreamWorld (the Exception Level, or
   translation regime, in PE terms) to which the stream is assigned.
 
+> 配置查找的结果是针对流或子流的专有配置，用于定位地址转换，包括：
+>
+> * 一级转换表的基地址指针、ASID，以及用于修改翻译表解释或遍历方式的属性（例如转
+>   换粒度）；
+> * 二级转换表的基地址指针、VMID，以及用于修改翻译表解释或遍历方式的属性；
+> * 流专有属性，例如该流被分配到的 StreamWorld（在 PE 术语中即异常级或转换机制）。
+{: .prompt-trans}
+
 The translation lookup stage logically works the same way as a PE memory address
 translation system. The output is the final physical address provided to the
 system, which is a function of the:
@@ -792,6 +841,13 @@ system, which is a function of the:
 
 * StreamWorld (Stream Security state and Exception level), ASID and VMID (which
   are provided from the previous step).
+
+> 地址转换查找阶段在逻辑上与处理单元（PE）的内存地址转换系统的工作方式相同。其输
+> 出是最终提供给系统的物理地址，该物理地址取决于以下因素：
+>
+> + 输入地址
+> + StreamWorld（即流的安全状态和异常级）、ASID 和 VMID（这些信息由上一步提供）
+{: .prompt-trans}
 
 Figure 3.7 shows a PE-style TLB used in the translation lookup step. Arm expects
 the SMMU to use a TLB to cache translations instead of performing translation
@@ -808,8 +864,8 @@ a PE.
 
 The StreamWorld of a translation is determined by the configuration that inserts
 that translation. The StreamWorld of a cached translation is determined from the
-combination of the Security state of an STE, its STE.Config field, its STE.STRW
-field, and the corresponding SMMU_(*_)CR2.E2H configuration. See the STE.STRW
+combination of the **Security state of an STE, its STE.Config field, its STE.STRW
+field**, and the corresponding SMMU_(*_)CR2.E2H configuration. See the STE.STRW
 field in section 5.2 Stream Table Entry.
 
 In addition to insertion into a TLB, the StreamWorld affects TLB lookups, and
@@ -819,6 +875,29 @@ EL2-E2H.
 
 For the behavior of TLB invalidations, see section 3.17 TLB tagging, VMIDs,
 ASIDs and participation in broadcast TLB maintenance.
+
+> 图 3.7 展示了在地址转换查找步骤中使用的类似于 PE 的 TLB（快表）。Arm 期望 SMMU
+> 使用 TLB 来缓存地址转换结果，而不是对每个事务都进行转换表遍历，但这并不是强制
+> 要求。
+>
+> 注意：为简明起见，图 3.7 未显示错误报告路径或通过二级转换获取 CD 的过程（这些
+> 过程同样会访问 TLB 或转换表遍历机制）。具体实现时，可能会将图中展示的某些步骤
+> 进行简化或合并，只要保持行为一致即可。
+>
+> 缓存的地址转换与一个 StreamWorld 相关联，StreamWorld 表示其转换机制。
+> StreamWorld 直接等同于 PE 上的异常级（Exception level）。
+>
+> 某次地址转换的 StreamWorld 由插入该转换项的配置决定。缓存转换项的 StreamWorld
+> 则由 STE 的安全状态（Security state）、STE.Config 字段、STE.STRW 字段以及相应
+> 的 SMMU_(*_)CR2.E2H 配置共同决定。详见第 5.2 节 Stream Table Entry 中的
+> STE.STRW 字段。
+>
+> 除了插入到 TLB 中以外，StreamWorld 还会影响 TLB 查找，以及不同类型 TLB 失效操
+> 作的作用范围。SMMU 的实现并不要求区分为 EL2 和 EL2-E2H 插入的缓存转换项。
+>
+> 有关 TLB 失效操作的行为，参见第 3.17 节“TLB 标记、VMID、ASID 以及广播 TLB 维护
+> 的参与”。
+{: .prompt-trans}
 
 A translation is associated with one of the following StreamWorlds:
 
@@ -844,12 +923,34 @@ In the same way as in an Armv8-A MMU, a translation is architecturally unique if
 it is identified by a unique set of {StreamWorld, VMID, ASID, Address} input
 parameters.
 
+> StreamWorld 可以区分 SMMU 中由不同异常级（Exception level）下不同软件实体关联
+> 的多种转换机制。例如，地址 0x1000 的安全监控器（EL3）转换与地址 0x1000 的非安
+> 全虚拟机管理程序（EL2）转换是不同的，且互不影响，地址 0x1000 的 NS-EL1（非安全
+> EL1）转换也是如此。 **Arm 期望，在 SMMU 中为某个流配置的 StreamWorld 应当与控制该
+> 流或设备的软件的异常级相匹配**
+>
+> 术语 any-EL2 用于描述 NS-EL2、S-EL2 和 Realm-EL2 这些 StreamWorld 共有的行为。
+>
+> 术语 any-EL2-E2H 用于描述 NS-EL2-E2H、S-EL2-E2H 和 Realm-EL2-E2H 这些
+> StreamWorld 共有的行为。
+>
+> 与 Armv8-A MMU 的方式类似，如果一组 {StreamWorld, VMID, ASID, Address} 输入参
+> 数是唯一的，那么该地址转换在体系结构上也是唯一的。
+{: .prompt-trans}
+
 For example, the following are unique and can all co-exist in a translation
 cache:
 
 * Entries with the same address, but different ASIDs.
 * Entries with the same address and ASID, but different VMIDs.
 * Entries with the same address and ASID but a different StreamWorld.
+
+> 例如，以下几种情况在转换缓存中都是唯一的，并且可以共存：
+> 
+> * 拥有相同地址，但 ASID 不同的条目；
+> * 拥有相同地址和 ASID，但 VMID 不同的条目；
+> * 拥有相同地址和 ASID，但 StreamWorld 不同的条目。
+{: .prompt-trans}
 
 Architecturally, a translation is not uniquely identified by a StreamID and
 SubstreamID. This results in two properties:
@@ -869,6 +970,19 @@ SubstreamID. This results in two properties:
     must both use the same translation table base addresses and translation
     granule.
 
+> 从体系结构上讲，地址转换并不能通过 StreamID 和 SubstreamID 唯一标识。这带来了
+> 两个特性：
+>
+> * 对于一组事务输入参数（StreamID、SubstreamID），地址转换不要求是唯一的。
+>
+>   + 可以将两个流配置为使用相同的转换配置，此时它们在配置查找后得到的 ASID/VMID
+>     会指向同一组共享的转换缓存项。
+> * 多个 StreamID/SubstreamID 配置如果最终得到相同的 ASID/VMID/StreamWorld 配置，
+>   那么在配置可能影响 TLB 查找的情况下，这些配置必须保持一致。
+>   + 例如，如果两个流都被配置为一级转换、NS-EL1，且 ASID == 3，那么它们必须使用
+>     相同的转换表基地址和转换粒度。
+{: .prompt-trans}
+
 When translating an address, any-EL2 and EL3 regimes use only one translation
 table. CD.TTB1 is unused in these configurations. All other StreamWorlds use
 both translation tables, and therefore CD.TTB0 and CD.TTB1 are both required.
@@ -885,6 +999,22 @@ tables. Secure stage 2 is not supported for VMSAv8-32 LPAE translation tables.
 In this specification, the term TLB is used to mean the concept of a translation
 cache, indexed by StreamWorld/VMID/ASID and VA.
 
+> 在进行地址转换时，any-EL2 和 EL3 转换机制（regime）只使用一张转换表，此时
+> CD.TTB1 字段不会被用到。其他所有的 StreamWorld 都会使用两张转换表，因此
+> CD.TTB0 和 CD.TTB1 都是必需的。
+>
+> 每个 StreamWorld 只支持某些特定格式的一级转换表，这与 PE（处理单元）的行为一致。
+> 有效的组合在 CD.AA64 的描述中有详细说明。如果选择了不一致的 StreamWorld 和
+> CD.AA64 组合（例如，使用 VMSAv8-32 LPAE 转换表来表示 VMSAv8-64 EL3 转换机制），
+> 则该 CD 会被视为非法（ILLEGAL）。
+>
+> 安全域的一级转换支持 VMSAv8-32 LPAE、VMSAv8-64 和 VMSAv9-128 转换表。安全域的
+> 二级转换不支持 VMSAv8-32 LPAE 转换表。
+>
+> 在本规范中，TLB 一词用于表示地址转换缓存的概念，其索引方式为
+> StreamWorld/VMID/ASID 和虚拟地址（VA）。
+{: .prompt-trans}
+
 SMMU cache maintenance commands therefore fall into two groups:
 
 + Configuration cache maintenance, acting upon StreamIDs and SubstreamIDs.
@@ -896,6 +1026,15 @@ that might be available from PEs in some systems. The StreamWorld tag determines
 how TLB entries respond to incoming broadcast TLB invalidations and TLB
 invalidation SMMU commands, see section 3.17 TLB tagging, VMIDs, ASIDs and
 participation in broadcast TLB maintenance for details.
+
+> 因此，SMMU 的缓存维护指令分为两类：
+> + 配置缓存维护，作用对象为 StreamID 和 SubstreamID；
+> + 转换缓存维护（或称 TLB 维护），作用对象为地址、ASID、VMID 和 StreamWorld。
+>
+> 第二类指令直接对应于某些系统中处理单元（PE）可能支持的广播 TLB 维护操作。
+> StreamWorld 标签决定了 TLB 项在接收到广播 TLB 失效和 SMMU TLB 失效指令时的响应
+> 方式。详细内容见第 3.17 节 “TLB 标记、VMID、ASID 及参与广播 TLB 维护”。
+{: .prompt-trans}
 
 
 ### 3.3.4 Transaction attributes: incoming, two-stage translation and overrides
