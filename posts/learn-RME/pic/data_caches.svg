@@ -1,0 +1,110 @@
+<svg height="359.66" id="Layer_1" viewbox="0 0 765 359.66" width="765" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="105" y="89.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="240" y="89.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="360" y="89.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="105" y="44.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="240" y="44.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="360" y="44.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(116.82 118.8)"><tspan x="0" y="0">NP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(281.43 118.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(417.64 118.8)"><tspan x="0" y="0">0</tspan><tspan letter-spacing="0em" x="10.44" y="0">x</tspan><tspan x="19.46" y="0">FF0056A</tspan><tspan letter-spacing="-.03em" x="93.84" y="0">D</tspan><tspan x="107.08" y="0">, 0</tspan><tspan letter-spacing="-.02em" x="126.18" y="0">x</tspan><tspan x="134.98" y="0">CD503410, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="105" y="134.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="240" y="134.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="360" y="134.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(118.82 163.8)"><tspan x="0" y="0">SP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(281.43 163.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(424.2 163.8)"><tspan x="0" y="0">0x00000000, 0x548E</tspan><tspan letter-spacing="-.02em" x="172.91" y="0">D</tspan><tspan x="186.24" y="0">AB, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="105" y="179.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="240" y="179.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="360" y="179.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(165.35 208.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(281.43 208.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(532.85 208.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(155.27 73.8)"><tspan letter-spacing="-.07em" x="0" y="0">T</tspan><tspan letter-spacing="-.02em" x="9.41" y="0">A</tspan><tspan x="21.33" y="0">G</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(257.09 73.8)"><tspan x="0" y="0">MESI st</tspan><tspan letter-spacing="0em" x="60.96" y="0">a</tspan><tspan letter-spacing="0em" x="69.83" y="0">t</tspan><tspan x="76.29" y="0">e</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(498.61 73.8)"><tspan letter-spacing="-.01em" x="0" y="0">D</tspan><tspan letter-spacing="0em" x="13.46" y="0">a</tspan><tspan x="22.33" y="0">ta RAM</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="90" y="104.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="225" y="104.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="345" y="104.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="90" y="59.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="225" y="59.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="345" y="59.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(101.82 133.8)"><tspan x="0" y="0">NP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(266.43 133.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(402.64 133.8)"><tspan x="0" y="0">0</tspan><tspan letter-spacing="0em" x="10.44" y="0">x</tspan><tspan x="19.46" y="0">FF0056A</tspan><tspan letter-spacing="-.03em" x="93.84" y="0">D</tspan><tspan x="107.08" y="0">, 0</tspan><tspan letter-spacing="-.02em" x="126.18" y="0">x</tspan><tspan x="134.98" y="0">CD503410, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="90" y="149.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="225" y="149.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="345" y="149.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(103.82 178.8)"><tspan x="0" y="0">SP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(266.43 178.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(409.2 178.8)"><tspan x="0" y="0">0x00000000, 0x548E</tspan><tspan letter-spacing="-.02em" x="172.91" y="0">D</tspan><tspan x="186.24" y="0">AB, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="90" y="194.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="225" y="194.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="345" y="194.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(150.35 223.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(266.43 223.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(517.85 223.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(140.27 88.8)"><tspan letter-spacing="-.07em" x="0" y="0">T</tspan><tspan letter-spacing="-.02em" x="9.41" y="0">A</tspan><tspan x="21.33" y="0">G</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(242.09 88.8)"><tspan x="0" y="0">MESI st</tspan><tspan letter-spacing="0em" x="60.96" y="0">a</tspan><tspan letter-spacing="0em" x="69.83" y="0">t</tspan><tspan x="76.29" y="0">e</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(483.61 88.8)"><tspan letter-spacing="-.01em" x="0" y="0">D</tspan><tspan letter-spacing="0em" x="13.46" y="0">a</tspan><tspan x="22.33" y="0">ta RAM</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="75" y="119.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="210" y="119.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="330" y="119.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="75" y="74.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="210" y="74.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="330" y="74.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(86.82 148.8)"><tspan x="0" y="0">NP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(251.43 148.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(387.64 148.8)"><tspan x="0" y="0">0</tspan><tspan letter-spacing="0em" x="10.44" y="0">x</tspan><tspan x="19.46" y="0">FF0056A</tspan><tspan letter-spacing="-.03em" x="93.84" y="0">D</tspan><tspan x="107.08" y="0">, 0</tspan><tspan letter-spacing="-.02em" x="126.18" y="0">x</tspan><tspan x="134.98" y="0">CD503410, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="75" y="164.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="210" y="164.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="330" y="164.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(88.82 193.8)"><tspan x="0" y="0">SP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(251.43 193.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(394.2 193.8)"><tspan x="0" y="0">0x00000000, 0x548E</tspan><tspan letter-spacing="-.02em" x="172.91" y="0">D</tspan><tspan x="186.24" y="0">AB, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="75" y="209.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="210" y="209.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="330" y="209.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(135.35 238.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(251.43 238.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(502.85 238.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(125.27 103.8)"><tspan letter-spacing="-.07em" x="0" y="0">T</tspan><tspan letter-spacing="-.02em" x="9.41" y="0">A</tspan><tspan x="21.33" y="0">G</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(227.09 103.8)"><tspan x="0" y="0">MESI st</tspan><tspan letter-spacing="0em" x="60.96" y="0">a</tspan><tspan letter-spacing="0em" x="69.83" y="0">t</tspan><tspan x="76.29" y="0">e</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(468.61 103.8)"><tspan letter-spacing="-.01em" x="0" y="0">D</tspan><tspan letter-spacing="0em" x="13.46" y="0">a</tspan><tspan x="22.33" y="0">ta RAM</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="60" y="134.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="195" y="134.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="315" y="134.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="60" y="89.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="195" y="89.66"></rect>
+<rect fill="#0091bd" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="315" y="89.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(71.82 163.8)"><tspan x="0" y="0">NP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(236.43 163.8)"><tspan letter-spacing="0em" x="0" y="0">m</tspan><tspan letter-spacing="0em" x="14.7" y="0">E</tspan><tspan x="24.94" y="0">si</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(372.64 163.8)"><tspan x="0" y="0">0</tspan><tspan letter-spacing="0em" x="10.44" y="0">x</tspan><tspan x="19.46" y="0">FF0056A</tspan><tspan letter-spacing="-.03em" x="93.84" y="0">D</tspan><tspan x="107.08" y="0">, 0</tspan><tspan letter-spacing="-.02em" x="126.18" y="0">x</tspan><tspan x="134.98" y="0">CD503410, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="60" y="179.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="195" y="179.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="315" y="179.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(73.82 208.8)"><tspan x="0" y="0">SP:0x800000</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(75 328.8)"><tspan x="0" y="0">Example 4-</tspan><tspan letter-spacing="0em" x="88.96" y="0">w</tspan><tspan letter-spacing="-.01em" x="103.07" y="0">a</tspan><tspan letter-spacing="-.02em" x="111.83" y="0">y</tspan><tspan x="120.72" xml:space="preserve" y="0"> d</tspan><tspan letter-spacing="0em" x="135.38" y="0">a</tspan><tspan x="144.25" y="0">ta-cache</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(235.87 208.8)"><tspan x="0" y="0">m</tspan><tspan letter-spacing="-.01em" x="14.88" y="0">e</tspan><tspan letter-spacing="0em" x="24.17" y="0">S</tspan><tspan x="33.89" y="0">i</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(379.2 208.8)"><tspan x="0" y="0">0x00000000, 0x548E</tspan><tspan letter-spacing="-.02em" x="172.91" y="0">D</tspan><tspan x="186.24" y="0">AB, ...</tspan></text>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="135" x="60" y="224.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="120" x="195" y="224.66"></rect>
+<rect fill="#fff" height="45" stroke="#333e48" stroke-miterlimit="10" width="360" x="315" y="224.66"></rect>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(120.35 253.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(236.46 253.8)"><tspan x="0" y="0">me</tspan><tspan letter-spacing="-.01em" x="24.41" y="0">s</tspan><tspan x="31.97" y="0">I</tspan></text>
+<text fill="#333e48" font-family="Lato" font-size="18" font-weight="500" transform="translate(487.85 253.8)"><tspan x="0" y="0">—</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(110.27 118.8)"><tspan letter-spacing="-.07em" x="0" y="0">T</tspan><tspan letter-spacing="-.02em" x="9.41" y="0">A</tspan><tspan x="21.33" y="0">G</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(211.3 118.8)"><tspan x="0" y="0">MESI </tspan><tspan letter-spacing="-.02em" x="46.62" y="0">S</tspan><tspan x="56.01" y="0">t</tspan><tspan letter-spacing="0em" x="62.52" y="0">a</tspan><tspan letter-spacing="0em" x="71.4" y="0">t</tspan><tspan x="77.86" y="0">e</tspan></text>
+<text fill="#fff" font-family="Lato" font-size="18" font-weight="500" transform="translate(453.61 118.8)"><tspan letter-spacing="-.01em" x="0" y="0">D</tspan><tspan letter-spacing="0em" x="13.46" y="0">a</tspan><tspan x="22.33" y="0">ta RAM</tspan></text>
+<g>
+<polyline fill="none" points="735 297.16 735 299.66 732.5 299.66" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 5.01 3" stroke-miterlimit="10" x1="729.5" x2="34" y1="299.66" y2="299.66"></line>
+<polyline fill="none" points="32.5 299.66 30 299.66 30 297.16" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 4.96 2.98" stroke-miterlimit="10" x1="30" x2="30" y1="294.18" y2="33.65"></line>
+<polyline fill="none" points="30 32.16 30 29.66 32.5 29.66" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 5.01 3" stroke-miterlimit="10" x1="35.5" x2="731" y1="29.66" y2="29.66"></line>
+<polyline fill="none" points="732.5 29.66 735 29.66 735 32.16" stroke="#333e48" stroke-miterlimit="10"></polyline>
+<line fill="none" stroke="#333e48" stroke-dasharray="0 0 4.96 2.98" stroke-miterlimit="10" x1="735" x2="735" y1="35.13" y2="295.67"></line>
+</g>
+<rect fill="none" height="165" stroke="#ff6b00" stroke-miterlimit="10" width="120" x="45" y="119.66"></rect>
+</svg>
