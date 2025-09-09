@@ -19,8 +19,6 @@ jobs:
         # however this may be very slow for large repositories!
         # with:
         # fetch-depth: '0'
-      - run: gem install bundle
-      - run: bundle install
       - run: npm i
       - run: npm run build -y
       - run: npm test
