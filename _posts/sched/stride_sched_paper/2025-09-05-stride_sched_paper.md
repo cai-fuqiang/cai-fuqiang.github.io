@@ -1368,15 +1368,25 @@ randomly-generated initial offset still ensures that no systematic bias will
 develop across superquanta. This is important, because systematic bias could
 potentially be exploited by clients attempting to cheat the system.
 
-> 可以通过在超级时间片内以伪随机顺序调度获胜者，再次利用随机化来规避动态修改的复
-> 杂性。每当发生动态变化时，只需提前终止当前超级时间片，并启动一个新的超级时间片。
-> 这种技术同样可以用于基于固定排列顺序的超级时间片调度，比如图 3-9 中所列的方式。
-> 由于获胜者在彩票空间中最大程度地分隔开，当在选出 $w$ 个获胜者后提前终止超级时
-> 间片时，其行为近似于一个 $n_w = w$ 的多赢家彩票调度器。例如，图 3-9 中的四赢家
-> 彩票调度算法所调度的前两个获胜者，与两赢家彩票调度算法选出的获胜者完全一致。当
-> $n_w$ 和 $w$ 都为 2 的幂时，这种近似是精确的。在其他情况下，使用随机生成的初始
-> 偏移量仍能确保不会在多个超级时间片间产生系统性偏差。这一点很重要，因为系统性偏
-> 差可能会被客户利用来作弊。
+> 可以通过在超级时间片内以伪随机顺序调度获胜者，**再次利用随机化来规避动态修改的
+> 复杂性。每当发生动态变化时，只需提前终止当前超级时间片，并启动一个新的超级时间
+> 片。** 这种技术同样可以用于基于固定排列顺序的超级时间片调度，比如图 3-9 中所列
+> 的方式。由于获胜者在彩票空间中最大程度地分隔开， **当在选出 $w$ 个获胜者后提前
+> 终止超级时间片时，其行为近似于一个 $n_w = w$ 的多赢家彩票调度器。** 例如，图
+> 3-9 中的四赢家彩票调度算法所调度的前两个获胜者，与两赢家彩票调度算法选出的获胜
+> 者完全一致。当 $n_w$ 和 $w$ 都为 2 的幂时，这种近似是精确的。在其他情况下，使
+> 用随机生成的初始偏移量仍能确保不会在多个超级时间片间产生系统性偏差。这一点很重
+> 要，因为系统性偏差可能会被客户利用来作弊。
+>
+> > 假设目前有四个获胜者 $n_w = 4$, 在轴上的位置为$w_1$, $w_2$, $w_3$, $w_4$, 
+> > 如下图所示: 那么如果运行 $w_1$, $w_3$ 或者运行$w_4$, $w_2$，或者仅仅运行
+> > $w_n$, $n \in{1,2,3,4}$中一个, 那么效果和运行全部的$w_n$一样。所以，可以
+> > 提前在运行次数$n, n \in{1,2,4,8,16} ...$, 启动一个新的超级时间片 (如
+> > Figure3-10 中的 `intra_count = 0` . 这样可以确保不会在多个超级时间片间产生
+> > 系统性偏差
+> >
+> > ![example_multi-winner_lottery](pic/example_multi-winner_lottery.png)
+> {: .prompt-tip}
 {: .prompt-trans}
 
 Figure 3-10 lists ANSI C code that trivially extends the basic multi-winner
@@ -1534,6 +1544,239 @@ be most efficient in practice.
 > $n_c$ 是客户端数量 [CLR90, Tho95]。跳表（skip list）也能以较低常数开销实现期望
 > 时间的队列操作 [Pug90]。对于较小的 $n_c$ 或彩票分布极度不均的情况，简单的有序
 > 列表在实际中可能是最高效的。
+{: .prompt-trans}
+
+Figure 3-12 illustrates an example of stride scheduling. Three clients, `A`, `B`,
+and `C`, are competing for a time-shared resource with a `3 : 2 : 1` ticket
+ratio. For simplicity, a convenient $stride_1 = 6$ is used instead of a large
+number, yielding respective strides of `2`, `3`, and `6`. The pass value of each
+client is plotted as a function of time. For each quantum, the client with the
+minimum pass value is selected, and its pass is advanced by its stride. Ties are
+broken using the arbitrary but consistent client ordering `A`, `B`, `C`. The sequence of
+allocations produced by stride scheduling in Figure 3-12 exhibits precise
+periodic behavior: `A, B, A, A, B, C`.
+
+> 图3-12展示了一个 stride 调度的例子。三个客户端 A、B 和 C 正在竞争一个时间共享
+> 资源，票数比例为 3 : 2 : 1。为了简化计算，使用了一个方便的 stride 值
+> $stride_1$ = 6（而不是一个很大的数），因此各自的 stride 分别为 2、3 和 6。每个
+> 客户端的 pass 值随时间变化被绘制出来。在每个时间片，选择 pass 值最小的客户端，
+> 并将其 pass 值增加其 stride。若出现相同 pass 值，则按照任意但一致的顺序（A、B、
+> C）来打破平局。图3-12 中 stride 调度产生的分配序列表现出精确的周期性行为：A、B、
+> A、A、B、C。
+{: .prompt-trans}
+
+![Figure-3-12-stride-scheduling-example](pic/Figure-3-12-stride-scheduling-example.png)
+
+> A（三角）、B（圆）、和C（方块）。
+
+#### 3.3.2 Dynamic Operations
+
+The basic stride scheduling algorithm presented in Figure 3-11 does not support
+dynamic changes in the number of clients competing for a resource. When clients
+are allowed to join and leave at any time, their state must be appropriately
+modified. Figure 3-13 extends the basic algorithm to efficiently handle dynamic
+changes to the set of active clients. The code listed in Figure 3-13 also
+supports nonuniform quanta; this issue will be discussed in Section 3.3.3.
+
+> 基本的 stride 调度算法（如图 3-11 所示）**不支持** 动态改变竞争资源的客户端数
+> 量。当允许客户端随时加入或离开时，必须适当修改它们的状态。图 3-13 对基本算法进
+> 行了扩展，以高效地处理活动客户端集合的动态变化。图 3-13 中列出的代码还支持非均
+> 匀时间片，这一问题将在第 3.3.3 节讨论。
+
+![figure-3-11-stride-scheduling-alg2orithm](pic/figure-3-11-stride-scheduling-alg2orithm.png)
+
+> NOTE
+>
+> 1. current->stride 怎么理解
+>
+>    A: 一个时间片中走1步，这一步应该走多长的长度. 权限大的走的短，权限小的走的
+>       长, 从而让权限大的拥有更多的时间片
+> 2. current->pass 代表什么?
+>    A: 其表示下次调度到他时, `global_pass`的值。
+>       最初加到队列时:
+>       ```
+>       current->pass = global_pass + current->remain(stride)
+>       ```
+>       之后每次调度更新:
+>       ```
+>       current->pass += current->stride * elapsed / quantum 
+>       global_pass += global_stride * elapsed / quantum
+>       ```
+>       所以，这两个点 current->pass 都比 global_pass 多一个stride.
+>
+> 3. 为什么要在计算pass时 * elapsed / quantum
+>
+>    A: 对比未支持 Dynamic Operations pass的计算:
+>       ```
+>       new: current->pass += (current->stride * elapsed) / quantum;
+>       old: current->pass += current->stride;
+>       ```
+>       变化是在 current->stride后乘了一个因子:$\frac{elapsed}{quantum}$, 
+>       该因子表示目前消耗的实际片的比例。如果消耗不足一个时间片, 则pass
+>       的值的增加(比上次)就会少于一个时间片, 则调度点会提前，如果消耗多
+>       余一个时间片，则pass值增加就会少于一个时间片，则调度点会延后。
+>
+>       另外, 该值也会在 yield的时候起作用，当yield时:
+>
+>
+>       $$
+>       \begin{align}
+>       current.pass &= {上次调用allocated()时，赋的值} \\
+>       &= last\_pass_c
+>       \end{align}
+>       $$
+>
+>       $$
+>       \begin{align}
+>       remain &= last\_pass_c - current\_pass_g \\
+>       &= last\_pass_g + stride_c - new\_pass_g \\
+>       &= stride_c - (new\_pass_g - last_pass_g) \\
+>       &= stride_c - pass\_elapsed_g
+>       \end{align}
+>       $$
+>       所以其表示, 调度走之前，距离时间片消耗完成，还剩余的步长.
+{: .prompt-info}
+
+A key extension is the addition of global variables that maintain aggregate
+information about the set of active clients. The global tickets variable
+contains the total ticket sum for all active clients. The global pass variable
+maintains the “current” pass for the scheduler. The `global_pass` advances at
+the rate of `global_stride` per quantum, where $$global\_stride =
+stride_1/ global\_tickets$$. Conceptually, the `global_pass` continuously advances
+at a smooth rate. This is implemented by invoking the `global_pass_update()`
+routine whenever the `global_pass` value is needed.
+
+> 一个关键的扩展是增加了全局变量，用于维护有关活动客户端集合的汇总信息。全局变量
+> `tickets` 包含所有活动客户端的总票数。全局变量 `pass` 维护调度器的“当前” pass
+> 值。`global_pass` 以每个时间片 `global_stride` 的速率递增，其中 $$global\_stride 
+> = stride_1 / global\_tickets$$。从概念上讲，global_pass 以平
+> 滑的速率持续递增。实际实现时，每当需要 global_pass 的值时，就调用
+> `global_pass_update()` 例程来更新它。
+{: .prompt-trans}
+
+A state variable is also associated with each client to store the remaining
+portion of its stride when a dynamic change occurs. The remain field represents
+the number of passes that are left before a client’s next selection. When a
+client leaves the system, remain is computed as the difference between the
+client’s pass and the `global_pass`. When a client rejoins the system, its pass
+value is recomputed by adding its remain value to the `global_pass`.
+
+> 每个客户端还关联有一个状态变量，用于在发生动态变化时存储其 stride 剩余部分。
+> `remain` 字段表示距离客户端下一次被选中还剩多少 pass。当客户端离开系统时，
+> `remain` 的值为该客户端的 pass 与 global_pass 的差值。当客户端重新加入系统时，
+> 其 pass 值通过将 remain 值加到 global_pass 上进行重新计算。
+{: .prompt-trans}
+
+This mechanism handles situations involving either positive or negative error
+between the specified and actual number of allocations. If `remain < stride`,
+then the client is effectively given credit when it rejoins for having
+previously waited for part of its stride without receiving a quantum. If 
+`remain > stride` , then the client is effectively penalized when it rejoins for
+having previously received a quantum without waiting for its entire stride. This
+approach implicitly assumes that a partial quantum now is equivalent to a
+partial quantum later. In general, this is a reasonable assumption, and
+resembles the treatment of nonuniform quanta that will be presented in Section
+3.3.3. However, it may not be appropriate if the total number of tickets
+competing for a resource varies significantly between the time that a client
+leaves and rejoins the system.
+
+> 这个机制处理了指定分配次数与实际分配次数之间出现正误差或负误差的情况。如果
+> remain < stride，那么当客户端重新加入时，会因为之前已经等待了一部分 stride 而
+> 没有获得 quantum，而被“补偿”。如果 remain > stride，那么当客户端重新加入时，会
+> 因为之前已经获得了 quantum，但没有等待完整的 stride，而被“惩罚”。这种方法隐含
+> 地假设现在获得的部分 quantum 和以后获得的部分 quantum 是等价的。一般来说，这是
+> 一个合理的假设，并且类似于第 3.3.3 节将要介绍的对非均匀 quantum 的处理方式。
+{: .prompt-trans}
+
+The time complexity for both the `client_leave()` and `client_join()` operations
+is $O (\lg{n_c})$, where $n_c$ is the number of clients. These operations are
+efficient because the stride scheduling state associated with distinct clients
+is completely independent; a change to one client does not require updates to
+any other clients. The $O (\lg{n_c})$ cost results from the need to perform
+queue manipulations.
+
+> `client_leave()` 和 `client_join()` 两个操作的时间复杂度都是 $O(lg n_c)$ 其中
+> $n_c$ 表示客户端数量。这些操作之所以高效，是因为不同客户端关联的 stride 调度状
+> 态完全独立：对某个客户端的更改不会影响其他客户端。之所以有 $O(lg n_c)$ 的开销，
+> 是因为需要进行队列操作。
+{: .prompt-trans}
+
+Additional support is needed to dynamically modify client ticket allocations.
+Figure 3-14 illustrates a dynamic allocation change, and Figure 3-15 lists ANSI
+C code for dynamically changing a client’s ticket allocation. When a client’s
+allocation is dynamically changed from `tickets` to `tickets'` , its stride and
+pass values must be recomputed. The new `stride'` is computed as usual,
+inversely proportional to `tickets'` . To compute the new `pass'` , the
+remaining portion of the client’s current `stride`, denoted by remain, is
+adjusted to reflect the new `stride'` . This is accomplished by scaling remain
+by `stride' / stride`. In Figure 3-14, the client’s ticket allocation is
+increased, so pass is decreased, compressing the time remaining until the client
+is next selected. If its allocation had decreased, then pass would have
+increased, expanding the time remaining until the client is next selected.
+
+> 需要额外支持以动态修改客户端的票数分配。图 3-14 展示了一次动态分配变更，图
+> 3-15 给出了用于动态更改客户端票数分配的 ANSI C 代码。当某个客户端的票数分配从
+> tickets 动态变更为 tickets' 时，必须重新计算其 stride 和 pass 值。新的 stride'
+> 计算方式与之前相同，依然与 tickets' 成反比。为了计算新的 pass'，需要根据新的
+> stride' 调整客户端当前 stride 的剩余部分（记为 remain），具体方法是将 remain
+> 按 stride'/stride 进行缩放。在图 3-14 中，客户端的票数分配被增加，因此 pass 被
+> 减小，缩短了该客户端下次被选中的剩余时间。如果票数分配减少，则 pass 会增加，延
+> 长该客户端下次被选中的剩余时间。
+{: .prompt-trans}
+
+The `client_modify()` operation requires $O (\lg{n_c})$ time, where $n_c$ is the
+number of clients. As with dynamic changes to the number of clients, ticket
+allocation changes are efficient because the stride scheduling state associated
+with distinct clients is completely independent; the dominant cost is due to
+queue manipulations.
+
+> `client_modify()` 操作的时间复杂度为 $O(\lg n_c)$，其中 $n_c$ 是客户端数量。与
+> 动态改变客户端数量类似，票数分配的变更也很高效，因为不同客户端的 stride 调度状
+> 态完全独立；主要的开销来自于队列操作。
+{: .prompt-trans}
+
+#### 3.3.3 Nonuniform Quanta
+
+With the basic stride scheduling algorithm presented in Figure 3-11, a client
+that does not consume its entire allocated quantum will receive less than its
+entitled share of a resource. Similarly, it may be possible for a client’s usage
+to exceed a standard quantum in some situations. For example, under a
+non-preemptive scheduler, client run lengths can vary considerably.
+
+> 在图 3-11 所示的基础 stride 调度算法中，如果客户端没有用完其分配的整个时间片
+> （quantum），它获得的资源份额将少于其应得份额。同样，在某些情况下，客户端的使
+> 用量可能会超过标准时间片。例如，在非抢占式调度器下，客户端的运行时长可能有很大
+> 差异。
+{: .prompt-trans}
+
+Fortunately, fractional and variable-size quanta can easily be accommodated.
+When a client consumes a fraction $f$ of its allocated time quantum, its pass
+should be advanced by $f \times stride$ instead of stride. If $f < 1$, then the
+client’s pass will be increased less, and it will be scheduled sooner. If $f >
+1$, then the client’s pass will be increased more, and it will be scheduled
+later. The extended code listed in Figure 3-13 supports nonuniform quanta by
+effectively computing $f$ as the elapsed resource usage time divided by a
+standard $quantum$ in the same time units.
+ 
+> 幸运的是，可以很容易地支持分数和可变大小的时间片。当客户端只消耗了分配时间片的
+> 一部分 $f$ 时，其 pass 应该推进 $f \times stride$ 而不是
+> $\text{stride}$。如果 $f < 1$，那么客户端的 pass 增加得更少，下次被调度的时间
+> 会更早；如果 $f > 1$，则 pass 增加得更多，下次被调度的时间会更晚。图 3-13 的扩
+> 展代码通过将 $f$ 定义为已用资源时间除以标准 $\text{quantum}$（单位一致），有效
+> 支持了非均匀时间片。
+{: .prompt-trans}
+
+Another extension would permit clients to specify the quantum size that they
+require. This could be implemented by associating an additional $quantum_c$
+field with each client,and scaling each client’s stride field by $quantum_c
+/quantum$.Deviations froma client’s specified quantum would still be handled as
+described above, with $f$ redefined as the $elapsed$ resource usage divided by
+the client-specific $quantum_c$.
+
+> 另一种扩展允许客户端指定所需的时间片大小。这可以通过为每个客户端关联一个额外的
+> $\text{quantum}_c$ 字段，并将每个客户端的 stride 字段按 $\frac{\text{quantum}
+> _c}{\text{quantum}}$ 进行缩放来实现。客户端指定的 quantum 偏差仍按上述方式处
+> 理，只是 $f$ 被重新定义为已用资源时间除以客户端专属的 $\text{quantum}_c$。
 {: .prompt-trans}
 
 ## TODO
