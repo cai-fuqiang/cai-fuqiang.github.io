@@ -8,7 +8,7 @@ tags: [sched]
 math: true
 ---
 
-## Resource Management Framework
+## Chapter 2 Resource Management Framework
 
 This chapter presents a general, flexible framework for specifying resource
 management policies in concurrent systems. Resource rights are encapsulated by
@@ -178,7 +178,7 @@ specification is often unnecessarily complex
 > 支持任意的资源管理策略，但其具体实现往往不必要地复杂。
 {: .prompt-trans}
 
-#### 2.3 Ticket Inflation and Deflation
+### 2.3 Ticket Inflation and Deflation
 
 Ticket inflation and deflation are alternatives to explicit ticket transfers.
 Client resource rights can be escalated by creating more tickets, inflating the
@@ -231,7 +231,7 @@ ticket inflation.
 > 方法，可以用来定义信任边界，并安全地利用票据膨胀。
 {: .prompt-trans}
 
-### Ticket Currencies
+### 2.4 Ticket Currencies
 
 A ticket currency is a resource management abstraction that contains the effects
 of ticket inflation in a modular way. The basic concept of a ticket is extended
@@ -509,7 +509,7 @@ it can issue a ticket denominated in currency A, and use it to fund group B.
 > 待群组B的结果，A可以发行以货币A计价的票据，并用其资助群组B
 {: .prompt-trans}
 
-### 2.5.3 Interactive Application Policies
+#### 2.5.3 Interactive Application Policies
 
 For interactive computations such as databases and media-based applications,
 programmers and users need the ability to rapidly focus resources on those tasks
@@ -721,7 +721,7 @@ in Chapter 4.
 > 性能分析以及相互之间的比较。
 {: .prompt-trans}
 
-## 3.1 Lottery Scheduling
+### 3.1 Lottery Scheduling
 
 Lottery scheduling is a randomized resource allocation mechanism for time-shared
 resources. Each allocation is determined by holding a lottery that randomly
@@ -739,7 +739,7 @@ dynamic operations and nonuniform quanta.
 > 片的扩展。
 {: .prompt-trans}
 
-### 3.1.1 Basic Algorithm
+#### 3.1.1 Basic Algorithm
 
 The core lottery scheduling idea is to randomly select a ticket from the set of
 all tickets competing for a resource. Since each ticket has an equal probability
@@ -828,7 +828,7 @@ winner.
 ![list_based_lottery_sched_algorithm](pic/list_based_lottery_sched_algorithm.png)
 
 > search的时候，是 $O(n)$复杂度
-{: .prompt-tips}
+{: .prompt-tip}
 
 Performing an allocation using the simple list-based lottery algorithm in Figure
 3-2 requires $O(n_c)$ time to traverse the list of clients. Various
@@ -845,7 +845,7 @@ most frequently, a simple “move-to-front” heuristic can also be very effecti
 > 会非常有效。
 >
 > > 这个地方并没有让其变的不公平, 只是降低了它的搜索复杂度
-> {: .prompt-tips}
+> {: .prompt-tip}
 {: .prompt-trans}
 
 For large $n_c$, a tree-based implementation is more efficient, requiring only
@@ -895,7 +895,7 @@ node is a leaf, it is selected as the winning client.
 
 ![exp_tree_based_lottery](pic/exp_tree_based_lottery.png)
 
-### 3.1.2 Dynamic Operations
+#### 3.1.2 Dynamic Operations
 
 The basic algorithms presented in Figures 3-2 and 3-3 do not support dynamic
 operations, such as changes in the number of clients competing for a resource,
@@ -936,7 +936,7 @@ clients that are actively competing for resources.
 
 ![dynamic_operations_tree_based_lotter](pic/dynamic_operations_tree_based_lottery.png)
 
-### 3.1.3 Nonuniform Quanta
+#### 3.1.3 Nonuniform Quanta
 
 With the basic lottery scheduling algorithms presented in Figures 3-2 and 3-3, a
 client that does not consume its entire allocated quantum will receive less than
@@ -1093,7 +1093,7 @@ achieving the desired 1 : 1 allocation ratio.
 > 时间片，从而实现了预期的 1:1 资源分配比例。
 {: .prompt-trans}
 
-## 3.2 Multi-Winner Lottery Scheduling
+### 3.2 Multi-Winner Lottery Scheduling
 
 
 Multi-winner lottery scheduling is a generalization of the basic lottery
@@ -1105,12 +1105,12 @@ multi-winner lottery algorithm, followed by a discussion of extensions for
 dynamic operations and nonuniform quanta.
 
 > 多赢家彩票调度是对基本彩票调度技术的推广。它不是每轮只选出一个获胜者，而是选出
-> $n_w$ 个获胜者，每个获胜者都获得一次时间片来使用资源。由单次多赢家彩票分配的
-> 连续 $n_w$ 个时间片被称为一个超级时间片（superquantum）。本节将介绍基本的多
-> 赢家彩票算法，并讨论对动态操作和非均匀时间片的扩展。
+> $n_w$ 个获胜者，每个获胜者都获得一次时间片来使用资源。由单次多赢家彩票分配的连
+> 续 $n_w$ 个时间片被称为一个超级时间片（superquantum）。本节将介绍基本的多赢家
+> 彩票算法，并讨论对动态操作和非均匀时间片的扩展。
 {: .prompt-trans}
 
-## 3.2.1 Basic Algorithm
+#### 3.2.1 Basic Algorithm
 
 The multi-winner lottery scheduling algorithm is a hybrid technique with both
 randomized and deterministic components. The first winner in a superquantum is
@@ -1119,31 +1119,322 @@ deterministically at fixed offsets relative to the first winner. These offsets
 appear at regular, equally-spaced intervals in the ticket space `[0, T -1]`,
 where `T` is the total number of tickets competing for the resource. More
 formally, the $n_w$ winning offsets are located at $(r + i \frac{T}{n_w}) mod T$
-in the ticket space, where `r` is a random number and index $i \in [0, n_w  - 1]$
-yields the $i^{th}$ winning offset.
+in the ticket space, where `r` is a random number and index $i \in [0, n_w  - 1]
+$ yields the $i^{th}$ winning offset.
 
 > 多赢家彩票调度算法是一种混合技术，结合了随机和确定性成分。在一个超级时间片
-> （superquantum）中，第一个获胜者是随机选出的，其余的 $n_w-1$ 个获胜者则按照
-> 相对于第一个获胜者的固定偏移量以确定性方式选出。这些偏移量在彩票空间 ([0, T-1])
-> 内以规则、等间距出现，其中 $T$ 是参与资源竞争的彩票总数。更正式地说,  $n_w$
-> 个获胜偏移量位于彩票空间中的 $(r + i \frac{T}{n_w}) \mod T$ 位置，其中 $r$
-> 是一个随机数，索引 $i \in [0, n_w-1]$ 表示第 $i^{th}$ 个获胜偏移量。
+> （superquantum）中，第一个获胜者是随机选出的，其余的 $n_w-1$ 个获胜者则按照相
+> 对于第一个获胜者的固定偏移量以确定性方式选出。这些偏移量在彩票空间 `[0, T-1]`
+> 内以规则、等间距出现，其中 $T$ 是参与资源竞争的彩票总数。更正式地说,  $n_w$ 个
+> 获胜偏移量位于彩票空间中的 $(r + i \frac{T}{n_w}) \mod T$ 位置，其中 $r$ 是一
+> 个随机数，索引 $i \in [0, n_w-1]$ 表示第 $i^{th}$ 个获胜偏移量。
 {: .prompt-trans}
 
-Since individual winners within a superquantum are uniformly distributed across the ticket
-space, multi-winner lotteries directly implement a form of short-term, proportional-share fair-
-ness. Because the spacing between winners is $T/n_w$ tickets, a client with tickets is determin-
-istically guaranteed to receive at least $[n_w \frac{t}{T}]$ quanta per superquantum. However, there are
-no deterministic guarantees for clients with fewer than $T/n_w$ tickets.
+Since individual winners within a superquantum are uniformly distributed across
+the ticket space, multi-winner lotteries directly implement a form of short-term,
+proportional-share fair- ness. Because the spacing between winners is $T/n_w$
+tickets, a client with tickets is determin- istically guaranteed to receive at
+least $[n_w \frac{t}{T}]$ quanta per superquantum. However, there are no
+deterministic guarantees for clients with fewer than $T/n_w$ tickets.
 
 > 由于超级时间片（superquantum）内的各个获胜者在彩票空间中均匀分布，多赢家彩票调
 > 度直接实现了一种短期的、按比例分配的公平性。由于每两个获胜者之间的间隔为 $T /
 > n_w$ 张彩票，拥有 $t$ 张彩票的客户可以确定性地保证在每个超级时间片内至少获得
-> $\left[ \frac{n_w t}{T} \right]$ 个时间片。然而，对于持有少于 $T / n_w$ 张彩票
+> $[ n_w \frac{t}{T}]$ 个时间片。然而，对于持有少于 $T / n_w$ 张彩票
 > 的客户，则无法做出确定性的保证。
 {: .prompt-trans}
 
-## 3.3 Deterministic Stride Scheduling
+An appropriate value for $n_w$ can be computed by choosing the desired level of
+deterministic guarantees. Larger values $n_w$ of result in better deterministic
+approximations to specified ticket allocations, reducing the effects of random
+error. Ensuring that a client deterministically receives at least one quantum
+per superquantum substantially increases its throughput accuracy and
+dramatically reduces its response-time variability. Setting $n_w \geq 1/f$
+guarantees that all clients entitled to at least a fraction of the resource will
+be selected during each superquantum. For example, if deterministic guarantees
+are required for all clients with resource shares of at least 12.8%, then a
+value of $n_w \geq 8$ should be used.
+
+> 可以通过选择所需的确定性保证级别来计算合适的 $n_w$ 值。较大的 $n_w$ 值能够更好
+> 地逼近指定的彩票分配比例，从而减小随机误差的影响。确保每个客户在每个超级时间片
+> （superquantum）内至少确定性地获得一个时间片，可以显著提高其吞吐量的准确性，并
+> 极大地降低响应时间的波动性。设定 $n_w \geq 1/f$ 可以保证所有有权获得至少一定资
+> 源份额（$f$）的客户在每个超级时间片内都会被选中。例如，如果需要对所有资源份额
+> 至少为 12.8% 的客户提供确定性保证，那么应选择 $n_w \geq 8$。
+{: .prompt-trans}
+
+Figure 3-8 presents an example multi-winner lottery. Five clients compete for a
+resource with a total of $T = 20$ tickets. The thirteenth ticket is randomly
+chosen, resulting in the selection of the third client as the first winner.
+Since $n_w = 4$, three additional winners are selected in the same superquantum,
+with relative offsets that are multiples of $T/4=5$ tickets. Note that the first
+client with 10 tickets is guaranteed to receive 2 out of every 4 quanta, and the
+third client with 5 tickets is guaranteed to receive 1 out of every 4 quanta.
+The choice of the client that receives the remaining quantum is effectively
+determined by the random number generated for the superquantum.
+
+> 图 3-8 展示了一个多赢家彩票调度的示例。五个客户竞争一个总共有 $T=20$ 张彩票的
+> 资源。第 13 张彩票被随机选中，因此第三个客户成为第一个获胜者。由于 $n_w=4$，同
+> 一个超级时间片内还会再选出三个获胜者，其相对偏移量是 $T/4=5$ 张彩票的倍数。注
+> 意，拥有 10 张彩票的第一个客户可以确定性地获得每 4 个时间片中的 2 个，而拥有 5
+> 张彩票的第三个客户可以确定性地获得每 4 个时间片中的 1 个。至于剩下的一个时间片
+> 由哪个客户获得，则由超级时间片生成的随机数决定。
+> > 最后一个时间片, 为什么不是由第5个客户端获取呢 ?
+> > 
+> > 上面的公式，拥有`t`张彩票的客户可以确定性地保证在每个超级时间片内至少获得 
+> > $n_w \frac{t}{T}$ 个时间片, 但是这里有个问题,  当某个客户端`i`有`t`张彩票，
+> > 而$n_w t_i < T$时, `i`客户端可能不会获得时间片，那就需要一个随机值来将每个
+> > 获胜的位置随机化:
+> >
+> > $$
+> > (r+i\frac{T}{n_w})
+> > $$
+> >
+> > 所以下图中所表达的意思，winner #1, #2, #3, #4是随机的, 
+> {: .prompt-info}
+{: .prompt-trans}
+
+![example_multi-winner_lottery](pic/example_multi-winner_lottery.png)
+
+Although the basic multi-winner lottery mechanism is very simple, the use of a
+superquan- tum introduces a few complications. One issue is the ordering of
+winning clients within a superquantum. The simplest option is to schedule the
+clients in the order that they are selected. However, this can result in the
+allocation of several consecutive quanta to clients holding a relatively large
+number of tickets. While this is desirable in some cases to reduce context-
+switching overhead, the reduced interleaving also increases response time
+variability. Another straightforward approach with improved interleaving is to
+schedule the winning clients using an ordering defined by a fixed or
+pseudo-random permutation.
+
+> 虽然基本的多赢家彩票机制非常简单，但引入超级时间片（superquantum）后会带来一些
+> 复杂性。其中一个问题是超级时间片内获胜客户的排序。最简单的做法是按照客户被选中
+> 的顺序进行调度。然而，这可能导致将多个连续的时间片分配给持有较多彩票的客户。虽
+> 然在某些情况下这样做可以减少上下文切换的开销，但减少交错也会增加响应时间的波动
+> 性。另一种更容易实现且能提高交错性的方式，是根据一个固定或伪随机的排列顺序来调
+> 度获胜客户。
+{: .prompt-trans}
+
+Figure 3-9 lists ANSI C code for a list-based multi-winner lottery algorithm
+that schedules winners within a superquantum using a fixed permuted order. The
+per-client state and `client_init()` operation are identical to those listed in
+Figure 3-2. Additional global state is in- troduced to handle the scheduling of
+winners within a superquantum. The `intra_schedule` array defines a fixed
+permutation of winners within a superquantum, such that successive winners are
+maximally separated from one another in the ticket space. The random offset for
+the first winner is maintained by `intra_first`, and the deterministic spacing
+between winners is maintained by `intra_space`. The current intra-superquantum
+winner number is stored by `intra_count`.
+
+> 图 3-9 给出了一个基于列表的多赢家彩票算法的 ANSI C 代码示例，该算法在一个超级
+> 时间片（superquantum）内按照固定排列顺序调度获胜者。每个客户的状态和
+> client_init() 操作与图 3-2 中列出的完全相同。为了处理超级时间片内获胜者的调度，
+> 引入了额外的全局状态。intra_schedule 数组定义了超级时间片内获胜者的一个固定排
+> 列，使得连续获胜者在彩票空间中的间隔最大化。第一个获胜者的随机偏移量由
+> intra_first 维护，获胜者之间的确定性间隔由 intra_space 维护。当前超级时间片内
+> 的获胜者编号由 intra_count 存储。
+>
+> > 关于`intra_schedule`忘记之前在哪看到过了，目的是让两个相邻的数间隔足够远
+> {: .prompt-warning}
+{: .prompt-trans}
+
+![Figure-3-9-muti-winner-lottery-scheduling-algorithm](pic/Figure-3-9-muti-winner-lottery-scheduling-algorithm.png) 
+
+The `allocate()` operation initially checks if a new superquantum should be
+started by inspect- ing `intra_count`. When a superquantum is started, a new
+random winning offset is generated, and a new deterministic inter-winner spacing
+is computed. These same values are then used for all of the allocations within
+the superquantum. Each allocation determines the next winner by computing its
+offset within the ticket space. This winning offset is the sum of the initial
+random offset, `intra_first`, and a deterministic offset based on the relative
+position of the next winner, `intra_space * intra_sched[intra_count]`. Thus,
+successive winners within the same su- perquantum are separated by some multiple
+of `intra_space` tickets. The implementation of the `find_winner()` operation is
+identical to the linear search used in Figure 3-2, and is presented as a
+separate abstraction to highlight the key changes to `allocate()`.
+
+> allocate() 操作首先通过检查 intra_count 来判断是否应该开始一个新的超级时间片
+> （superquantum）。当超级时间片开始时，会生成一个新的随机获胜偏移量，并计算新的
+> 确定性获胜者间隔。这些值随后会在该超级时间片内的所有分配中使用。每次分配通过计
+> 算在彩票空间中的偏移量来确定下一个获胜者。这个获胜偏移量是初始随机偏移量
+> intra_first 与基于下一个获胜者相对位置的确定性偏移量 intra_space *
+> intra_sched[intra_count] 之和。因此，同一超级时间片内的连续获胜者在彩票空间中
+> 的间隔为 intra_space 的某个倍数。find_winner() 操作的实现与图 3-2 中的线性搜索
+> 完全相同，并作为一个独立的抽象呈现，以突出 allocate() 的关键变化。
+{: .prompt-trans}
+
+A more efficient version of the code listed in Figure 3-9 can be implemented by
+selecting all of the superquantum winners during a single scan of the client
+list. By avoiding a separate pass for each allocation, this optimization would
+also decrease the cost of performing an allocation by nearly a factor of $n_w$
+over ordinary lottery scheduling. The implementation of a tree-based
+multi-winner lottery would also be very similar to the list-based code. The find
+`winner()` function can simply be changed to use the tree-based search employed in
+Figure 3-3, and references to `global_tickets` can be replaced by the root node’
+s tickets field.
+
+> 图 3-9 所示代码的一个更高效的版本可以通过在一次扫描客户列表的过程中选出所有超
+> 级时间片（superquantum）内的获胜者来实现。通过避免为每次分配都单独遍历一次，这
+> 种优化会使分配操作的成本相比普通彩票调度降低近 $n_w$ 倍。基于树结构的多赢家彩
+> 票调度实现方式也与基于列表的代码非常类似。只需将 find_winner() 函数改为使用图
+> 3-3 中采用的树结构搜索方法，并将对 global_tickets 的引用替换为根节点的 tickets
+> 字段即可。
+{: .prompt-trans}
+
+The multi-winner lottery algorithm is very similar to the stochastic remainder
+technique used in the field of genetic algorithms for randomized population
+mating and selection [Gol89]. This technique can also be applied to scheduling
+time-shared resources, although it was not designed for that purpose. Using the
+same scheduling terminology introduced earlier, for each superquantum consisting
+of $n_w$ consecutive quanta, the stochastic remainder technique allocates each
+client $n_w \frac{t}{T}$ quanta, where `t` is the number of tickets held by that
+client, and `T` is the total number of tickets held by all clients. The integer
+part of this expression is deterministically allocated, and the fractional
+remainder is stochastically allocated by lottery.
+
+> 多赢家彩票算法与遗传算法领域中用于随机化种群交配和选择的随机余数（stochastic
+> remainder）技术非常相似 [Gol89]。虽然这种技术最初并不是为分时资源调度而设计，
+> 但同样可以应用于该领域。使用前文介绍的调度术语，对于每个包含 $n_w$ 个连续时间
+> 片的超级时间片（superquantum），随机余数技术会为每个客户分配 $n_w \frac{t}{T}$
+> 个时间片，其中 $t$ 是该客户持有的彩票数，$T$ 是所有客户持有的彩票总数。这个表
+> 达式的整数部分以确定性方式分配，而小数部分则通过彩票（随机方式）分配。
+{: .prompt-trans}
+
+For example, consider a superquantum with $n_w = 10$, and two clients, `A` and
+`B`, with a 2 : 1 ticket allocation ratio. Client receives $[10 * \frac{2}{3}] =
+6$ quanta, and receives $[10 * \frac{1}{3}] = 3$ quanta. Thus, `A` is
+deterministically guaranteed to receive six quanta out of every ten; `B` is
+guaranteed to receive three quanta out of every ten. The remaining quantum is
+allocated by lottery with probability $(10 * \frac{2}{3}) - 6 = \frac{2}{3}$ to
+client `A`, and $(10 * \frac{1}{3}) - 3 = \frac{1}{3}$ to client `B`.
+
+> 例如，考虑一个 $n_w = 10$ 的超级时间片（superquantum），有两个客户 A 和 B，其
+> 彩票分配比例为 2:1。客户 A 获得 $\left[ 10 \times \frac{2}{3} \right] = 6$ 个
+> 时间片，客户 B 获得 $\left[ 10 \times \frac{1}{3} \right] = 3$ 个时间片。因此，
+> A 可以确定性地保证在每十个时间片中获得六个，B 可以确定性地获得三个。剩下的一个
+> 时间片通过彩票分配，其中分配给 A 的概率为 $(10 \times \frac{2}{3}) - 6 =
+> \frac{2}{3}$，分配给 B 的概率为 $(10 \times \frac{1}{3}) - 3 = \frac{1}{3}$。
+{: .prompt-trans}
+
+The multi-winner lottery algorithm and the stochastic remainder technique both
+provide the same deterministic guarantee: a client `t` with tickets will receive
+at least $n_w \frac{t}{T}$ quanta per superquantum. The remaining quanta are
+allocated stochastically. The stochastic remainder approach uses independent
+random numbers to perform these allocations, while a multi-winner lottery bases
+its allocations on a single random number. A multi-winner lottery evenly divides
+the ticket space into regions, and selects a winner from each region by lottery.
+This distinc- tion provides several implementation advantages. For example,
+fewer random numbers are generated; the same random number is effectively reused
+within a superquantum. Also, fewer expensive arithmetic operations are required.
+In addition, if $n_w$ is chosen to be a power of two, then all divisions can be
+replaced with efficient shift operations.
+
+> 多赢家彩票算法和随机余数技术都提供了相同的确定性保证：拥有 $t$ 张彩票的客户在
+> 每个超级时间片内至少会获得 $n_w t / T$ 个时间片。剩余的时间片则通过随机方式分
+> 配。随机余数方法使用独立的随机数进行这些分配，而多赢家彩票则基于单一的随机数进
+> 行分配。多赢家彩票将彩票空间均匀划分为多个区域，并在每个区域内通过彩票选出获胜
+> 者。这种区别带来了若干实现上的优势。例如，生成的随机数更少；同一个随机数可以在
+> 一个超级时间片内重复使用。此外，所需的算术运算也更少。如果 $n_w$ 选择为 2 的幂，
+> 则所有的除法运算都可以用高效的移位操作替代。
+{: .prompt-trans}
+
+#### 3.2.2 Dynamic Operations
+
+The use of a superquantum also complicates operations that dynamically modify
+the set of competing clients or their relative ticket allocations. For a
+single-winner lottery, each allocation is independent, and there is no state
+that must be transformed in response to dynamic changes. For a multi-winner
+lottery, the current state of the intra-superquantum schedule must be
+considered.
+
+> 超级时间片（superquantum）的使用也使得动态修改竞争客户集合或其彩票分配比例的操
+> 作变得复杂。对于单赢家彩票调度来说，每次分配都是独立的，不需要针对动态变化进行
+> 状态转换。而对于多赢家彩票调度，则必须考虑当前超级时间片内的调度状态。
+{: .prompt-trans}
+
+Randomization can be used to once again sidestep the complexities of dynamic
+modifi- cations, by scheduling winners within a superquantum in a pseudo-random
+order. After any dynamic change, the current superquantum is simply prematurely
+terminated and a new su- perquantum is started. This same technique can also be
+used with an intra-superquantum schedule based on a fixed permutation, such as
+the one listed in Figure 3-9. Since winners are maximally separated in the
+ticket space, premature termination of a superquantum after `w` winners have
+been selected approximates the behavior exhibited by a multi-winner lottery
+scheduler with $n_w  = w$. For example, the first two winners scheduled by the
+four-winner lottery listed in Figure 3-9 are identical to the winners that would
+be selected by a two-winner lottery. When $n_w$ and `w` are perfect powers of
+two, this approximation will be exact. In other cases, the use of a
+randomly-generated initial offset still ensures that no systematic bias will
+develop across superquanta. This is important, because systematic bias could
+potentially be exploited by clients attempting to cheat the system.
+
+> 可以通过在超级时间片内以伪随机顺序调度获胜者，再次利用随机化来规避动态修改的复
+> 杂性。每当发生动态变化时，只需提前终止当前超级时间片，并启动一个新的超级时间片。
+> 这种技术同样可以用于基于固定排列顺序的超级时间片调度，比如图 3-9 中所列的方式。
+> 由于获胜者在彩票空间中最大程度地分隔开，当在选出 $w$ 个获胜者后提前终止超级时
+> 间片时，其行为近似于一个 $n_w = w$ 的多赢家彩票调度器。例如，图 3-9 中的四赢家
+> 彩票调度算法所调度的前两个获胜者，与两赢家彩票调度算法选出的获胜者完全一致。当
+> $n_w$ 和 $w$ 都为 2 的幂时，这种近似是精确的。在其他情况下，使用随机生成的初始
+> 偏移量仍能确保不会在多个超级时间片间产生系统性偏差。这一点很重要，因为系统性偏
+> 差可能会被客户利用来作弊。
+{: .prompt-trans}
+
+Figure 3-10 lists ANSI C code that trivially extends the basic multi-winner
+lottery algorithm to handle dynamic changes. The premature termination of a
+superquantum allows dynamic operations to be supported in a principled manner.
+However, if dynamic changes occur with high frequency, then the effective
+superquantum size will be reduced, weakening the deterministic guarantees that
+it was intended to provide. In the extreme case where a dynamic change occurs
+after every allocation, this scheme reduces to an ordinary single-winner
+lottery. I was unable to find other systematic dynamic techniques that work with
+alternative ordering schemes. In general, the use of a superquantum introduces
+state that may require complicated transformations to avoid incorrect dynamic
+behavior.
+
+> 图 3-10 给出了一个简单扩展基本多赢家彩票算法以支持动态变化的 ANSI C 代码。提前
+> 终止超级时间片使得可以以合理的方式支持动态操作。然而，如果动态变化发生得非常频
+> 繁，实际超级时间片的大小就会变小，从而削弱了原本希望提供的确定性保证。在极端情
+> 况下，如果每次分配后都发生动态变化，这种方案就退化为普通的单赢家彩票调度。我没
+> 有找到适用于其他顺序方案的系统性动态技术。一般来说，超级时间片的使用会引入状态，
+> 这可能需要复杂的转换来避免错误的动态行为。
+{: .prompt-trans}
+
+![Figure-3-10-dynmaic_operation_multi_winner_lottery](pic/Figure-3-10-dynmaic_operation_multi_winner_lottery.png)
+
+#### 3.2.3 Nonuniform Quanta
+
+Fractional and variable-size quanta are supported by the same compensation
+ticket technique described for ordinary lottery scheduling. The code presented
+for assigning compensation tickets in Figure 3-7 can be used without
+modification. However, for multi-winner lotteries, the assignment of
+compensation tickets forces the start of a new superquantum, since the
+multi-winner version of `client_modify()` terminates the current superquantum.
+Thus, if clients frequently use nonuniform quantum sizes, the effective
+superquantum size will be reduced, weakening the deterministic guarantees
+provided by the multi-winner lottery.
+
+> 分数型和可变大小的时间片（quantum）可以通过普通彩票调度中描述的补偿彩票技术来
+> 支持。图 3-7 中用于分配补偿彩票的代码无需修改即可直接使用。然而，在多赢家彩票
+> 调度中，分配补偿彩票会强制启动一个新的超级时间片（superquantum），因为多赢家版
+> 本的 `client_modify()` 会终止当前超级时间片。因此，如果客户频繁使用非均匀大小
+> 的时间片，实际超级时间片的大小将会减小，从而削弱了多赢家彩票调度所提供的确定性
+> 保证。
+{: .prompt-trans}
+
+The need to start a new superquantum after every nonuniform quantum can be
+avoided by using a more complex compensation scheme. Instead of invoking
+`compensate()` after every allocation, compensation tickets can be assigned
+after each complete superquantum. This approach requires keeping track of each
+winner’s cumulative allocation count and resource usage over the entire
+superquantum to determine appropriate compensation values.
+
+> 每次遇到非均匀时间片都需要启动新的超级时间片的问题，可以通过采用更复杂的补偿方
+> 案来避免。与其在每次分配后都调用 `compensate()`，不如在每个完整的超级时间片结
+> 束后分配补偿彩票。这样做需要跟踪每个获胜者在整个超级时间片期间的累计分配次数和
+> 资源使用情况，以便确定合适的补偿值。
+{: .prompt-trans}
+
+### 3.3 Deterministic Stride Scheduling
 
 Stride scheduling is a deterministic allocation mechanism for time-shared
 resources. Stride scheduling implements proportional-share control over
@@ -1153,9 +1444,15 @@ PG93]. New techniques are introduced to efficiently support dynamic operations,
 such as modifications to ticket allocations, and changes to the number of
 clients competing for a resource.
 
+> 步进调度（Stride scheduling）是一种用于分时资源的确定性分配机制。步进调度通过
+> 借鉴并推广网络中基于速率的流量控制算法，实现了对处理器时间及其他资源的按比例分
+> 配控制 [DKS90, Zha91, ZK91, PG93]。此外，还引入了新技术，以高效支持动态操作，
+> 例如彩票分配的修改，以及参与资源竞争的客户数量的变化。
+{: .prompt-trans}
+
 ![basic_stride_sched_algorithm](pic/basic_stride_sched_algorithm.png)
 
-### 3.3.1 Basic Algorithm
+#### 3.3.1 Basic Algorithm
 
 The core stride scheduling idea is to compute a representation of the time
 interval, or stride, that a client must wait between successive allocations. The
@@ -1163,6 +1460,13 @@ client with the smallest stride will be scheduled most frequently. A client with
 half the stride of another will execute twice as quickly; a client with double
 the stride of another will execute twice as slowly. Strides are represented in
 virtual time units called passes, instead of units of real time such as seconds.
+
+> 步进调度（Stride scheduling）的核心思想是计算客户端在连续两次分配之间必须等待
+> 的时间间隔（stride）。拥有最小 stride 的客户端会被最频繁地调度。一个客户端的
+> stride 是另一个客户端的一半时，它的执行速度会快两倍；如果 stride 是另一个的两
+> 倍，则它的执行速度会慢两倍。stride 以虚拟时间单位（称为 pass）表示，而不是以秒
+> 等实际时间单位表示。
+{: .prompt-trans}
 
 Three state variables are associated with each client: tickets, stride, and
 pass. The tickets field specifies the client’s resource allocation, relative to
@@ -1175,6 +1479,14 @@ minimum pass value, then any of them may be selected. A reasonable deterministic
 approach is to use a consistent ordering to break ties, such as one defined by
 unique client identifiers.
 
+> 每个客户端关联有三个状态变量：tickets、stride 和 pass。tickets 字段指定了该客
+> 户端相对于其他客户端的资源分配比例。stride 字段与 tickets 成反比，表示两次被选
+> 中之间的间隔（以 pass 为单位）。pass 字段表示该客户端下次被选中的虚拟时间索引。
+> 资源分配过程非常简单：选择 pass 最小的客户端，并将其 pass 值增加 stride。如果
+> 有多个客户端拥有相同的最小 pass 值，则可以选择其中任意一个。一个合理的确定性做
+> 法是使用一致的顺序（比如唯一的客户端标识符）来打破平局。
+{: .prompt-trans}
+
 The only source of relative error under stride scheduling is due to
 quantization. Thus, the the relative error for any pair of clients is never
 greater than one, independent of $n_a$. However, for skewed ticket distributions
@@ -1182,6 +1494,12 @@ it is still possible for a client to have $O(n_c)$ absolute error, where $n_c$
 is the number of clients. Nevertheless, stride scheduling is considerably more
 accurate than lottery scheduling, since its error does not grow with the number
 of allocations.
+
+> 在步进调度中，相对误差的唯一来源是量化误差。因此，任意两个客户端之间的相对误差
+> 永远不会超过 1，且与 $n_a$ 无关。然而，对于彩票分配极度不均的情况，某个客户端
+> 的绝对误差仍可能达到 $O(n_c)$，其中 $n_c$ 是客户端数量。尽管如此，步进调度的准
+> 确性远高于彩票调度，因为其误差不会随着分配次数的增加而增长。
+{: .prompt-trans}
 
 Figure 3-11 lists ANSI C code for the basic stride scheduling algorithm. For
 simplicity, a static set of clients with fixed ticket assignments is assumed.
@@ -1195,6 +1513,14 @@ implemented by multiplying the inverted ticket value by a large integer
 constant. This constant will be referred to as stride , since it represents the
 stride corresponding to the minimum ticket allocation of one.
 
+> 图 3-11 给出了基本步进调度算法的 ANSI C 代码。为简化说明，假设客户端集合是静态
+> 的，且彩票分配固定。后续章节将放宽这些限制，以支持更动态的行为。在进行任何资源
+> 分配之前，必须通过 `client_init()` 初始化每个客户端的步进调度状态。为了将
+> stride 精确地表示为彩票数的倒数，可以使用浮点数表示。更高效的替代方案是采用高
+> 精度定点整数表示。这可以通过将倒数的彩票数乘以一个较大的整数常量来实现。这个常
+> 量被称为 stride，因为它代表了最小彩票分配（即一张彩票）对应的 stride。
+{: .prompt-trans}
+
 The cost of performing an allocation depends on the data structure used to
 implement the client queue. A priority queue can be used to implement
 `queue_remove_min()` and other queue operations in $O(\lg n_c)$ time or better,
@@ -1203,13 +1529,19 @@ expected time queue operations with low constant overhead [Pug90]. For small
 $n_c$ or heavily skewed ticket distributions, a simple sorted list is likely to
 be most efficient in practice.
 
+> 分配操作的成本取决于用于实现客户端队列的数据结构。可以使用优先队列来实现
+> `queue_remove_min()` 及其他队列操作，其时间复杂度为 $O(\lg n_c)$ 或更优，其中
+> $n_c$ 是客户端数量 [CLR90, Tho95]。跳表（skip list）也能以较低常数开销实现期望
+> 时间的队列操作 [Pug90]。对于较小的 $n_c$ 或彩票分布极度不均的情况，简单的有序
+> 列表在实际中可能是最高效的。
+{: .prompt-trans}
+
 ## TODO
 - [ ] Math
   - [ ] 二项分布
   - [ ] 几何分布
     + [二项分布与几何分布：从AP统计到实际应用](https://mp.weixin.qq.com/s?__biz=Mzg5ODIxMDczNw==&mid=2247871190&idx=2&sn=de1b4008ad819eabbc8a72da8eac8ff5&chksm=c13167ecfb86d87aa7779ff2b0f61d4f5549ffef6afc952463c5d31ccfd67347844ae11e9155&scene=27)
     + [概率统计14——几何分布](https://blog.csdn.net/sunbobosun56801/article/details/104021300)
-
 
 ## 参考链接
 
