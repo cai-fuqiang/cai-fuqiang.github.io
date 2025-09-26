@@ -404,14 +404,14 @@ Eq. (26) holds at time t, then it a n it also holds at time $t'$
 > 发生，且公式（26）在时间 t 时成立，那么它在时间 t′ 时也成立。
 {: .prompt-trans}
 
-Case (i). Assume that client j joins the competition at time t with lag $lag_j(t)
-$. Let $t^-$ denote the time immediately before, and let $t^+$ denote the time
-immediately after client $j$ joins the competition, where $t^+$ and $t^-$ are
-asymptotically close to t. Next, let $W(t)$ denote the total sum over the
-weights of all active clients at time t, i.e., $W(t) = \sum_{i \in \mathcal{A}(t)}
-w_i (t)$ and by convenience let us take $lag_j (t^-) = lag_j(t)$ . Since $t^-
-\rightarrow t^+$ we have $s_i(t_0^i, t^-) = s_i(t_0^i, t^+)$. Then from Eq. (3)
-we obtain
+**Case (i)**. Assume that client j joins the competition at time t with lag
+$lag_j(t) $. Let $t^-$ denote the time immediately before, and let $t^+$ denote
+the time immediately after client $j$ joins the competition, where $t^+$ and
+$t^-$ are asymptotically close to t. Next, let $W(t)$ denote the total sum over
+the weights of all active clients at time t, i.e., $W(t) = \sum_{i \in
+\mathcal{A}(t)} w_i (t)$ and by convenience let us take $lag_j (t^-) = lag_j(t)$
+. Since $t^- \rightarrow t^+$ we have $s_i(t_0^i, t^-) = s_i(t_0^i, t^+)$. Then
+from Eq. (3) we obtain
 
 > * $t^-$ : client j 加入前的很接近的时间
 > * $t^+$ : client j 加入后的很接近的时间
@@ -420,6 +420,7 @@ we obtain
 >
 > 另外由于 $t^-$ 和 $t^+$ 两个时间很接近， 可以让 $s_i(t_0^i, t^-) = s_i(t_0^i,
 > t^+)$
+{: .prompt-tip}
 
 $$
 lag_i(t^+) = lag_i(t^-) + S_i(t_0^i, t^+) - S_i(t_0^i, t^-)
@@ -505,3 +506,220 @@ $$
 > 别人付出代价，lag比较直接，让别的任务的lag承担。而V(t) 比较含蓄，只做V(t)的跳
 > 变, 这样其他的 任务的$ve$也就近似发生转变...
 {: .prompt-tip}
+
+**Case (ii)**. The proof of this case is very similar to the one of the previous
+case; therefore we omit it here.
+
+> 这个和 Case(i) 很相似，作者将其省略, 可以想象成上面的等式中的
+> $\sum_{\substack{i\in\mathcal{A}(t^-)}}\Delta{lag_i}$ 和 $lag_j(t)$ 符号相反，
+> 得出的结果也是0.
+{: .prompt-tip}
+
+**Case (iii)**. Changing the weight of a client $j$ from $w_j$ to $w_j'$ $j$ at
+time $t$ can be viewed as a sequence of two events: first, client $j$ leaves the
+competition at time $t$; second, it joins the competition at the same time $t$,
+but with weight $w_j'$. Thus, the proof of this case reduces to the previous two
+case.
+
+> 这里也好理解，将改变权重分为两部分, 任务 $j$ 带着$lag_{j1}(t)$离开，几乎在同一
+> 时刻, 任务 $j$ 带着$lag_{j2}(t)$ 加入竞争. 虽然 $lag_{j1}(t)$ 和 $lag_{j2}(t)$
+> 不相同, 但是不影响。因为离开加入作为独立event时，每个event执行后，
+> $\sum_{\substack{i\in A(t)}} lag_i(t)$ 均不变。
+{: .prompt-tip}
+
+Case (iv). Consider an interval $[t, t')$ in which no event occurs, i.e., no
+client leaves or joins the competition and no weight is changed during the
+interval $[t, t')$ . Next, assume that $\sum_{\substack{i\in A(t')}} lag_i(t') =
+0$, By using Eq. (3) and (6) we obtain:
+
+$$
+\begin{align}
+\sum_{\substack{i\in\mathcal{A}(t')}}lag_i(t') &= \sum_{\substack{i\in\mathcal{A}(t')}}
+(S_i(t_0^i - t') - s_i(t_0^i - t') \\
+&= \sum_{\substack{i\in\mathcal{A}(t)}}((S_i(t_0^i - t) - s_i(t_0^i - t)) +
+  \sum_{\substack{i\in\mathcal{A}(t)}}((S_i(t - t') - s_i(t - t')) \\
+&= \sum_{\substack{i\in\mathcal{A}(t)}} lag_i(t) + 
+\sum_{\substack{i\in\mathcal{A}(t)}}S_i(t - t') - \sum_{\substack{i\in\mathcal{A}(t)}}s_i(t - t') \\
+&= \sum_{\substack{i\in\mathcal{A}(t)}}w_i(V(t') - V(t)) - \sum_{\substack{i\in\mathcal{A}(t)}}s_i(t, t') \\
+&= (t' - t) - \sum_{\substack{i\in\mathcal{A}(t)}}s_i(t, t') 
+\end{align}
+$$
+
+Next we show that the resource is busy during the entire interval $[t, t')$. For
+contradiction assume this is not true. Let $l$ denote the earliest time in the
+interval $[t, t')$ when the resource is idle. Similarly to Eq. (29) we have:
+
+$$
+\sum_{\substack{i\in\mathcal{A}(l)}}lag_i(l) = (l - t) -
+  \sum_{\substack{i\in\mathcal{A}(l)}}s_i(t, l)
+$$
+
+Since the resource is not idle at any time between $t$ and $l$, it follows that
+the total service time allocated to all active clients during the interval $[t,
+t')$ (i.e., $\sum_{i\in\mathcal{A}(l)}s_i(t, l)$ is equal to $l - t$. Further,
+from the above equation we have $\sum_{i\in\mathcal{A}(l)}lag_i(l) = 0$. But
+then from Lemma 1 it follows that there is at least one eligible request at time
+$l$, and therefore the resource cannot be idle at time $l$, which proves our
+claim. Further, with a similar argument, it is easy to show that
+$\sum_{i\in\mathcal{A}(t')}lag_i(t') = 0$ which completes the proof of this
+case.
+
+> > 第一个 $[t, t')$ 应该是 $[t, l)$ 
+> {: .prompt-info} 
+>
+> 最终的目标是证明
+> $\sum_{\substack{i\in\mathcal{A}(l)}}lag_i(l) = 0$, 从上面的等式可以看出，如果
+> 等于0，也就意味着所有任务实际的运行时间之和一定等于时间的流逝. 也就意味着在
+> $[t, t')$这段时间内, 资源总是繁忙的。这里作者用了反证法, 假设在 $[t, t')$ 时间
+> 段中，有最早的一个时刻$l$, 该时刻是空闲的. 那么根据引理1: 如果一个client 有
+> $lag >= 0$, 则一定有pending的请求。那么，我们就需要需要证明，在这个时刻，所有
+> 的任务的lag 都是负值 ($lag_i < 0 ,i \in\mathcal{A}(l)$). 但是所有的lag 都是负
+> 值，就意味着 $\sum_{\substack{i\in\mathcal{A}(l)}}lag_i(l) < 0$, 
+>
+> 这样就和假设推出来的 $\sum_{\substack{i\in\mathcal{A}(l)}}lag_i(l) = 0$ 矛盾了。
+> 从而反证成功
+{: .prompt-tip}
+
+Since these are the only cases in which the lags of the active clients may
+change, the proof of the lemma follows.
+
+The following lemma gives the upper bound for the maximum delay of fulfilling a
+request in a steady system. We note that this result is similar to the one
+obtained by Parekh and Gallager [23] for their Generalized Processor Sharing
+algorithm, i.e., in a communication network, a packet is guaranteed not to miss
+its deadline by more than the time required to send a the time required to send
+a packet of maximum length.
+
+> 由于只有在这些情况下，活跃客户的滞后值才可能发生变化，因此引理的证明即告完成。
+>
+> 下一个引理给出了在稳定系统中满足请求的最大延迟的上界。我们注意到，这一结果与
+> Parekh和Gallager [23]为其广义处理器共享（Generalized Processor Sharing）算法所
+> 获得的结果类似，即在通信网络中，一个数据包保证不会错过其截止时间超过发送一个最
+> 大长度数据包所需的时间。
+{: .prompt-trans}
+
+***
+
+**Lemma 3** In a steady system any request of any active client k is fulfilled
+no later than $d + q$, where d is the request's deadline, and q is the size of
+a time quantum.
+
+**Proof**. Let $e$ be the eligible time associated to the request (with deadline
+$d$) of client $k$. Consider the partition of all the active clients at time $d$,
+into two sets $B$ and $C$, where set $B$ contains all the clients that have at
+least a deadline in the interval $[e, d]$ , and set $C$ contains all the other
+active clients (see Figure 3). Let t be the latest time no greater than d at
+which a client in $C$ receives a time quantum, if any. Further we consider two
+cases whether such a t exists or not.
+
+> 证明。设 $e$ 为与客户端 $k$ 的请求（截止时间为 $d$）相关的可用时间。考虑在时间
+> $d$ 时，将所有活跃客户端划分为两个集合 $B$ 和 $C$，其中集合 $B$ 包含所有在区间
+> $[e, d]$ 内至少有一个截止时间的客户端，而集合 $C$ 包含所有其他活跃客户端（见图
+> 3）。设 $t$ 为不大于 $d$ 的最新时间，在该时间集合 $C$ 中的某个客户端获得时间片
+> （如果存在的话）。接下来我们考虑两种情况：这样的 $t$ 是否存在。
+{: .prompt-trans}
+
+![Figure_3](pic/Figure_3.png)
+
+**Case 1** (t exists). Here we consider two sub-cases whether $t \in [e, d)$, or
+$t < e$. First assume that a client in C receives a time quantum at a time $t \in
+[e, d)$. Since all the deadlines of the pending requests issued by clients in C
+are larger than d, this means that at time t the pending request of client k is
+already fulfilled. Consequently, in the first sub-case the request of client k
+k is fulfilled before time d.
+
+> **案例1(t存在)** 。我们考虑两种子情况：t∈[e,d) 或 t<e。首先假设某个属于集合C的
+> 客户在时间 t∈[e,d) 时获得了一个时间片。由于集合C中所有待处理请求的截止时间都大
+> 于 d，这意味着在时间t时，客户k的待处理请求已经被满足。因此，在第一个子情况下，
+> 客户k的请求在时间d之前就被满足了
+>
+> > 这个证明很直观, 因为C集合中的 $V(d_C^i) > V(d_B^k)$, EEVDF调度算法会优先选择
+> > $V(d)$ 小的任务, 所以在C集合中的任务被调度到时(获得时间片), 那就说明任务k
+> > 肯定已经在$t$之前fulfilled, $t < d$, 所以任务k在 $d$之前 fullfilled, 在deadline
+> > 之前完成任务
+{: .prompt-trans}
+
+For the second sub-case, let us $D$ denote all the active clients that have at
+least one eligible request with the deadline in the interval $[t, d)$ (see
+Figure 3). Further, let $D(\mathcal{T})$ denote the subset of $D$ containing the
+active clients at time $\mathcal{T}$. Since a time quantum is allocated to a
+client in $C$ at time $t$, it follows that no other client with an earlier
+deadline is eligible at $t$. For any client j belonging to $D(t)$, let $e_j$ be
+the eligible time of its pending request at time $t$. Since the deadlines of
+these requests are no greater than $d$ (and therefore smaller than any deadline
+of any client in $C$), it follows that all these pending requests are not
+eligible at time $t$, i.e., $t < e_j$ . Notice that besides the clients in $D(t)
+$, the other clients that belong to $D$ are those that eventually join the
+competition after time $t$. For any client $j$ in $D$ that joins the competition
+after time $t$, we take $e_j$ to be the eligible time of its first request. 
+
+> 对于第二种子情况，令 $D$ 表示所有在区间 $[t, d)$ 内至少有一个可用请求截止时间
+> 的活跃客户端（见图3）。进一步，令 $D(T)$ 表示在时刻 $T$ 处属于 $D$ 的活跃客户
+> 端子集。由于在时刻 $t$ 为集合 $C$ 中的某个客户端分配了时间片，因此在 $t$ 时没
+> 有其他截止时间更早的客户端是可用的。对于属于 $D(t)$ 的任意客户端 $j$，令 $e_j$
+> 表示其在时刻 $t$ 时未完成请求的可用时间。由于这些请求的截止时间都不超过 $d$
+> （因此也小于集合 $C$ 中任何客户端的截止时间），所以这些未完成的请求在时刻 $t$
+> 都不可用，即 $t < e_j$。注意，除了属于 $D$t$$ 的客户端之外，属于 $D$ 的其他客
+> 户端是在时刻 $t$ 之后才加入竞争的。对于在 $t$ 之后加入竞争的任意客户端 $j$，我
+> 们取其第一个请求的可用时间为 $e_j$。
+
+
+Next, for any client $j$ belonging to $D$, let $d_j$ denote the largest deadline
+no great Next, for any client $j$ belonging to $D$, let $d_j$ denote the largest
+deadline no greater than d of any of its requests (notice that the eligible time
+$e_j$ and the deadline $d_j$ might not be associated to the same request). From
+Eq. (10) it easy to see that after client $j$ receives $S_j(e_j, d_j)$ time
+units, all its requests in the interval $[e_j, d_j)$ are fulfilled. Thus, the
+service time needed to fulfill all the requests which have deadlines in the
+interval $[t, d)$ is.
+
+$$
+\sum_{\substack{j \in D}} S_j(e_j, d_j) = 
+\sum_{\substack{j\in D}} \int_{d_j} ^{e_j} \frac{w_i}{\sum_{i \in \mathcal{A}
+(\mathcal{T})}w_i}d(\mathcal{T})
+$$
+
+By decomposing the above sum over a set of disjoint intervals $J_l = [a_l, b_l)
+(1 \leq l \leq m)$ covering $[t, d)$, such that no interval contains any
+eligible time or deadline of any client belonging to $D$, we can rewrite Eq. (30)
+
+$$
+\sum_{j \in D} S_j(e_j, d_j) = \sum_{l=1}^{m}
+
+(\int^{b_l}_{a_l}\frac{\sum_{i \in \mathcal{D}(a_l)} w_i}
+{\sum_{i \in \mathcal{A}(a_l)} w_i}d\mathcal{T}) <
+\sum_{l=1}^{m}(\int^{b_l}_{a_l}d\mathcal{T}) = 
+\sum_{i \in \mathcal{A}(a_l)}(b_l - a_l) = d -t
+$$
+
+The above inequality results from the fact that $D(\mathcal{T})$ is a proper
+subset of $\mathcal{A}(\mathcal{T})$ at least for some subintervals $Ji$
+(otherwise, if $\mathcal{A}(\mathcal{T})$ is identical to $D(\mathcal{T})$ over
+the entire interval $[t, d)$, sets $C$ and $C'$ would be empty).
+
+Assume that at time $d + q$ the request of client $k$ (having the deadline $d$)
+is not fulfilled yet. Since no client in $C$ can be served before the request of
+client $k$ is fulfilled, it follows that the service time between $t + q$ and $d
+q$ is allocated only to the clients in $D$. Consequently, during the entire
+interval $[t + q, d + q)$, there are $d - t$ service time units to be
+allocated to all clients in $D$. Next, recall that any client $j$ belonging to
+$D$ will not receive any other time quantum after its request having deadline
+$d_j$ is eventually fulfilled, as long as the request of client $k$ is not
+fulfilled. This is simply because the next request of client $j$ will have a
+deadline greater than $d$. But according to Eq. (31) the service time required
+to fulfill al $l$ the requests having the deadlines in the interval $[t, d)$
+is less than $d - t$, which means that at some point the resource is idle
+during the interval $[t + q, d + q)$. But this contradicts the fact that EEVDF
+is work-conserving, and therefore proves this case.
+
+Case 2. (t does not exist) In this case we take $t$ to be the time when the
+first client joins the competition. From here the proof is similar to the one
+for the first case, with the following diference. Since set $C$ is empty, all
+the time quanta between $t$ and $d$ are allocated to the clients in $D$, and
+therefore, in this case, we show that in fact client $k$ does not miss the
+deadline $d$.
+
+Following we give a similar result for a steady interval. Mainly, we show that
+for certain subintervals of a steady interval the same bound holds. This shows
+that a system which allows clients with non-zero lag to join, leave, or to
+change their weight, will eventually reach a steady state.
