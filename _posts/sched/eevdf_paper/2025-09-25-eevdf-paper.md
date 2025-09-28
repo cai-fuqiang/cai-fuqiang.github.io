@@ -723,3 +723,176 @@ Following we give a similar result for a steady interval. Mainly, we show that
 for certain subintervals of a steady interval the same bound holds. This shows
 that a system which allows clients with non-zero lag to join, leave, or to
 change their weight, will eventually reach a steady state.
+
+***
+
+**Lemma 4** Let $I = [t_1, t_2)$ be a steady interval, and let $d_m$ be the
+largest dead line among all the pending requests of the clients with negative
+lags which are active at $t_1$. Then any request of any active client $k$ is
+fullfilled no later than $d + q$, if $d \in [d_m, t_2)$
+
+**Proof**. Similarly to the proof of Lemma 3, we consider the partition of all
+the active clients at time $d$, into two set B and C, where set B contains all
+the active clients that have at least a deadline in the interval $[e, d]$ , and
+set C contains all the other clients. Similarly, we let t denote the latest time
+in the interval $[t_1, d)$ when a client in C receives a time quantum, if any.
+Further, we consider two cases whether such t exists or not.
+
+
+**Case 1**. (t exists) The proof proceeds similarly to the one for Case 1 in
+Lemma 3.
+
+Case 2. (t does not exist) In this case we consider two sub-sets of $C$: $C^-$
+containing all clients in $C$ that had negative lags at time $t_1$, and $C^+$
+containing all the other clients in C. Since no client belonging to $C^-$
+receives any time quantum before $d_m$ it follows that no pending request of any
+client in $C^-$ is fullfiled before its deadline (recall that the deadlines of
+all the other clients with negative lags at $t_1$ are $\leq d_m$) and therefore
+all clients in $C^-$ will have nonnegative lags at time $d_m$. On the other hand,
+since all clients in $C^+$ had nonnegative lags at time $t_1$, and since they do
+not receive any time quanta between $t_1$ and $d_m$, all of them will have
+positive lags at $d_m$. Ttus,we have:
+
+$$
+\sum_{i \in \mathcal{C}} lag_i(d) \geq 0
+$$
+
+On the other hand, we note that if the request of client $k$ is not fulfilled
+before its deadline, then no other client belonging to $B$ will receive any
+other time quantum after its last request with the deadline no greater than d is
+fulfilled. But then from Eq. (3) it follows that their lags as well as the lag
+of client $k$ are positive at time $d$, i.e.,
+
+$$
+\sum_{i \in mathcal{B}} lag_i(d) > 0
+$$
+
+Further, by adding Eq. (32) and (33), we obtain:
+
+$$
+\sum_{i \in mathcal{A}} lag_i(d) > 0
+$$
+
+which contradicts Lemma 2, and therefore completes the proof
+
+*The next theorem gives tight bounds for a client's lag in a steady system.*
+
+***
+
+**Theorem 1** The lag of any active client k in a steady system is bounded as
+follows,
+
+$$
+-r_{max} < lag_k(d) < max(r_{max}, q)
+$$
+
+*where $r_{max}$ represents the maximum duration of any request issued by client $k$.
+Moreover, these bounds are asymptotically light.*
+
+**Proof**. Let $e$ and $d$ be the eligible time and the deadline of a request
+with duration $r$ issued by client $k$. Since $S_k$ increases monotonically with
+a slope no greater than one (see Eq. (4)), from Eq. (3) it follows that the lag
+of client $k$ decreases as long as it receives service time, and increases
+otherwise. Further, since a request is not serviced before it is eligible, it is
+easy to see that the minimum lag is achieved when the client receives the
+entirely service time as soon as the request becomes eligible. In other words,
+the minimum lag occurs at time $e + r$, if the request is fulfilled by that
+time. Further, by using Eq (3) we have
+
+$$
+\begin{align}
+lag_k(e+r) &= S_k(t_0^k, e+r) - s_k(t_0^k, e+r) \\
+&= S_k(t_0^k, e) + S_k(e, e+r) - (s_k(t_0^k, e) + s_k(e, e+r)) \\
+&= lag_k(e) + S_k(e, e+r) - s_k(e, e+r)
+\end{align}
+$$
+
+From the definition of the eligible time (see Section 2) we have $lag_k(e) \geq 0$,
+and thus from the above equation we obtain
+
+$$
+lag_k(e+r) \geq S_k(e, e+r) - s_k(e, e+r) > -s_k(e, e+r) \geq -r
+$$
+
+Since this is the lower bound for the client's lag during a request with
+duration $r$, and since rmax represents the maximum duration of any request
+issued by client $k$, it follows that at a any time $t$ while client $k$ is
+active we have
+
+$$
+lag_k(t) \geq -r_{max}
+$$
+
+Similarly, the maximum lag in the interval $[e, d)$ is obtained when the entire
+service time is allocated as late as possible. Since according to Lemma 3, the
+request is fullfilled no later than $d + q$, it follows that the latest time
+when client k should receive the first quantum is $d + q - r$. We consider two
+cases: $r \geq q$ and $r < q$. In the first case $d + q - r \leq d$, and
+therefore we obtain $S_k(e, d + q- r) < S_k (e, d) = r$.
+
+Let $t_1$ be the time at which the request is issued. Further, from the
+definition of the eligible time, and from the fact that the client is assumed
+that it does not receive any time quantum during the interval $[t_1, d + q - r)$,
+we have for any time t while the request is pending
+
+$$
+\begin{align}
+lag_k(t) &\leq S_k(t_0^k, d+q-r) - s_k(t_0^k, d+q-r) \\
+&= S_k(t_0^k, e) + S_k(e,d+q-r)-s_k(t_0^k, t_1) - s_k(t_1,d+q-r) \\
+&= (S_k(t_0^k, e) - s_k(t_0^k, t_1)) + S_k(e, d+q-r) - s_k(t_1, d+q-r) \\
+&= S_k(e, d+q-r) < r
+\end{align}
+$$
+
+Since the slope of $S_k$ is always no greater than one, in the second case we
+have $S_k(e, d + q- r) = S_k (e, d) + S_k(d, d+q-r) < r+q-r=q$, and from here
+we obtain
+
+$$
+lag_k(t) \leq S_k(e,d+q-r) < q
+$$
+
+Finally, by combining Eq. (39) and (40) we obtain $lag_k(t) < max(q, r)$. Thus,
+at any time $t$ while the client is active
+
+$$
+lag_k(t) < max(q, r_{max})
+$$
+
+To show that the bound $lag_k(t) > -r_{max}$ is asymptotically tight, consider the following example. Let
+$w_1$, $w_2$ be the weights of two active clients, such that $w1 \ll w2$. Next, suppose that both clients become
+active at time $t_0$ and their first requests have the lengths $r_{max}$ and
+$r'_{max}$, respectively. We assume that
+$r_{max}$ and $r'_{max}$ are chosen such that the virtual deadline of the first client's request is smaller than the
+virtual deadline of the second client's request, i.e., $t_0 + \frac{r_{max}}{w_1} < t_0 + \frac{r'_{max}}{w_2}$. Then client 1 receives the
+entire service time before client 2, and thus from Eq. (3) we have $lag_1(r_{max}) = S_1(t_0, t_0 + r_{max})  - r_{max}$.
+
+<!--
+Next, by using Eq. (4) we obtain S1(t0; t0 + rmax) = w1
+w1+w2
+, which approaches zero when w1
+w2 ! 1, and
+consequently lag1(rmax) approaches rmax.
+-->
+
+
+To show that the bound lagk(t) < max(rmax; q) is asymptotically tight, we use
+the same example. However, in this case we assume that the virtual deadline of
+the rst request of client 1 is earlier than the virtual deadline of the rst
+request of client 2, such that client 1 receives its entire service time just
+prior to its deadline. Since the details of the proof are similar with the
+previous case we do not show them here.
+
+Notice that the bounds given by Theorem 1 apply independently to each client and
+depend only on the length of their requests. While shorter requests oer a
+better allocation accuracy, the longer ones reduce the system overhead since for
+the same total service time fewer requests need to be generated. It is therefore
+possible to trade between the accuracy and the system overhead, depending on the
+client requirements. For example, for an intensive computation task it would be
+acceptable to take the length of the request to be in the order of seconds. On
+the other hand, in the case of a multimedia application we need to take the
+length of a request no greater than several tens of milliseconds, due to the
+delay constraints. Theorem 1 shows that EEVDF can accommodate clients with
+diferent requirements, while guaranteeing tight bounds for the lag of each
+client during a steady interval. The following corollary follows directly from
+Theorem 1.
