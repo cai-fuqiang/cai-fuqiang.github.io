@@ -5,6 +5,7 @@ author: fuqiang
 date:   2024-12-20 10:10:00 +0800
 categories: [timer,apic-timer]
 tags: [apic-timer]
+math: true
 ---
 
 
@@ -92,3 +93,84 @@ void time_init_gtod(void)
     set_cyc2ns_scale(cpu_khz);
 }
 ```
+
+## calibrate_APIC_clock
+
+$$
+\begin{align}
+delta = LAPIC\_CAL\_LOOPS * one\_TICK\_counter\_delta \\
+deltatsc = LAPIC\_CAL\_LOOPS * one\_TICK_counter\_tsc\_delta
+\end{align}
+$$
+
+所以:
+
+$$
+\begin{align}
+lapic\_timer\_period &= \frac{delta * APIC\_DIVISOR}{ LAPIC\_CAL\_LOOPS} \\
+&= one\_TICK\_counter\_delta * APIC\_DIVISOR
+\end{align}
+$$
+
+`APIC_DIVISOR`是apic `Divide Configuration Register`所代表的值，是kernel用的默认
+精度。这里乘以该值表示最大精度。
+
+所以`lapic_timer_period`表示 一个TICK 所增长的counter 值.
+
+而
+
+$$
+\begin{align}
+deltatsc / LAPIC\_CAL\_LOOPS / (1000000 / HZ)  \\
+= \frac{one\_TICK\_counter\_tsc\_delta * HZ}{1MHz}
+\end{align}
+$$
+
+其实表示的是1s钟之内，tsc counter 增长的值。以MHz为单位.
+
+而如果`apic_timer_period`也转换为1s/MHz，需要在上面delta值上除1000，假设
+`HZ=1000`
+
+我们来看下这两个值的打印:
+```sh
+[    0.188106] Using local APIC timer interrupts. Calibrating APIC timer ...
+[    0.290833] ... lapic delta = 624930
+[    0.290937] ... PM-Timer delta = 357914
+[    0.290998] ... PM-Timer result ok
+[    0.290998] ..... delta 624930
+[    0.290998] ..... mult: 26839250
+[    0.290998] ..... calibration result: 99988         ## 等式(3)
+[    0.290998] ..... CPU clock speed is 2599.0706 MHz. ## 等式(4)
+```
+
+99988/1000 = 99.88， 其最大精度大概是tsc的`2599/99 = 26`
+
+
+我们来看下oneshot时钟和tsc-deadline时钟的kernel中使用的精度差, 以及其`set_next`函数
+
+* oneshot
+  ```
+  lapic_init_clockevent
+  |-> lapic_clockevent.mult = div_sc(lapic_timer_period/APIC_DIVISOR,
+                                TICK_NSEC, lapic_clockevent.shift);
+  lapic_next_event
+  |-> apic_write(APIC_TMICT, delta);
+  ```
+* tsc-deadline
+  ```
+  setup_APIC_timer
+  |-> clockevents_config_and_register(levt,
+                                tsc_khz * (1000 / TSC_DIVISOR),
+                                0xF, ~0UL);
+  lapic_next_deadline
+  |-> tsc = rdtsc();
+  |-> wrmsrq(MSR_IA32_TSC_DEADLINE, tsc + (((u64) delta) * TSC_DIVISOR));
+  ```
+
+  这里的 / `TSC_DIVISOR` 没看懂啥意思。在`clockevents_config_and_register`除去
+  有在`set_next`时乘上....
+
+所以, 在kernel使用中, lapic oneshot 精度(包括period)还要下降`APIC_DIVISOR`(16)倍
+
+精度差在 26 * 16 = 416. 没有特别特别高的精度差别。(况且oneshot也可以通过修改
+`DIVISOR`提升精度)
