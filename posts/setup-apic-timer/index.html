@@ -162,8 +162,8 @@
 <span class="o">[</span>    0.290998] ... PM-Timer result ok
 <span class="o">[</span>    0.290998] ..... delta 624930
 <span class="o">[</span>    0.290998] ..... mult: 26839250
-<span class="o">[</span>    0.290998] ..... calibration result: 99988         <span class="c">## 等式(2)</span>
-<span class="o">[</span>    0.290998] ..... CPU clock speed is 2599.0706 MHz. <span class="c">## 等式(3)</span>
+<span class="o">[</span>    0.290998] ..... calibration result: 99988         <span class="c">## 等式(3)</span>
+<span class="o">[</span>    0.290998] ..... CPU clock speed is 2599.0706 MHz. <span class="c">## 等式(4)</span>
 </pre></table></code></div></div><p>99988/1000 = 99.88， 其最大精度大概是tsc的<code class="language-plaintext highlighter-rouge">2599/99 = 26</code></p><p>我们来看下oneshot时钟和tsc-deadline时钟的kernel中使用的精度差, 以及其<code class="language-plaintext highlighter-rouge">set_next</code>函数</p><ul><li>oneshot<div class="language-plaintext highlighter-rouge"><div class="code-header"> <span data-label-text="Plaintext"><i class="fas fa-code fa-fw small"></i></span> <button aria-label="copy" data-title-succeed="Copied!"><i class="far fa-clipboard"></i></button></div><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
 2
 3
