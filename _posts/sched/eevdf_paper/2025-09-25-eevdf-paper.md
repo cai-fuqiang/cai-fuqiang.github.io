@@ -637,6 +637,7 @@ k is fulfilled before time d.
 > > $V(d)$ 小的任务, 所以在C集合中的任务被调度到时(获得时间片), 那就说明任务k
 > > 肯定已经在$t$之前fulfilled, $t < d$, 所以任务k在 $d$之前 fullfilled, 在deadline
 > > 之前完成任务
+> {: .prompt-tip}
 {: .prompt-trans}
 
 For the second sub-case, let us $D$ denote all the active clients that have at
@@ -859,24 +860,20 @@ $$
 lag_k(t) < max(q, r_{max})
 $$
 
-To show that the bound $lag_k(t) > -r_{max}$ is asymptotically tight, consider the following example. Let
-$w_1$, $w_2$ be the weights of two active clients, such that $w1 \ll w2$. Next, suppose that both clients become
-active at time $t_0$ and their first requests have the lengths $r_{max}$ and
-$r'_{max}$, respectively. We assume that
-$r_{max}$ and $r'_{max}$ are chosen such that the virtual deadline of the first client's request is smaller than the
-virtual deadline of the second client's request, i.e., $t_0 + \frac{r_{max}}{w_1} < t_0 + \frac{r'_{max}}{w_2}$. Then client 1 receives the
-entire service time before client 2, and thus from Eq. (3) we have $lag_1(r_{max}) = S_1(t_0, t_0 + r_{max})  - r_{max}$.
+To show that the bound $lag_k(t) > -r_{max}$ is asymptotically tight, consider
+the following example. Let $w_1$, $w_2$ be the weights of two active clients,
+such that $w1 \ll w2$. Next, suppose that both clients become active at time
+$t_0$ and their first requests have the lengths $r_{max}$ and $r'_{max}$,
+respectively. We assume that $r_{max}$ and $r'_{max}$ are chosen such that the
+virtual deadline of the first client's request is smaller than the virtual
+deadline of the second client's request, i.e., $t_0 + \frac{r_{max}}{w_1} < t_0
+\frac{r'_{max}}{w_2}$. Then client 1 receives the entire service time before
+client 2, and thus from Eq. (3) we have $lag_1(r_{max}) = S_1(t_0, t_0 +
+r_{max})  - r_{max}$. Next, by using Eq. (4) we obtain $S_1(t_0, t_0 + r_{max})
+= \frac{w_1}{w_1+w_2}$ , which approaches zero when $\frac{w_1}{w_2}\rightarrow 
+\infty$, and consequently $lag_1(rmax)$ approaches $-r_{max}$.
 
-<!--
-Next, by using Eq. (4) we obtain S1(t0; t0 + rmax) = w1
-w1+w2
-, which approaches zero when w1
-w2 ! 1, and
-consequently lag1(rmax) approaches rmax.
--->
-
-
-To show that the bound lagk(t) < max(rmax; q) is asymptotically tight, we use
+To show that the bound $lag_k(t) < max(r_{max}, q)$ is asymptotically tight, we use
 the same example. However, in this case we assume that the virtual deadline of
 the rst request of client 1 is earlier than the virtual deadline of the rst
 request of client 2, such that client 1 receives its entire service time just
@@ -896,3 +893,50 @@ delay constraints. Theorem 1 shows that EEVDF can accommodate clients with
 diferent requirements, while guaranteeing tight bounds for the lag of each
 client during a steady interval. The following corollary follows directly from
 Theorem 1.
+
+***
+
+**Corollary 2** *Consider a steady system and a client k such that no request of
+client k is larger than a time quantum. Then at any time t, the lag of client k
+is bounded as fol lows:*
+
+$$
+-q < lag_k(t) < q
+$$
+
+Next we give a simple lemma which shows that the bounds given in Corollary 3 are
+optimal, i.e., they hold for any proportional share algorithm.
+
+**Lemma 5** Given any steady system with time quanta of size q and any
+proportional share algorithm, the lag of any client is bounded by -q and q.
+
+**Proof**. Consider n clients with equal weights that become active at time 0.
+We consider two cases: (i) each client receives exactly one time quantum out of
+the first n quanta, and (ii) there is a client k which receives more than a time
+quanta. From Eq. (3), it is easy to see that, at time q, the lag of the client
+that receives the first quantum i
+
+$$
+lag(q) = \frac{q}{n} - q
+$$
+
+Similarly, the lag of the client which receives the $n^{th}$ time quantum is (at time
+$n - 1$, immediately before it receives the time quantum)
+
+$$
+lag(q(n-1)) = q - \frac{q}{n}
+$$
+
+For contradiction, assume that there is a proportional share algorithm that
+achieves an upper bound smaller than q, i.e., q  $q - \epsilon$ , where
+$\epsilon$ is a positive real. Then by taking $n > \frac{q}{\epsilon}$ , from
+Eq. (44), it follows that $lag(q(n -  1)) > q - \epsilon$ which is not possible.
+Similarly, it can be shown that no algorithm can achieve a lower bound better
+than -q.
+
+For the second case (ii), notice that since client j receives more than one time
+quanta, there must be another client k that does not receive any time quanta in
+the first n time units. Then it is easy to see that the lag of client j is
+smaller than $-q$ after it receives the second time quantum, and the lag of
+client k is larger than q after just before receiving its first time quantum,
+which completes our proof.
