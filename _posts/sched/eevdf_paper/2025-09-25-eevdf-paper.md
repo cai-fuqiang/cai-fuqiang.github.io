@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "schedule: Directory"
+title:  "eevdf paper"
 author: fuqiang
 date:   2025-09-15 21:40:00 +0800
 categories: [schedule, paper]
@@ -8,36 +8,396 @@ tags: [sched]
 math: true
 ---
 
-## eevdf 公式推导
+## 前言
+本文参考eevdf论文, 介绍eevdf 算法涉及到的概念，基本原理，以及公式推导,
+关于eevdf不难理解的章节, 本文 将以概括的方式涵盖, 较难理解的章节，本文
+将以中英翻译的方式将论文内容展现出来。
+
+关于论文中的公式，本文尽量将其详细的展开推导。并添加一些直观上的理解。
+
+## 1. introduce
+
+论文中的第一章节主要讲解了调度器的职责以及面临的挑战:
+
+* 职责:
+  + 在多个竞争client之间分配资源
+* 挑战:
+  + 随着更多实时性应用的出现（多媒体)，调度器应该更及时响应这些任务。
+    这样就得要求调度器能够预测哪些应用是偏实时性应用，哪些应用是偏
+    批处理应用
+
+目前有两种调度器一定程度上满足了这种需求:
+
+* proportional share （例如stride schedule)
+* real-time (例如deadline 调度器)
+
+简单介绍下这两个调度器:
+
+|调度器类型|基本算法|优点|缺点|
+|----|----|----|---|
+|proportional share|每个client有一个权重，按照权重所<br/>占总权重的比例份额分配资源|灵活, 适应过载场景|实时性不高|
+|real-time|基于事件驱动，每个事件由预测的服<br/>务时间和截止时间来描述|实时性高|不好为批处理任务，建立事<br/>件驱动模型;因为严格的准入策略，<br/>使他们非常不灵活|
+
+关于real-time 不灵活的场景我们设想下: 假设现在cpu已经跑满了实时性任务，但是又来
+了新任务。如果将其强行加入，可能导致之前的实时性任务都不能满足其之前定义的实时性
+需求。可能导致较长时间内新任务都不能加入。而比例份额算法，则保持了较高的弹性，通过
+降低这些任务的性能，来满足新任务的运行。灵活度较高。
+
+而该论文则是结合了这两个调度器。即让资源分配按照 `proportional share`模型分配，但是
+其又像使用`real-time` 算法的思想，怎么做呢?
+
+首先是结合比例分配算法为所有的任务建立事件驱动模型:
+
+1. 为每个客户端分配一个权重，并按照该权重分配相应的资源份额
+2. **client对时间片的需求转换为一系列对资源的请求**
+
+这样就为不同类型的任务统一了使用事件驱动模型的方法.
+
+然后再按照`real-time`的思想设置服务时间和到期时间:
+* 为每个client的请求分配一个虚拟的可用时间和虚拟的deadline
+* 当一个请求的虚拟可用时间小于或等于当前虚拟时间时，该请求认为是可用的
+
+* 该算法将新的时间片分配给<font color=red><strong>最早的虚拟截止时间</strong>
+  </font>的<font color=red><strong>可用的</strong> </font>请求的client
+
+自此为止，eevdf的设计需求，基本实现介绍完毕。
+
+## 2. Assumptions
+
+本章主要描述数学建模:
+首先按照比例分撇算法, 定义:
+* $w_i$: 任务i 的权重
+* $\mathcal{A(t)}$: 在t时刻，活跃状态（正在竞争资源）的任务集合
+* $f_i(t)$: t时刻，任务i的份额
+
+可得下面公式:
 
 $$
-\begin{align}
-V(e) &= V(t^i_0) + \frac{s_i(t^i_0, t)}{w_i} \tag {7} \\
-V(d) &= V(e) + \frac{r}{w_i} \tag {8} \\
-\end{align}
+f_i(t) = \frac{w_i}{\sum_{j \in \mathcal{A(t)}} w_j} \tag{1}
 $$
 
-If the client uses each time the entire service time it has requested, (7) and
-(8) we obtain the following reccurence which computes both the virtual eligible
-time and the virtual deadline of each request:
+理想状态下, 在一个时间段内$[t, t + \Delta{t}]$, client i 获得的调度份额是$f_i(t)
+\Delta{t}$, 在完全公平的理想状态下，任务i 在$[t_0, t_1]$ 时间段内应得的服务时间为:
 
 $$
-\begin{align}
-ve^{(1)} &= V(t_0^i) \tag{9}\\
-vd{(k)} &= ve^{(k)} + \frac{r^{(k)} }{w_i} \tag{10}\\
-\end{align}
+S_i(t_0, t_1) = \int ^{t_1}_{t_0} f_i\mathcal{(T)dT} \tag{2}
 $$
 
-因为client每次请求之前都能使用完所有的entire service, 所以
+当然这是在理想状态下的完全公平调度，理想状态是指在任意$t_1$无限接近$t_0$时,
+client i 仍然根据上面的公式，获取到想要的调度份额。
+
+但是现实总之残酷的, 正如`<<操作系统导论>>`一书中将调度部分纳入`virtualization`章
+节一样, 我们总是希望计算机可以同时运行多个任务（虽然在某些情况下表现出的行为也类
+似这样）, 但是计算机硬件(单核)在某个时刻只能运行一个任务。这样就导致了任务的运行
+的时间段是 **离散**, 离散是公平调度问题的最终祸首。我们可以想象一个理想的世界: 每当
+我们运行一个新任务，cpu自动会搞出一个物理核无性能损耗的运行它，这样还会有这样那
+样的调度问题么。显然已经避免了绝大部分。
+
+另外，因为更雪上加霜的是，因为离散所带来的调度器本身的开销，最终使得调度系统不得
+不将离散更加离散，从而减少调度器本身的开销。
+
+所以理想环境的服务时间和现实的服务时间有差距, 我们将时间段$[t_0^i, t]$这个时间段
+client i服 务时间差，任务i的服务时间差记做$lag_i(t)$, 将现实的服务时间记做
+$s_i(t_0^1, t)$, 可得:
 
 $$
-\begin{align}
-r &= S_i(e, d) = s_i(t_0^k, t_0^{k+1}) \tag{10.1} \\
-vd^{(k)} &= ve^{(k)} + \frac{r^{(k)} }{w_i} \tag{10.2} \\
-&= ve^{(k)} + \frac{s_i(t_0^k, t_0^{k+1})}{w_i} \tag{10.3} \\
-&= ve^{(k+1)} \tag{11}
-\end{align}
+lag_i(t) = S_i(t_0 ^ i, t) - s_i(t_0 ^i,t) \tag{3}
 $$
+
+> NOTE
+>
+> 我们来思考下, $lag$ 是在计算机离散调度下，理想于现实的差距。我们来思考下，
+> 如果我们将时间片设置为1ms，那么现在有两个client a, b. a 运行了该时间片。
+> 那么在t = 1ms这一时刻
+>
+> $$
+> \begin{align*}
+> S_{a,b}(0, 1) &= 0.5\\
+> s_a(0, 1) &= 1 \\
+> s_b(0, 1) &= 0 \\
+> lag_a(1) &= -0.5 \\
+> lag_b(1) &= 0.5 \\
+> \end{align*}
+> $$
+>
+> 这个我们可以怎么理解呢? lag 为正表示整体系统在该时刻欠task的资源, lag为负
+> 表示task 欠整体系统的资源。但是从整体来看，$\sum lag = 0$, `section 6 
+> Corollary 1`.
+> 
+> 另外，随着离散的调度运行下去，各个任务的lag 会发生动态变化，加入在下一个1ms,
+> client b 运行，则该在此刻观察，这两个任务的lag 都为0。
+>
+> ***
+>
+> 另外，我们再思考下，lag和延迟有什么关系。可以lag 为负就是表示该任务有延迟，
+> lag为负, 则表示自己的运行给他人带来了延迟。所以在lag 为负的情况下, 该client就
+> 不应该在运行，应该让渡给lag 为正的client。
+>
+> ***
+>
+> 我们再从另外一个角度思考下，我们应以什么粒度的时间间隔观察lag, 粒度大小会带来什么
+> 影响。观察lag就意味着, 我们需要重新评估该任务是否应该继续运行。这个就相当于调
+> 度点, 粒度越小, 就意味着调度越频繁, 延迟越低。
+>
+> **通过上面的思考可以看出, lag概念的引入对eevdf的算法十分重要:**
+> * lag正负可以决定 该任务是否有资格在下一个时间片运行
+> * 对lag 的观察频率可以决定该任务的运行频率，继而影响延迟
+>
+> 但是, 个人认为, lag虽然是一个非常重要的概念，但是不是该论文最大的亮点，该论文
+> 最大的亮点是，在比例份额调度的算法前提下，引入了real-time的算法模型: 事件驱动.
+> 我们在下一个章节将会看到，作者引入了
+> * event
+> * service time
+> * virtual deadline
+> * virtual eligible time
+{: .prompt-tip}
+
+## 3. The EEVDF Algorithm
+
+为了更好的理解EEVDF，我们先简单看下EDF算法(Early Deadline First)算法，涉及
+三个概念:
+* period: 任务的请求周期
+* runtime((WCET): 周期内最坏情况下的调度时间
+* deadline: 截止日期
+
+我们举一个例子来看下(deadline = period):
+
+> NOTE
+>
+> 盗用链接 [2] 中的例子
+
+假设有三个任务:
+|Task|Runtime(WCET)|Period|
+|----|-------------|------|
+|T1  | 1           |4     |
+|T2  | 2           |6     |
+|T3  | 3           |8     |
+
+此时cpu并未打满:
+$$
+\frac{1}{4} + \frac{2}{6} + \frac{3}{8} = \frac{23}{24}
+$$
+
+来看调度的效果图:
+
+![edf_lwn](pic/evf_lwn.png)
+
+可以看到三个任务均完美的运行.
+
+那么在比例分配的算法前提下，我们利用edf 的概念和算法，满足我们的一些需求。
+
+于是作者提出：我们能否在某个周期内，像EDF那样，一定完成某个runtime。但是需要满足，
+比例分配算法，比例分配算法可以决定什么? 决定分配份额！也就是runtime.
+
+基于这一思想，我们来看下论文中的数学建模:
+
+***
+
+定义如下概念:
+* period: T
+* service time(runtime): r
+* 比例:$f$
+
+可以得出
+$$
+f = \frac{r}{T}
+$$
+
+我们让deadline = period, 则deadline d:
+
+$$
+\begin{align*}
+&T = \frac{r}{f} \\
+&d = t + T = t + \frac{r}{f}
+\end{align*}
+$$
+
+从上面这些信息看，通过作者的抽象和deadline real-time 很像，而区别服务的请求发起
+不同，real-time系统服务请求往往是外部事件（例如 packet arrival)，而在该模型中，
+事件的发起外部时间生成（例如客户端进入竞争），或者内部事件（例如客户端完成当前请求
+后，产生新请求)。所以，这样的模型不仅可以满足批处理模型（例如多媒体），同时也支持传统
+的批处理应用。
+
+> NOTE
+>
+> 此时, 离算法的核心比较接近了, 我们思考下:
+>
+> 现在距离最终的算法完成，还需要完成哪些工作?
+> * period ?: 就像deadline算法一样，可以定义每个任务的执行周期
+> * runtime ?: $r = T * f$ 公式，就可以得出在该周期内的服务时间
+> * deadline?: 上面也已经给出计算方法
+>
+> 那还剩余什么?
+>
+> 正如前文所说: **_when to initial a new request?_**
+>
+> 该选项尤其对于批处理任务十分重要。**_这是本文中的精髓部分, 最闪亮的点_**。
+>
+> 我们简单举个例子:
+> 
+> 假设现在有两个任务c1, c2 两者都是批处理任务，我们定义两者$f$相同, 周期不同.
+> $T_1 = 2ms, T_2 = 3ms$, 时间片为1ms
+> 
+> 我们来看下，如果我们严格按照EDF的算法将是什么样子:
+> ![batch_app_use_edf](./pic/batch_app_use_edf.svg)
+>
+> > 在$t = 4$, client 1 发起了一个新请求，deadline 和client2相同，为了更形象的表
+> > 示，我们选择client1 执行
+> {: .prompt-info}
+>
+> 上图的处理逻辑是永远选择deadline小的任务执行。但是从上图可见，批处理任务和实时
+> 任务不同，其"贪婪性"意味着如果不抢占他，则会一直执行，从上图可以看出这严重影响
+> 了公平性。
+>
+> **所以, 我们必须采用其他的机制来打断其执行，并且在合适的时机再次发起请求**
+{: .prompt-tip}
+
+通过公式(1) (2) 可以推导 client i 在 时间段$[t_1, t_2)$内应得的服务时间:
+
+$$
+S_i(t_1,t_2) = w_i \int^{t_2}_{t_1}\frac{1}{\sum_{j \in {\mathcal{A(T)}}} w_j} \mathcal{dT} \tag{4}
+$$
+
+同时我们定义系统的虚拟时间:
+
+$$
+V(t) = \int_0^t \frac{1}{\sum_{j \in {\mathcal{A(T)}}} w_j} \mathcal{dT} \tag{5}
+$$
+
+virtual time的以所有客户端weight 和成反比增长。
+
+结合(4)(5) 得出:
+
+$$
+S_i(t_1, t_2) = w_i(V(t_2) - V(t_1)) \tag{6}
+$$
+
+作者的想法很直接，就是在client 运行过程中, 在任务要发起的时刻, 我们计算一个
+eligible time, 只有时刻达到或超过eligible time时，才能发起下一个请求。
+
+那eligible time 怎么计算呢? 让其实际服务时间和理想服务时间相等，这符合比例分配
+调度的思想。
+
+我们假设在$t^i_0$ 客户端开始活跃，想要在t时刻发起一个新请求，需要满足:
+
+$$
+S_i(t_0^i, e) = s_i(t_0^i, t)
+$$
+
+我们来直观理解下，如果在时刻t，$e > t$，则表示在未来的时刻e，才能用这么多在资
+源，显然在时刻$t$用超了, 则此时该任务不能在运行，直到时间流逝到e时刻。该等式相
+等，再发出一个新请求。
+
+相反, 如果在时刻t, 计算得到的$e < t$, 则表示在过去的时刻e, 就应该用用这些资源，
+但是现在到了时刻t还没有使用，那就很亏，需要立即发出请求，使用这些资源。
+
+我们结合等式(6) 可以推导 $V(e)$
+
+$$
+V(e) = V(t_0^i) + \frac{s_i(t_0^i, t)}{w_i} \tag{7}
+$$
+
+
+> NOTE
+>
+> 推导过程:
+>
+> $$
+> \begin{align*}
+> S_i(t_0^i, e) &= s_i(t_0^i, t) \\
+> w_i(V(e) - V(t_0^i)) &= s_i(t_0^i, t)  \\
+> V(e) &= V(t_0^i) + \frac{s_i(t_0^i, t)}{w_i} \tag{7}
+> \end{align*}
+> $$
+>
+> > 从这里可以看到，$\frac{s_i(t_0^i, t)}{w_i}$ 有步进算法per-task vruntime的影子，
+> > 我们来直观理解下, 这个表示$w_i$权重越大，则V(e)增长的越缓慢, 假设是在e < t时候
+> > 发起的请求，$V(t)$ 追赶 $V(e)$ 的速度就越慢
+> {: .prompt-info}
+{: .prompt-tip}
+
+再接着定义deadline, deadline 应该选择为在[e, d] 时间内, 使其理想的服务时间等于
+服务时间.即
+
+$$
+S_i(e, d) = r
+$$
+
+这个也好理解, 在e 时刻, 发起请求时，请求的服务时间为r，使deadline定义为理想状态
+下完成该服务时间r所需要的时间。
+
+结合公式(6)， 推导$V(d)$
+
+$$
+V(d) = V(e) + \frac{r}{w_i} \tag{8}
+$$
+
+> NOTE
+>
+> 推导过程:
+>
+> $$
+> \begin{align*}
+> S_i(e, d) &= w_i(V(d) - V(e)) = r \\
+> V(d) &= V(e) + \frac{r}{w_i}
+> \end{align*}
+> $$
+>
+> > 另外需要注意的是，这里为什么要计算$V(e)$, $V(d)$, 而非使用real-time $e,d$.
+> > 原因在于我们可以在$t$时刻计算出 $V(d), V(e)$, 但是计算不出 $e,d$, 为什么？
+> > 因为这是发生在未来的时间，未来的$V$的斜率无法预知(甚至会发生跳变). 文章中
+> > 举了一个例子, 我们可以定义一个水库满的状态，但是无法定义该水库什么时候会满，
+> > 因为我们不知道水库进水的速度。
+> {: .prompt-info}
+{: .prompt-tip}
+
+***
+文中给出了EEVDF 算法的核心描述:
+
+> **EEVDF Algorithm**. A new quantum is al located to the client that has the
+> eligible request with the earliest virtual dead line.
+***
+
+接下来，我们来用公式描述一个批处理任务的连续多次请求ve 和 vd 表达式:
+
+第一次:
+$$
+ve^{(1)} = V(t^i_0) \tag{9}
+$$
+
+根据公式8
+
+$$
+vd^{(k)} = ve^{(k)} + \frac{r^{(k)}}{w_i} \tag{10}
+$$
+
+如果每次任务都能用完其服务时间, 结合公式(7)(8)可得
+
+$$
+ve^{(k+1)} = vd^{(k)} \tag{11}
+$$
+
+> NOTE
+>
+> 我们来推导下公式(11):
+> 
+> 由于每次client都能使用完其服务时间，那么第k次也是如此, 可得
+>
+> $$
+> \begin{align*}
+> r^{(k)} &= S_i(e^{(k)}, d^{(k)}) = s_i(e^{(k)}, d^{(k)}) \\
+> vd^{(k)} &= ve^{(k)} + \frac{r^{(k)}}{w_i} \\
+> &= ve^{(k)} + \frac{s_i(e^{(k)}, d^{(k)})}{w_i}
+> \end{align*}
+> $$
+>
+> 根据公式(7), 可以看出，该等式正好符合$V(e)$的表达式，所以等于下一次
+> 的$V(e)$ 即:
+>
+> $$
+> vd^{(k)} = ve^{(k)} + \frac{s_i(e^{(k)}, d^{(k)})}{w_i} = vd^{(k+1)}
+> $$
+{: .prompt-tip}
 
 ## chapter 3
 
@@ -344,7 +704,7 @@ hypothesis and therefore proves the lemma.
 > 那么证明的方法是，反证。
 >
 > 证明: 如果一个客户端k，在t时刻有一个正的lag, 客户端不一定有一个pending的eligible
-> request. 如果没有eligble request，会是什么样的场景呢?
+> request. 如果没有eligible request，会是什么样的场景呢?
 >
 > $$
 > ve > V(t)
@@ -604,6 +964,10 @@ a packet of maximum length.
 no later than $d + q$, where d is the request's deadline, and q is the size of
 a time quantum.
 
+> 引理 3 在一个稳态系统中，任何活跃客户端 k 的任何请求都不迟于 得到满足，其中 d
+> 是请求的截止时间，q 是时间片的大小。
+{: .prompt-trans}
+
 **Proof**. Let $e$ be the eligible time associated to the request (with deadline
 $d$) of client $k$. Consider the partition of all the active clients at time $d$,
 into two sets $B$ and $C$, where set $B$ contains all the clients that have at
@@ -658,11 +1022,12 @@ after time $t$, we take $e_j$ to be the eligible time of its first request.
 > 的活跃客户端（见图3）。进一步，令 $D(T)$ 表示在时刻 $T$ 处属于 $D$ 的活跃客户
 > 端子集。由于在时刻 $t$ 为集合 $C$ 中的某个客户端分配了时间片，因此在 $t$ 时没
 > 有其他截止时间更早的客户端是可用的。对于属于 $D(t)$ 的任意客户端 $j$，令 $e_j$
-> 表示其在时刻 $t$ 时未完成请求的可用时间。由于这些请求的截止时间都不超过 $d$
-> （因此也小于集合 $C$ 中任何客户端的截止时间），所以这些未完成的请求在时刻 $t$
-> 都不可用，即 $t < e_j$。注意，除了属于 $D$t$$ 的客户端之外，属于 $D$ 的其他客
-> 户端是在时刻 $t$ 之后才加入竞争的。对于在 $t$ 之后加入竞争的任意客户端 $j$，我
-> 们取其第一个请求的可用时间为 $e_j$。
+> 表示其在时刻 $t$ 时未完成请求的eligible time。由于这些请求的截止时间都不超过
+> $d$（因此也小于集合 $C$ 中任何客户端的截止时间），所以这些未完成的请求在时刻
+> $t$ 都不可用，即 $t < e_j$。注意，除了属于 $D(t)$ 的客户端之外，属于 $D$ 的其
+> 他客户端是在时刻 $t$ 之后才加入竞争的。对于在 $t$ 之后加入竞争的任意客户端 $j$，
+> 我们取其第一个请求的可用时间为 $e_j$。
+{: .prompt-trans}
 
 
 Next, for any client $j$ belonging to $D$, let $d_j$ denote the largest deadline
@@ -674,6 +1039,13 @@ units, all its requests in the interval $[e_j, d_j)$ are fulfilled. Thus, the
 service time needed to fulfill all the requests which have deadlines in the
 interval $[t, d)$ is.
 
+> 接下来，对于属于 $D$ 的任意客户端 $j$，令 $d_j$ 表示其所有请求中不超过 $d$ 的
+> 最大截止时间（注意，可用时间 $e_j$ 与截止时间 $d_j$ 可能并不属于同一个请求）。
+> 由公式 (10) 可以很容易看出，当客户端 $j$ 获得 $S_j(e_j, d_j)$ 个时间单位的服务
+> 后，其在区间 $[e_j, d_j)$ 内的所有请求都已被满足。因此，满足所有截止时间在区间
+> $[t, d)$ 内的请求所需的服务时间为：
+{: .prompt-trans}
+
 $$
 \sum_{\substack{j \in D}} S_j(e_j, d_j) = 
 \sum_{\substack{j\in D}} \int_{d_j} ^{e_j} \frac{w_i}{\sum_{i \in \mathcal{A}
@@ -684,6 +1056,11 @@ By decomposing the above sum over a set of disjoint intervals $J_l = [a_l, b_l)
 (1 \leq l \leq m)$ covering $[t, d)$, such that no interval contains any
 eligible time or deadline of any client belonging to $D$, we can rewrite Eq. (30)
 
+> 通过将上述求和分解到一组互不相交的区间 $J_l = [a_l, b_l)$ $(1 \leq l \leq m)$
+> 上，这些区间覆盖了 $[t, d)$，并且每个区间都不包含属于 $D$ 的任何客户端的可用时
+> 间或截止时间，我们可以将公式 (30) 重写为：
+{: .prompt-trans}
+
 $$
 \sum_{j \in D} S_j(e_j, d_j) = \sum_{l=1}^{m}
 
@@ -693,15 +1070,31 @@ $$
 \sum_{i \in \mathcal{A}(a_l)}(b_l - a_l) = d -t
 $$
 
+
 The above inequality results from the fact that $D(\mathcal{T})$ is a proper
 subset of $\mathcal{A}(\mathcal{T})$ at least for some subintervals $Ji$
 (otherwise, if $\mathcal{A}(\mathcal{T})$ is identical to $D(\mathcal{T})$ over
 the entire interval $[t, d)$, sets $C$ and $C'$ would be empty).
 
+> 上述不等式成立，是因为在至少某些子区间 $J_i$ 上，$D(T)$ 是 $A(T)$ 的真子集。否
+> 则，如果在整个区间 $[t, d)$ 上 $A(T)$ 与 $D(T)$ 完全相同，那么集合 $C$ 和 $C'$ 
+> 就会为空。
+>
+> > 这里的关键在于$D(\mathcal{T})$ 是 $\mathcal{A}(\mathcal{T})$ 的真子集，是因为
+> > 假设C集合中有成员，从而
+> > $\frac{\sum_{i \in \mathcal{D}(a_l)} w_i}{\sum_{i \in \mathcal{A}(a_l)} w_i}
+> > $ < 1.
+> >
+> > 这里也可以直观的理解, $\sum_{j \in D} S_j(e_j, d_j)$ 表示D集合中所有task的服
+> > 务时间，因为在$[t, d)$这段时间内，有一些服务时间要留给集合C中的任务使用，所以
+> > 其值要小于总的服务时间$d - t$
+> {: .prompt-tip}
+{: .prompt-trans}
+
 Assume that at time $d + q$ the request of client $k$ (having the deadline $d$)
 is not fulfilled yet. Since no client in $C$ can be served before the request of
-client $k$ is fulfilled, it follows that the service time between $t + q$ and $d
-q$ is allocated only to the clients in $D$. Consequently, during the entire
+client $k$ is fulfilled, it follows that the service time between $t + q$ and 
+$d + q$ is allocated only to the clients in $D$. Consequently, during the entire
 interval $[t + q, d + q)$, there are $d - t$ service time units to be
 allocated to all clients in $D$. Next, recall that any client $j$ belonging to
 $D$ will not receive any other time quantum after its request having deadline
@@ -712,6 +1105,28 @@ to fulfill al $l$ the requests having the deadlines in the interval $[t, d)$
 is less than $d - t$, which means that at some point the resource is idle
 during the interval $[t + q, d + q)$. But this contradicts the fact that EEVDF
 is work-conserving, and therefore proves this case.
+
+> 假设在时刻 $d+q$，客户端 $k$ 的请求（其截止时间为 $d$）尚未被满足。由于在客户
+> 端 $k$ 的请求被满足之前，集合 $C$ 中的任何客户端都无法被服务，因此在区间 $[t+q,
+> d+q)$ 内的服务时间只能分配给集合 $D$ 中的客户端。因此，在整个区间 $[t+q, d+q)$
+> 内，共有 $d-t$ 个服务时间单位需要分配给集合 $D$ 的所有客户端。
+>
+> > 注意, 任务k 也属于D(从图3可以看出), 所以整个的服务时间都会给D集合.
+> {:.prompt-info}
+>
+> 接下来，回忆一下，属于集合 $D$ 的任意客户端 $j$，在其截止时间为 $d_j$ 的请求最
+> 终被满足后，只要客户端 $k$ 的请求尚未被满足，客户端 $j$ 将不会再获得任何时间片。
+> 这是因为客户端 $j$ 的下一个请求的截止时间会大于 $d$。
+>
+> > 这里主要是证明, D 集合中的任务在请求被满足后，还会不会在分配一个时间片. 答案
+> > 是不会
+> {: .prompt-info}
+>
+> 但是根据公式 (31)，满足所有截止时间在区间 $[t, d)$ 内的请求所需的服务时间少于
+> $d-t$，这意味着在区间 $[t+q, d+q)$ 的某个时刻，资源会处于空闲状态。但这与
+> EEVDF 算法是工作保守型（work-conserving）的事实相矛盾，因此证明了该情况不可能
+> 发生。
+{: .prompt-trans}
 
 Case 2. (t does not exist) In this case we take $t$ to be the time when the
 first client joins the competition. From here the proof is similar to the one
@@ -808,7 +1223,7 @@ lag_k(e+r) &= S_k(t_0^k, e+r) - s_k(t_0^k, e+r) \\
 \end{align}
 $$
 
-From the definition of the eligible time (see Section 2) we have $lag_k(e) \geq 0$,
+From the definition of the eligible time (see Section 2) we have $lag_k(e) \geq 0$,
 and thus from the above equation we obtain
 
 $$
@@ -863,15 +1278,17 @@ $$
 To show that the bound $lag_k(t) > -r_{max}$ is asymptotically tight, consider
 the following example. Let $w_1$, $w_2$ be the weights of two active clients,
 such that $w1 \ll w2$. Next, suppose that both clients become active at time
-$t_0$ and their first requests have the lengths $r_{max}$ and $r'_{max}$,
-respectively. We assume that $r_{max}$ and $r'_{max}$ are chosen such that the
-virtual deadline of the first client's request is smaller than the virtual
-deadline of the second client's request, i.e., $t_0 + \frac{r_{max}}{w_1} < t_0
-\frac{r'_{max}}{w_2}$. Then client 1 receives the entire service time before
-client 2, and thus from Eq. (3) we have $lag_1(r_{max}) = S_1(t_0, t_0 +
-r_{max})  - r_{max}$. Next, by using Eq. (4) we obtain $S_1(t_0, t_0 + r_{max})
-= \frac{w_1}{w_1+w_2}$ , which approaches zero when $\frac{w_1}{w_2}\rightarrow 
-\infty$, and consequently $lag_1(rmax)$ approaches $-r_{max}$.
+$t_0$ and their first requests have the lengths $r_{max}$ and $$r'_{max}$$
+respectively. We assume that $r_{max}$ and $$r'{_{max}}$$ are chosen such that
+the virtual deadline of the first client's request is smaller than the virtual
+deadline of the second client's request, i.e., $$t_0 + \frac{r_{max}}{w_1} < t_0
+\frac{r'_{max}}{w_2}$$.
+
+Then client 1 receives the entire service time before client 2, and thus from
+Eq. (3) we have $lag_1(r_{max}) = S_1(t_0, t_0 + r_{max})  - r_{max}$. Next, by
+using Eq. (4) we obtain $S_1(t_0, t_0 + r_{max}) = \frac{w_1}{w_1+w_2}$ , which
+approaches zero when $\frac{w_1}{w_2}\rightarrow \infty$, and consequently
+$lag_1(rmax)$ approaches $-r_{max}$.
 
 To show that the bound $lag_k(t) < max(r_{max}, q)$ is asymptotically tight, we use
 the same example. However, in this case we assume that the virtual deadline of
@@ -940,3 +1357,8 @@ the first n time units. Then it is easy to see that the lag of client j is
 smaller than $-q$ after it receives the second time quantum, and the lag of
 client k is larger than q after just before receiving its first time quantum,
 which completes our proof.
+
+## 其他参考链接
+1. [\[论文阅读\] Earliest Eligible Virtual Deadline First (EEVDF)](https://zhuanlan.zhihu.com/p/670192565)
+2. [Deadline scheduling part 1 — overview and theory](https://lwn.net/Articles/743740/)
+3. [SCHED_DEALINE调度类分析](https://zhuanlan.zhihu.com/p/490975269)
