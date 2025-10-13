@@ -119,10 +119,12 @@ $V$ 为所有任务virtual runtime 的加权平均和.
 > 的 per-task virtual time为 $v(t)$, 可得下面计算公式
 >
 > $$
-> v^g(t) = \frac{1}{W} * wall\_time \\
-> v_i(t) = \frac{A}{w_i}  * wall\_time \\
-> \frac{v^g(t)}{v_i(t)} = \frac{w_i}{W * A} \\
-> v^g(t) = \frac{w_i}{W * A} * v_i(t)
+> \begin{align*}
+> v^g(t) &= \frac{1}{W} * wall\_time \\
+> v_i(t) &= \frac{A}{w_i}  * wall\_time \\
+> \frac{v^g(t)}{v_i(t)} &= \frac{w_i}{W * A} \\
+> v^g(t) &= \frac{w_i}{W * A} * v_i(t)
+> \end{align*}
 > $$
 > 
 > 同样的, 实际理想时间也用步进算法的虚拟时间单位:
@@ -503,30 +505,47 @@ $$
  */
 ```
 
-$$
-V = \frac{\sum{w_j * v_j}}{W} \\
-\sum{w_j * v_j} = W * V \\
-
-vl_i = V - v_i \\
-v_i = V - vl_i 
-$$
-
-首先, 当任务加入时,
-
-> **为了方便从这里开始我们使用v 当作 vl, 表示Linux 的虚拟时间**
+我们前面证明过:
 
 $$
-\begin{align}
+V = \frac{\sum{w_j * v_j}}{W}
+$$
+
+并当时说明，该等式成立的前提是, 任务都是带有 $lag_i = 0$ 离开和加入，
+我们来看下, 如果$lag_i \neq 0$, 得到的结果将会有什么样的偏差。我们将
+$vl_i$ 记做本次加入的任务，在之前退出竞争时的lag值, 根据上面公式可得:
+
+$$
+\begin{align*}
+\sum{w_j * v_j} &= W * V \\
+vl_i &= V - v_i \\
+v_i &= V - vl_i
+\end{align*}
+$$
+
+当任务加入时:
+
+$$
+\begin{align*}
 V' &= \frac{\sum{w_j * v_j} + w_i * v_i}{W + w_i} \\
    &= \frac{W * V + w_i * v_i}{W + w_i} \\
    &= \frac{W * V + w_i * (V - vl_i)}{W + w_i} \\
    &= \frac{W * V + w_i * V -  w_i * vl_i}{W + w_i} \\
    &= \frac{V * (W + w_i)  - * w_i * vl_i}{W + w_i} \\
-   &= V - \frac{w_i * vl_i}{W +w_i}
-\end{align}
+   &= V - \frac{w_i * vl_i}{W +w_i} \tag{1\_m}
+\end{align*}
 $$
 
-我们前面解释过, $v(t)$ 和 $v^g(t)$ 有一个比例关系
+我们来对比下论文中的公式:
+
+$$
+V(t) = V(t) + \frac{lag_j(t)}{\sum_{j \in \mathcal{A(t^+)}} w_i}  \tag{19}
+$$
+
+似乎有一些不同，但是需要注意的是, 论文中的$V(t)$指的是前文提到的`global virtual
+time`, 而论文中的`virtual time`指的是按照`stride schedule`算法定义的`per-task
+virtual time`, 我们前面解释过, $v(t)$(`per-task virtual time` 和 $v^g(t)$
+`(global virtual time)`有一个比例关系
 
 $$
 v^g(t) = \frac{w_i}{W * A} v_i(t)
@@ -545,9 +564,13 @@ vl(t) = lag_{real} \frac{W * A}{w_i * W}
 \end{align*}
 $$
 
-当任务加入后$W  = W + w_i$, 代入后可得:
+当任务加入后, 总权重发生了变化
 
-代入得:
+$$
+W  = W + w_i
+$$
+
+代入, `(1_m)`后可得:
 
 $$
 \begin{align}
@@ -556,11 +579,6 @@ V^{g'} &= V^g - \frac{\frac{w_i}{W + w_i}lag_{real}}{W+w_i} \\
 \end{align}
 $$
 
-我们来对比下论文中的公式:
-
-$$
-V(t) = V(t) + \frac{lag_j(t)}{\sum_{j \in \mathcal{A(t^+)}} w_i}  \tag{19}
-$$
 
 前面提到过论文公式中的$lag_j(t)$ 其实是real time，也就是上面的$lag_{real}$, 所以
 我们看到, 如果使用上面的计算方式，得到的变化后的$V(t)$，根本不对，怎么修正呢? 从公式
@@ -577,7 +595,8 @@ $$
 代码中的注释也说明了这一点. 但是其不是这么证明的。
 细节如下:
 
-首先计算lag在$V$变化为$V'$， 其值的变化:
+首先计算lag在$V$变化为$V'$, lag值 $vl$ 发生了什么样的变化，然后再调整其值,
+使$V(t)$ 符合预期。首先我们来看 $vl$ 的变化:
 
 $$
 \begin{align}
@@ -587,9 +606,9 @@ vl'_t &= V' - v_i \\
 \end{align}
 $$
 
-可以看到$vl'_t$比$vl_i$, 要小. 也就是强行使用该计算方式，相当于使用了一个
+可以看到$vl'_t$比$vl_i$ 要小. 也就是强行使用该计算方式，相当于使用了一个
 比任务睡眠时的$lag$ 要小一些的$lag$, 那现在怎么办呢? 我们在任务再次进入竞争时，
-膨胀将$lag$变大，**inflate the lag**， 膨胀多少呢?
+膨胀将$lag$变大(**inflate the lag**)， 膨胀多少呢?
 
 我们接着上面的公式计算
 
@@ -624,7 +643,7 @@ place_entity
 ## 将虚拟时间减去lag，表示对该任务的补偿
 |-> se->vruntime = vruntime - lag;
 ```
-经过这一番折腾
+经过这一番折腾, 得到的结果符合论文中的公式。
 
 
 ## 参考链接
