@@ -518,7 +518,20 @@ $w_i$的影响也类似于此.
 V(d)]$ 不发生改变。而变更的是$V(t)$对于real time的比例。这样在面对 `dynamic
 operations`有非常好的扩展性。实现起来也是比较简单，因为只有一个全局状态 $V(t)$.
 
-## chapter 3
+## 4. Fairness in Dynamic Systems
+
+本节讨论了 **dynamic system** 的公平性问题。主要包括三种动作:
+
+* client jion
+* client leave
+* client change weight
+
+在理想环境下, 这都不是问题，因为 $lag_i = 0$(都是0)。但是在离散的时间片分配中,
+任务总会带着$lag$离开加入竞争, 我们先思考两个问题:
+
+1. 当任务带着$lag_i \ne 0$ jion, leave, reweight, 会对其他client产生什么影响
+2. 当任务带着$lag_i \ne 0$ 离开竞争，过一段时间后，重新加入竞争，其$lag_i$应该是
+   什么值?
 
 $$
 \begin{align}
