@@ -533,6 +533,90 @@ operations`有非常好的扩展性。实现起来也是比较简单，因为只
 2. 当任务带着$lag_i \ne 0$ 离开竞争，过一段时间后，重新加入竞争，其$lag_i$应该是
    什么值?
 
+直接说答案:
+1. 带有$lag > 0$的任务离开，会导致其他进程的可用服务时间减少，而带有负$lag < 0$的任务
+   的任务离开，会让其他进程的服务时间增大。另外, 其他任务分配负lag资源/承担正lag损失,
+   应该按照其权重比例分配。
+
+   该策略有一个好处，就是简单的通过调整$V(t)$就可以达到效果。怎么理解呢, 当某个
+   任务带有$lag > 0$, 离开时, 我们只需要计算$lag$所对应的虚拟时间，在原来的$V(t)
+   $上加上该时间。 相当于其他的任务看到自己的表突然变快了 $\Delta{V(t)}$，由于虚
+   拟时间的定义，变化的$\Delta{V(t)}$ 实际上按比例平摊给了其他client。（理解起来
+   非常直观，计算起来也比较方便)
+
+   这和步进算法不太一样。步进算法在client 离开或者加入竞争时。其算法只是修改了虚拟
+   时间的斜率，而eevdf还修改了虚拟时间的值。
+
+   > 我们来回忆下, 在步进算法论文中，其是如何处理的.
+   >
+   > 步进算法论文中其也搞了一个`global virtual time`, `global virtual time`以
+   > $\frac{stride1}{\sum W_i}$的步幅前进，而其中的client $i$ 是以
+   > $\frac{stride1}{W_i} 的步幅前进，每个调度点，都会根据该任务的步幅更新该任务
+   > 的虚拟时间，也根据全局的步幅，更新`global virtual time`, 那么问题来了，
+   > 
+   > > `global virtual time` 和 `per-client virtual time` 应该有什么样的关系? 
+   > {: .prompt-warning}
+   >
+   > 其实和eevdf的算法有点像，`per-client virtual time`比`global virtual time`的步幅
+   > 大
+   > * 当`per-client virtual time > global virtual time`时，相当于其用超了时间片,
+   >   反之亦然。
+   > * 而当`per-client virtual time == global virtual time`时，相当于时间片用的
+   >    正好!
+   >
+   > 所以论文中就计算了
+   > ```
+   > client_leave:
+   > => c->remain =  c->pass - global_pass
+   > ```
+   > 这个差值，等待下次任务再次加入时，在把这个差值加上。
+   > ```
+   > client_join:
+   > => c->pass += global_pass + c->remain
+   > ```
+   >
+   > 看起来和 eevdf 没什么不同! (我这边没有数学知识来找出两者不同)
+   >
+   > 但是Linux CFS的实现就不一样了。其并没有全局的global virtual time。所以
+   > 其client离开，再加入时，`per-task virtual time`如何更新就是一个很大的问题。
+   > 对此Linux 开发者，搞出了一堆启发式算法来寻找比较合适的virtual time值。
+   >
+   > 见`place_entity()`, 首先为了避免新创建client join造成的其他进程的饥饿。将
+   > 他们放到下一个时间片中运行。这没什么问题:
+   > ```
+   >  if (initial && sched_feat(START_DEBIT))
+   >     vruntime += sched_vslice(cfs_rq, se);
+   > ```
+   > 其次，唤醒的任务，则将vruntime再提前一些vruntime, 相当于让其多跑一会
+   > ```
+   >    /* sleeps up to a single latency don't count. */
+   >    if (!initial) {
+   >        unsigned long thresh = sysctl_sched_latency;
+   >
+   >        /*
+   >         * Halve their sleep time's effect, to allow
+   >         * for a gentler effect of sleepers:
+   >         */
+   >        if (sched_feat(GENTLE_FAIR_SLEEPERS))
+   >            thresh >>= 1;
+   >
+   >        vruntime -= thresh;
+   >    }
+   >
+   >    /* ensure we never gain time by being placed backwards. */
+   >    /* 
+   >     * 这里其实变相防止了任务在频繁schedule() 而让task一直享用min_vruntime
+   >     * 的问题
+   >     */
+   >    se->vruntime = max_vruntime(se->vruntime, vruntime);
+   > ```
+   > 可以看到，linux kernel并没有关心该任务在调度走之前的状态, 如果调度出去比较
+   > 长的时间，其会在min_vruntime的基础上，在额外补偿一些时间片。站在公平性的角度
+   > 上也可以理解，毕竟那么多的时间片都没有参与竞争，白白让给了其他竞争者，那现在
+   > 加入竞争了，吃点好的怎么了。可以看到linux kernel在这个地方的策略和eevdf以及
+   > 原始的步进算法有些不同。
+   {: .prompt-info}
+
 $$
 \begin{align}
 S_i(t_0, t^+) &= (t - t_0 - s_3(t_0, t)) \frac{w_i}{w_1+w_2}, i = 1, 2 \\
