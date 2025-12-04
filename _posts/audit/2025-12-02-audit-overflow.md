@@ -261,12 +261,151 @@ struct audit_aux_data_pids {
 
 ### audit_rules
 
+在了解kernel实现之前，我们先回顾下规则的几个部分:
+* filter: 过滤器
+* action: 对该事件的处理
+  + `AUDLT_NEVER`: 什么都不做
+  + `AUDLT_ALWAYS`: 记录审计信息
+  + `AUDIT_POSSIBLE`: 已经弃用
+* 额外约束
+
+基于上面三个部分，我们来看下用户态将rules传递到内核态所用到的数据结构:
+
+#### audit_rule_data
+```cpp
+/* audit_rule_data supports filter rules with both integer and string
+ * fields.  It corresponds with AUDIT_ADD_RULE, AUDIT_DEL_RULE and
+ * AUDIT_LIST_RULES requests.
+ */
+struct audit_rule_data {
+        __u32           flags;  /* AUDIT_PER_{TASK,CALL}, AUDIT_PREPEND */
+        __u32           action; /* AUDIT_NEVER, AUDIT_POSSIBLE, AUDIT_ALWAYS */
+        __u32           field_count;
+        __u32           mask[AUDIT_BITMASK_SIZE]; /* syscall(s) affected */
+        __u32           fields[AUDIT_MAX_FIELDS];
+        __u32           values[AUDIT_MAX_FIELDS];
+        __u32           fieldflags[AUDIT_MAX_FIELDS];
+        __u32           buflen; /* total length of string fields */
+        char            buf[];  /* string fields buffer */
+};
+```
+* flags: 表示过滤器其值有:
+  + AUDIT_FILTER_USER: 用户态的过滤器, 内核不会产生该事件
+  + AUDIT_FILTER_TASK: 进程创建
+  + AUDIT_FILTER_ENTRY: 系统调用entry
+  + AUDIT_FILTER_WATCH: 监视文件系统
+  + AUDIT_FILTER_EXIT: 系统调用退出
+  + AUDIT_FILTER_EXCLUDE:
+  + AUDIT_FILTER_TYPE: `__audit_inode_child` 规则
+  + AUDIT_FILTER_FS
+  + AUDIT_FILTER_URING_EXIT
+* mask: 用来标记要过滤的syscall的id
+* fileds: 字段
+* values: 值
+* filedflags: 比较符
+
+用户态将`audit_rule_data`传入内核态后，内核态会将其转换为`audit_entry`.
+
+#### audit_entry
+
+内核将不同种类的`flags`的rules挂到不同的链表上。如下图所示:
+
+```
+audit_rules_list
+list_head[]              audit_entry    audit_entry   audit_entry
++-----------------+      +---------+    +--------+    +--------+  
+|FILTER_USER      +------+list     +----+        +----+        |  
++-----------------+      +---------+    +--------+    +--------+  
+|FILTER_TASK      |      |rcu      |
++-----------------+      +---------+
+|                 |      |rule     |
++-----------------+      +----+----+     audit_krule
+|FILTER_URING_EXIT|           |          +----------+
++-----------------+           +----------|          |
+                                         +----------+
+```
+
+`audit_entry`中主要的实体部分为`audit_krule`
+
+#### audit_krule
+
+| member                   | type                | information                                             |
+|--------------------------|---------------------|---------------------------------------------------------|
+| pflags                   | u32                 | 仅有 AUDIT_LOGINUID_LEGACY                              |
+| flags                    | u32                 |                                                         |
+| listnr                   | u32                 | list number, audit_rules_list 数组的位置                |
+| action                   | u32                 | 同audit_rule_data                                       |
+| mask[AUDIT_BITMASK_SIZE] | u32[]               | 同audit_rule_data, 不过 audit_rule_data.mask            |
+|                          |                     | 中可以在数组末尾16位标记一些bit，用来标识syscall        |
+|                          |                     | class,  置位该bit则表示audit 这一组syscall,             |
+|                          |                     | audit_krule将class对应的syscall 置位mask 前面的bit中[1] |
+| buflen                   | u32                 |                                                         |
+| field_count              | u32                 | 同audit_rule_data.                                      |
+| filterkey                | char *              | 母鸡                                                    |
+| fileds                   | audit_field         | 同audit_rule_data                                       |
+| arch_f                   | audit_filed         | arch rule 方便查看[2]                                   |
+| inode_f                  | audit_field         | inode rule                                              |
+| watch                    | audit_watch         |                                                         |
+| audit_tree               | tree                |                                                         |
+| exe                      | audit_fsnotify_mask |                                                         |
+| rlist                    | list_head           |                                                         |
+| list                     | list_head           |                                                         |
+| prio                     | u64                 |                                                         |
+
+
+1. 我们来看下用户态(`audit_rule_data`和`audit_krule` mask 不同)
+   ```
+   audit_rule_data(每个方框一个byte)
+   
+                                     最后两个位class bitmask
+    +---------+---------+---------+---------+--------+
+    |         |         |...      |         |        |
+    +---/--\--+---------+---------+---------+-/--\---+
+       /    \                                /    \
+      /      \                              /      \
+      0000 0001                             0100 0000 
+   
+   
+     注意: class bit是从最后一个bit向前遍历的. 这里最后一个byte
+     的0100 0000 表示index 1 的 class，我们这里假设 index 1 的
+     class 有 syscall(5) syscall(7)
+   
+     则audit_krule mask 如下:
+   
+     +---------+---------+---------+---------+--------+
+     |         |         |         |         |        |
+     +--/--\---+---------+---------+---------+--/--\--+
+       /    \                                  /    \
+      /      \                                /      \
+      1010 0001                               0000 0000
+   ```
+
+2. `audit_entry`中fields和`arch_field` 以及`inode fields` 关系
+
+   ```
+    audit_entry           --------------------+     
+                         /                    | audit_fields[]
+   +------------+       /                    ++-----------+    -+-
+   |...         |      /                     |            |     |
+   +------------+     /                      +------------+     |
+   |fields      +----/   --------------------+            |     |
+   +------------+       /                    +------------+     |  field_count
+   |arch_f      +------/                     |            |     |
+   +------------+                            +------------+     |
+   |inode_f     +---NULL                     |            |     |
+   +------------+                            +------------+    -+-
+   ```
+
+
+
+
 ## 参考commit
 
 * initial commit
+  + v2.6.6-rc1
 * add audit_inode_child
 * add parent name:
-  + l|og more info for directory entry change events
+  + log more info for directory entry change events
   + 9c937dcc71021f2dbf78f904f03d962dd9bcc130
   + Amy Griffis <amy.griffis@hp.com>
   + Thu Jun 8 23:19:31 2006 -0400
@@ -275,7 +414,6 @@ struct audit_aux_data_pids {
   + commit 5195d8e217a78697152d64fc09a16e063a022465
   + Author: Eric Paris <eparis@redhat.com>
   + Date: Tue Jan 3 14:23:05 2012 -0500
-
 * audit: overhaul audit_names handling to allow for retrying on path-based syscalls
   + audit:  add a new "type" field to audit_names struct
     + commit: 78e2e802a8519031e5858595070b39713e26340d
