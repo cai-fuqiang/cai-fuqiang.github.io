@@ -117,6 +117,11 @@ asmlinkage int sys_clone(struct pt_regs regs)
 +------------------+---------+----------+
 ```
 
+一个物理地址可以分为上面三部分:
+* tag: 标识同一way 中的
+* set_index:
+* tag_index:
+
 * `set_index` bitsize 由`cache way`的数量决定.
 * `tag_index`bitsize 由 一路中 cacheline 的数量决定
 
@@ -207,7 +212,7 @@ cacheline冲突。
 * 既然slab这么好用，为什么不将`thread_info` 也放到`task_struct`中
 * 应该将什么样的数据结单独放到`thread_info`中
 
-### why need thread_info NECESSARY
+## why need thread_info NECESSARY
 
 先说答案，为了省寄存器。
 
@@ -218,12 +223,37 @@ cacheline冲突。
 * 位置固定
 * per-cpu
 
-寄存器恰好满足上面两个要求.
+寄存器恰好满足上面两个要求. 那要不要单独分配一个寄存器保存`task_struct` ?
+但是这样有点浪费了。所以，大佬们想,  还是放到堆栈里, 将`task_struct`
+保存在栈底. 这样通过通用的 `sp` 寄存器就可以找到`task_struct`
 
-而
+> NOTE
+>
+> 用户态到内核态 经过 intel 门机制，将硬件将某些上下文保存在了内核栈上。
+> (pt_regs)的顶部. 那问题来了，内核栈的地址硬件是如何获取的呢？
+>
+> 难道程序位于用户态时，还有一个单独的寄存器保存内核栈的地址？
+> (关于这个问题这里不去介绍 见 **TODO**)
+
+## x86_64 introduce pda(kernelstack)
+在commit <sup>3</sup> 中引入了`x86_64`架构. `x86_64`为64位架构, 和32位相比
+在`PAGE_SIZE`, `KERNEL STACK`, 以及`PAGETABLE_SIZE`方面都带来了一些挑战
+和优化:
+
+* **_PAGE_SIZE_**
+ 
+  x86_64支持16KB, 和32KB的页. 但是作者此时想保持pagesize为4k，其他的一些优化
+  交给THP
+* **_PAGETABLE_SIZE**
+
+  page table size必须用4kb，因为内存碎片问题，分配大的连续的页失败概率要高，
+  而page table分配失败带来的损害要严重的多.
+
+
 
 ## TODO
 - [ ] 在另外一篇文章中解释进程创建时，上下文情况
+- [ ] 在另外一篇文章中介绍Linux 用户态到内核态切换
 
 ## 相关commit
 1. v2.5.4-pre2-> v2.5.4-pre3, 将task_struct 和 thread_info 分离
@@ -238,9 +268,20 @@ cacheline冲突。
    commit c65eacbe290b8141554c71b2c94489e73ade8c8d
    Author: Andy Lutomirski <luto@kernel.org>
    Date:   Tue Sep 13 14:29:24 2016 -0700
-   
+
        sched/core: Allow putting thread_info into task_struct
    ```
+
+3. 引入x86_64
+   + [PATCH] x86_64 merge: arch + asm
+   + commit 0457d99a336be658cea1a5bdb689de5adb3b382d
+   + Author: Andi Kleen <ak@muc.de>
+   + Date:   Tue Feb 12 20:17:35 2002 -0800
+
+4. 引入per-cpu 管理current
+   + commit 9af45651f1f7c89942e016a1a00a7ebddfa727f8
+   + Author: Brian Gerst <brgerst@gmail.com>
+   + Date:   Mon Jan 19 00:38:58 2009 +0900
 
 ## 相关链接
 1. [Linux Kernel: Threading vs Process - task_struct vs thread_info](https://stackoverflow.com/questions/21360524/linux-kernel-threading-vs-process-task-struct-vs-thread-info)
