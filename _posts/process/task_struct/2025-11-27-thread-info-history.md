@@ -73,20 +73,20 @@ asmlinkage int sys_clone(struct pt_regs regs)
      | PT_REGS      |               P
      |              |               A
      +--------------+               G
-     |              |               E
-     |              |
-     |              |               S
-     |              |               I
-     |              |               Z
-     |              |               E
-     |              |
-     +--------------+-----------------
-     |              |               P
-     |              |               A
-     |              |               G
-     |              |               E
-     |              |
-     |              |               S
+     |              |               E       ||    S
+     |              |                       ||    T
+     |              |               S       ||    A
+     |              |               I       ||    C
+     |              |               Z       ||    K
+     |              |               E       ||
+     |              |                       ||    G
+     +--------------+-----------------      ||    R
+     |              |               P       ||    O
+     |              |               A       ||    W
+     |              |               G       ||    T
+     |              |               E       ||    H
+     |              |                      \  /
+     |              |               S       \/ 
      +--------------+               I
      |              |               Z
      | TASK_STRUCT  |               E
@@ -235,21 +235,126 @@ cacheline冲突。
 > 难道程序位于用户态时，还有一个单独的寄存器保存内核栈的地址？
 > (关于这个问题这里不去介绍 见 **TODO**)
 
-## x86_64 introduce pda(kernelstack)
-在commit <sup>3</sup> 中引入了`x86_64`架构. `x86_64`为64位架构, 和32位相比
-在`PAGE_SIZE`, `KERNEL STACK`, 以及`PAGETABLE_SIZE`方面都带来了一些挑战
-和优化:
+## x86_64 introduce pda(split kernelstack)
 
-* **_PAGE_SIZE_**
- 
-  x86_64支持16KB, 和32KB的页. 但是作者此时想保持pagesize为4k，其他的一些优化
-  交给THP
-* **_PAGETABLE_SIZE**
+在commit <sup>3</sup> 中引入了`x86_64`架构. `x86_64`为64位架构, `x86_64` 引入了
+中断专用栈, irqstack独立于 kernel stack. 所以不能在用 `sp & MASK` 的方式
+获取`thread_info` 进而获取 `task_struct`. 所以, 大佬们在`x86_64`搞出了一个
+`pda`的机制，全称为`Per processor datastructure`. 数据结构如下:
+```cpp
+/* Per processor datastructure. %gs points to it while the kernel runs */
+/* To use a new field with the *_pda macros it needs to be added to tools/offset.c */
+struct x8664_pda {
+    struct x8664_pda *me;
+    unsigned long kernelstack;  /* TOS for current process */
+    unsigned long oldrsp;       /* user rsp for system call */
+    unsigned long irqrsp;       /* Old rsp for interrupts. */
+    struct task_struct *pcurrent;   /* Current process */
+        int irqcount;           /* Irq nesting counter. Starts with -1 */
+    int cpunumber;          /* Logical CPU number */
+    /* XXX: could be a single list */
+    unsigned long *pgd_quick;
+    unsigned long *pmd_quick;
+    unsigned long *pte_quick;
+    unsigned long pgtable_cache_sz;
+    char *irqstackptr;
+    unsigned int __softirq_pending;
+    unsigned int __local_irq_count;
+    unsigned int __local_bh_count;
+    unsigned int __nmi_count;   /* arch dependent */
+    struct task_struct * __ksoftirqd_task; /* waitqueue is too large */
+    char irqstack[16 * 1024];   /* Stack used by interrupts */
+} ____cacheline_aligned;
+```
 
-  page table size必须用4kb，因为内存碎片问题，分配大的连续的页失败概率要高，
-  而page table分配失败带来的损害要严重的多.
+该数据结构在kernel中是硬编码了一个数组, 也是非常豪横:
+```cpp
+struct x8664_pda cpu_pda[NR_CPUS] __cacheline_aligned;·
+```
 
+在初始化时, 将该 对应cpu的数组成员地址存放到该cpu的gs寄存器:
 
+> `x86_64` 架构新增了 `GS`, `FS` 段寄存器，手册中如下描述:
+>
+> ```
+> In 64-bit mode, segmentation is generally (but not completely) disabled,
+> creating a flat 64-bit linear-address space. The processor treats the segment
+> base of CS, DS, ES, SS as zero, creating a linear address that is equal to the
+> effective address. The FS and GS segments are exceptions. These segment
+> registers (which hold the segment base) can be used as additional base
+> registers in linear address calculations. They facilitate addressing local
+> data and certain operating system data structures.
+> ```
+>
+> 大概的意思是，在`64-bit mode`, 段映射一般被disable, 所以创建了一个
+> `64-bit`flat 地址空间。处理器处理`CS, DS, ES, SS`时，当作zero处理。所以
+> 线性地址等于物理地址。
+>
+> 但是`GS, FS` 两个寄存器比较特殊，其可以作为一个base register，用于寻址
+> local data...
+```sh
+pda_init:
+=> asm volatile("movl %0,%%gs ; movl %0,%%fs" :: "r" (0));·
+=> wrmsrl(MSR_GS_BASE, cpu_pda + cpu);
+```
+
+至此，`current` 宏则展开为:
+```cpp
+#define current get_current()
+static inline struct task_struct *get_current(void)
+{
+    struct task_struct *t = read_pda(pcurrent);
+    return t;
+}
+```
+
+不再依赖 `rsp` 寄存器了。
+
+而`thread_info`呢? 仍然保留在内核栈的顶部。现在他的作用不再是作为间接
+访问`task_struct`的载体，而是肩负着, 能够 **快速** 访问某些数据成员, 
+所以其仍然保留了通过rsp访问的方式。但是，在开启抢占的情况下，
+有可能在中断栈中访问`thread_info`成员 -- `preempt_count`:
+
+所以get thread_info 函数如下:
+```cpp
+#ifdef CONFIG_PREEMPT
+/* Preemptive kernels need to access this from interrupt context too. */
+static inline struct thread_info *current_thread_info(void)
+{
+    struct thread_info *ti;
+    ti = (void *)read_pda(kernelstack) + PDA_STACKOFFSET - THREAD_SIZE;
+    return ti;
+}
+#else
+/* On others go for a minimally cheaper way. */
+static inline struct thread_info *current_thread_info(void)
+{
+    struct thread_info *ti;
+    __asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (~8191UL));
+    return ti;
+}
+#endif
+```
+
+在不配置抢占的情况下, `current_thread_info()`的调用仅发生在内核栈, 所以其可以
+使用 `rsp + offset` 直接获取到`thread_info`, 而配置抢占的情况下, `current_thread_info()`
+可能由`preempt_xxx()` 调用(例如 `preempt_enable`)，而`preempt_enable()` 可能在
+中断栈中执行。所以，其需要 通过`pda(kernelstack)` 来间接寻址。
+
+> NOTE
+>
+> 但是, 个人感觉这里有种一颗老鼠屎坏了一锅粥的感觉，为什么不降`preempt_count`
+> 放到per-cpu 变量，或者将整个的thread_info 放到 per-cpu变量呢 ?
+
+## vmap kernel stack
+
+而随后，为了加强对于内核栈溢出的检测，将内核栈不再以`alloc_page/kmalloc`的方式分
+配, 而是采用`vmalloc()`, 其相当于分配了一个内核的虚拟地址空间，然后按需为这个
+区间分配物理页，其在栈顶多保留了一个 页大小的内存空间，当访问到该页时，触发
+double fault, 从而检测栈溢出。
+
+在该系列patch中，cleanup `thread_info`, 将 `thread_info` 存放到了 `task_struct` 
+中.
 
 ## TODO
 - [ ] 在另外一篇文章中解释进程创建时，上下文情况
@@ -271,7 +376,6 @@ cacheline冲突。
 
        sched/core: Allow putting thread_info into task_struct
    ```
-
 3. 引入x86_64
    + [PATCH] x86_64 merge: arch + asm
    + commit 0457d99a336be658cea1a5bdb689de5adb3b382d
@@ -282,6 +386,10 @@ cacheline冲突。
    + commit 9af45651f1f7c89942e016a1a00a7ebddfa727f8
    + Author: Brian Gerst <brgerst@gmail.com>
    + Date:   Mon Jan 19 00:38:58 2009 +0900
+5. vmap kernel stack
+   + https://lwn.net/Articles/694348/
+   + https://docs.kernel.org/mm/vmalloced-kernel-stacks.html
+   + https://lore.kernel.org/all/cover.1468270393.git.luto@kernel.org/
 
 ## 相关链接
 1. [Linux Kernel: Threading vs Process - task_struct vs thread_info](https://stackoverflow.com/questions/21360524/linux-kernel-threading-vs-process-task-struct-vs-thread-info)
