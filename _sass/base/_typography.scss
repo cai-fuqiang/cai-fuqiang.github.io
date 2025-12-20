@@ -87,6 +87,7 @@ blockquote {
   @include mx.prompt('info', '\f06a', $rotate: 180);
   @include mx.prompt('warning', '\f06a');
   @include mx.prompt('danger', '\f071');
+  @include mx.prompt('trans', '\f0ac');
 }
 
 kbd {
