@@ -5,9 +5,10 @@ author: fuqiang
 date:   2025-02-25 11:00:00 +0800
 categories: [qemu,coroutine]
 tags: [qemu, qemu_coroutine, completed]
-media_subpath: /github_io_main/qemu/coroutine
+media_subpath: /_posts/qemu/coroutine
 image: /pic/coroutine_all.svg
 ---
+
 
 * [Introduction](#introduction)
 * [Linux User Context Switch](#linux-user-context-switch)
