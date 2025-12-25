@@ -1,3 +1,13 @@
+--- 
+layout: post
+title:  "bpf"
+author: fuqiang
+date:   2025-05-21 11:00:00 +0800
+categories: [kernel, bpf]
+tags: [bpf]
+published: false
+---
+
 ## BPF 起源
 
 BPF 起源于1992, Steven McCanne 和 Van Jacobso 发布了论文: `<<The BSD Packet
