@@ -4,8 +4,8 @@ title:  "qspinlock"
 author: fuqiang
 date:   2023-09-11 10:00:00 +0800
 categories: [synchronization]
-tags: [synchronization, qspinlock]
-media_subpath: /_posts/synchronization/qspinlock
+tags: [synchronization, spinlock]
+media_subpath: /_posts/synchronization/spinlock/qspinlock
 image: /pic/kernel_spin_lock_org.svg
 ---
 
@@ -20,28 +20,24 @@ image: /pic/kernel_spin_lock_org.svg
 >
 > 如果想要了解 kernel 自旋锁的演进，可以看下
 >
-> [深入理解Linux内核之自旋锁](https://zhuanlan.zhihu.com/p/584016727)
+> [深入理解Linux内核之自旋锁](https://zhuanlan.zhihu.com/p/584016727) <sup>1</sup>
 >
 > 该文章详细讲解了kernel自旋锁的演进，并通过举例子
 > 的方式，讲解了各个算法（包括最新的算法），十分值
 > 得看, 本文主要分析kernel 最新的 自旋锁算法。
+{: .prompt-tip}
 
 
-# MCS 自旋锁
-MCS 自旋锁是在为了解决票号自旋锁带来的 cache 抖动的问题<sup>1</sup>, 
+## MCS 自旋锁
+MCS 自旋锁是在为了解决票号自旋锁带来的 cache line bouncing<sup>2</sup>,
 实现了一个队列，使其各自自旋各自的地址, 而不是自旋一个地址，这样就
 解决了这个问题。
 
 > NOTE 1
-> 
-> 这里提到的缓存抖动，大家可以设想下，如果每个cpu都在spin 一个地址，
-> 当其中一个cpu 去写该地址，则其他的cpu都要去 invalidate 该缓存，并且
-> 从内存里重新获取。而且这种动作会一直持续下去。另外，在spin wait loop
-> 中，还容易造成 memory order violation， 会进一步影响性能。
 >
-> 另外大家想下，本身这种设计和MCS 自旋锁的需求是贴合的。
-> 因为队列本身具有顺序性，需要前面的线程释放完之后，才能获取到锁，
-> 也就是大家只需要关注前面进程何时释放锁即可。
+> 这个我们放到附录1中讲述 什么是cache line bouncing，为什么cache line
+> bouncing在 spinlock场景会尤为突出。
+{: .prompt-tip}
 
 所以 MCS自旋锁 即保持票号自旋锁的保证线程获取锁的顺序的优点，
 同时解决票号自旋锁带来的cache 抖动问题。但是也有缺点，我们下面会介绍。
@@ -55,7 +51,8 @@ MCS 自旋锁是在为了解决票号自旋锁带来的 cache 抖动的问题<su
 * 锁占用的内存变大
 
 kernel 对此做了一些优化，我们来看下
-# KERNEL MCS 变体
+
+## KERNEL MCS 变体
 
 ![初始状态](./pic/kernel_spin_lock_org.svg)
 
@@ -96,7 +93,7 @@ typedef struct qspinlock {
 } arch_spinlock_t;
 ```
 可以看到访问该数据结构，应该使用原子操作(qspinlock.val),
-根据的线程(cpu)的情况可能需要关注的东西不同, 例如: 
+根据的线程(cpu)的情况可能需要关注的东西不同, 例如:
 `mcs.locked = 1`的cpu需要关注 (qspinlock.locked_pending)成员。
 而pending的cpu仅需要关注(qspinlock.locked), 我们下面会介绍具体的流程
 
@@ -112,28 +109,28 @@ typedef struct qspinlock {
 来了一个NMI又拿了一个自旋锁。 这样每个CPU最多持有四把自旋锁。而
 每个自旋锁，如果都需要使用 mcs结构 enqueue， 最多需要4个mcs结构。
 * tail的计算也是基于上面。每个cpu最多拿四个mcs, 所以tail[bit:1,bit:0]
-用来表示当前用了几个自旋锁。cpu index记录在剩余的bits中。另外 
-`tail == 0`有特殊的含义 -- 表示没有 mcs 在抢占自旋锁。所以不存在 
+用来表示当前用了几个自旋锁。cpu index记录在剩余的bits中。另外
+`tail == 0`有特殊的含义 -- 表示没有 mcs 在抢占自旋锁。所以不存在
 `cpu0.mcs0`的这种情况，需要将 `cpu_index++`, 也就是下面的公式:
 ```
 tail = ((cpu_index + 1) << 2) + mcs_index
 ```
 
-# 代码分析
+## 代码分析
 > NOTE
 >
 > 下面 频繁使用三元组 (tail, pending, locked) , 例如(0, 0, 1) 表示
 > locked = 1, pending = 0, tail = 0
 >
 > 另外 tail = n , 表示tail位被占用
-> 
+>
 > tail = z, 则表示tail 为任意值
 >
 > locked, pending == x, y 表示任意值
 
 我们直接看 `queue_spin_lock()`的相关代码:
 
-## queued_spin_lock
+### queued_spin_lock
 ```cpp
 static __always_inline void queued_spin_lock(struct qspinlock *lock)
 {
@@ -150,8 +147,8 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
 (0, 0, 0) 修改为 (0, 0, 1)
 2. 如果有人占用锁，则走slowpath流程
 
-## slow path
-### lock pending -- part 1
+### slow path
+#### lock pending -- part 1
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
@@ -168,11 +165,11 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
                 return;
 
         /*
-        ¦* Wait for in-progress pending->locked hand-overs with a bounded
-        ¦* number of spins so that we guarantee forward progress.
-        ¦*
-        ¦* 0,1,0 -> 0,0,1
-        ¦*/
+         * Wait for in-progress pending->locked hand-overs with a bounded
+         * number of spins so that we guarantee forward progress.
+         *
+         * 0,1,0 -> 0,0,1
+         */
         //===============(2)==================
         if (val == _Q_PENDING_VAL) {
                 int cnt = _Q_PENDING_LOOPS;
@@ -187,12 +184,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
         if (val & ~_Q_LOCKED_MASK)
                 goto queue;
         /*
-    `   ¦* trylock || pending
-    `   ¦*
-    `   ¦* 0,0,* -> 0,1,* -> 0,0,1 pending, trylock
-    `   ¦*/
+         * trylock || pending
+         *
+         * 0,0,* -> 0,1,* -> 0,0,1 pending, trylock
+         */
         //===============(4)==================
-    `   val = queued_fetch_set_pending_acquire(lock);
+        val = queued_fetch_set_pending_acquire(lock);
         ...
 ```
 1. 我们这里先不关注半虚拟化
@@ -215,16 +212,17 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
 
 我们继续分析(4) 之后的代码:
 
-### lock pending -- part2
+#### lock pending -- part2
+
 ```cpp
 
         /*
-        ¦* If we observe contention, there is a concurrent locker.
-        ¦*
-        ¦* Undo and queue; our setting of PENDING might have made the
-        ¦* n,0,0 -> 0,0,0 transition fail and it will now be waiting
-        ¦* on @next to become !NULL.
-        ¦*/
+         * If we observe contention, there is a concurrent locker.
+         *
+         * Undo and queue; our setting of PENDING might have made the
+         * n,0,0 -> 0,0,0 transition fail and it will now be waiting
+         * on @next to become !NULL.
+         */
         //============(1)====================
         if (unlikely(val & ~_Q_LOCKED_MASK)) {
 
@@ -237,30 +235,30 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
         }
 
         /*
-        ¦* We're pending, wait for the owner to go away.
-        ¦*
-        ¦* 0,1,1 -> 0,1,0
-        ¦*
-        ¦* this wait loop must be a load-acquire such that we match the
-        ¦* store-release that clears the locked bit and create lock
-        ¦* sequentiality; this is because not all
-        ¦* clear_pending_set_locked() implementations imply full
-        ¦* barriers.
-        ¦*/
+         * We're pending, wait for the owner to go away.
+         *
+         * 0,1,1 -> 0,1,0
+         *
+         * this wait loop must be a load-acquire such that we match the
+         * store-release that clears the locked bit and create lock
+         * sequentiality; this is because not all
+         * clear_pending_set_locked() implementations imply full
+         * barriers.
+         */
         //===============(2)================
         if (val & _Q_LOCKED_MASK)
                 atomic_cond_read_acquire(&lock->val, !(VAL & _Q_LOCKED_MASK));
-/*
-        ¦* take ownership and clear the pending bit.
-        ¦*
-        ¦* 0,1,0 -> 0,0,1
-        ¦*/
+        /*
+         * take ownership and clear the pending bit.
+         *
+         * 0,1,0 -> 0,0,1
+         */
         clear_pending_set_locked(lock);
         lockevent_inc(lock_pending);
         return;
 ```
 1. 除了locked字段以外还有值，则抢锁失败
-    + pending字段有值，则为(z, 1, y), 抢锁失败不需要做什么事情, 
+    + pending字段有值，则为(z, 1, y), 抢锁失败不需要做什么事情,
     + pending 字段未有值，那tail字段肯定有值，则为(n, 0, y), 抢锁
      失败，还需要将pending位还原为0
     + 以上两种情况都需要入队
@@ -268,7 +266,7 @@ static __always_inline u32 queued_fetch_set_pending_acquire(struct qspinlock *lo
     + 如果为 (0, 0, 1), 则spin lock位，等待其变为0
     + 如果位 (0, 0, 0), clear pending 并且 抢占 lock位
 
-### queue -- part1
+#### queue -- part1
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
@@ -282,14 +280,14 @@ pv_queue:
         tail = encode_tail(smp_processor_id(), idx);
 
         /*
-        ¦* 4 nodes are allocated based on the assumption that there will
-        ¦* not be nested NMIs taking spinlocks. That may not be true in
-        ¦* some architectures even though the chance of needing more than
-        ¦* 4 nodes will still be extremely unlikely. When that happens,
-        ¦* we fall back to spinning on the lock directly without using
-        ¦* any MCS node. This is not the most elegant solution, but is
-        ¦* simple enough.
-        ¦*/
+         * 4 nodes are allocated based on the assumption that there will
+         * not be nested NMIs taking spinlocks. That may not be true in
+         * some architectures even though the chance of needing more than
+         * 4 nodes will still be extremely unlikely. When that happens,
+         * we fall back to spinning on the lock directly without using
+         * any MCS node. This is not the most elegant solution, but is
+         * simple enough.
+         */
         //=================(2)=======================
         if (unlikely(idx >= MAX_NODES)) {
                 lockevent_inc(lock_no_node);
@@ -311,77 +309,78 @@ pv_queue:
 3. 获取 qnodes[idx].mcs  node
 
 
-### queue -- part2
+#### queue -- part2
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
         ...
         /*
-         * 上节代码: 
+         * 上节代码:
          * idx = node->count++;
          */
 		...
         /*
-        ¦* Keep counts of non-zero index values:              
-        ¦*/                                                   
-        lockevent_cond_inc(lock_use_node2 + idx - 1, idx);    
-                                                                                   
+         * Keep counts of non-zero index values:
+         */
+        lockevent_cond_inc(lock_use_node2 + idx - 1, idx);
+
         //=============(1)===============
-        /*                                                                         
-        ¦* Ensure that we increment the head node->count before initialising       
-        ¦* the actual node. If the compiler is kind enough to reorder these        
-        ¦* stores, then an IRQ could overwrite our assignments.                    
-        ¦*/                                                                        
+        /*
+        ¦* Ensure that we increment the head node->count before initialising
+        ¦* the actual node. If the compiler is kind enough to reorder these
+        ¦* stores, then an IRQ could overwrite our assignments.
+        ¦*/
         barrier();
         //=============(2)===============
-        node->locked = 0;                                                          
-        node->next = NULL;                                                         
-        pv_init_node(node);                                                        
-                                                                                   
-        /*                                                                         
-        ¦* We touched a (possibly) cold cacheline in the per-cpu queue node;       
-        ¦* attempt the trylock once more in the hope someone let go while we       
-        ¦* weren't watching.                                                       
-        ¦*/                                                                        
+        node->locked = 0;
+        node->next = NULL;
+        pv_init_node(node);
+
+        /*
+        ¦* We touched a (possibly) cold cacheline in the per-cpu queue node;
+        ¦* attempt the trylock once more in the hope someone let go while we
+        ¦* weren't watching.
+        ¦*/
         //=============(3)===============
-        if (queued_spin_trylock(lock))                                             
-                goto release;                                                      
-                                                                                   
+        if (queued_spin_trylock(lock))
+                goto release;
+
 		...
 }
 ```
 1. [locking/qspinlock: Ensure node->count is updated before initialising node](https://lore.kernel.org/lkml/20180528100209.755214820@linuxfoundation.org/)
-> commit 11dc13224c975efcec96647a4768a6f1bb7a19a8 
-该 barrier是为了避免编译器将 `init node` 和 `idx = node->count++`顺序搞乱。
-在单执行流跑的时候不会有问题。当遇到下面的情况
-```
-(1) 未加barrier()之前, 编译器乱序
-normal thread                   触发中断
-//乱序
-init node[0]
-                                init node[0]
-idx = node->count++
 
-(2) 加了barrier
-normal thread
-idx = node->count++             触发中断
-                                init node[1]
-init node[0]
-```
-未加 barrier()之前，会遇到中断执行流和normal thread执行流，使用
-一个node的情况。
+   > commit 11dc13224c975efcec96647a4768a6f1bb7a19a8
+   该 barrier是为了避免编译器将 `init node` 和 `idx = node->count++`顺序搞乱。
+   在单执行流跑的时候不会有问题。当遇到下面的情况
+   ```
+   (1) 未加barrier()之前, 编译器乱序
+   normal thread                   触发中断
+   //乱序
+   init node[0]
+                                   init node[0]
+   idx = node->count++
+
+   (2) 加了barrier
+   normal thread
+   idx = node->count++             触发中断
+                                   init node[1]
+   init node[0]
+   ```
+   未加 barrier()之前，会遇到中断执行流和normal thread执行流，使用
+   一个node的情况。
 2. 初始化该node
 3. 这时候，我们只修改了node, 如果能抢到锁，恢复原来的node也很好恢复。
-所以尝试抢锁，抢到就血赚。
+   所以尝试抢锁，抢到就血赚。
 
-### queue -- part3
+#### queue -- part3
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
-        /* 
+        /*
          * 上节代码:(1)
-         * node->locked = 0;                                                          
-         * node->next = NULL;                                                         
+         * node->locked = 0;
+         * node->next = NULL;
          */
         ...
         /*
@@ -392,10 +391,10 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
         //=============(1)===============
         smp_wmb();
 
-        /*                                                                         
-        ¦* Publish the updated tail.                                               
-        ¦* We have already touched the queueing cacheline; don't bother with       
-        ¦* pending stuff.                                                          
+        /*
+        ¦* Publish the updated tail.
+        ¦* We have already touched the queueing cacheline; don't bother with
+        ¦* pending stuff.
         ¦*
         ¦* p,*,* -> n,*,*
         ¦*/
@@ -434,26 +433,29 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 }
 ```
 1. 关于此处的分析，请看<br/>
-    + [locking/qspinlock: Ensure node is initialised before updating 
+    + [locking/qspinlock: Ensure node is initialised before updating
       prev->next](./patch/locking-qspinlock-Ensure-node-is-initialised-before-.patch)<br/>
-    + [locking/qspinlock: Elide back-to-back RELEASE operations 
-    with smp_wmb](./patch/locking-qspinlock-Elide-back-to-back-RELEASE-operati.patch)<br/>
+    + [locking/qspinlock: Elide back-to-back RELEASE operations
+      with smp_wmb](./patch/locking-qspinlock-Elide-back-to-back-RELEASE-operati.patch)<br/>
 2. publish the updated tail (替换tail)
 3. 判断 old 是否有 tail值，如果有，则说明mcs链表中有成员, 需要获取
-prev, 并且更新`prev->next`
+   prev, 并且更新`prev->next`
 4. 更新 prev->next
 5. 这时需要自旋等待 node->locked == 1
-```cpp
-#define arch_mcs_spin_lock_contended(l)                                 \
-do {                                                                    \
-        smp_cond_load_acquire(l, VAL);                                  \
-} while (0)
-```
+
+   ```cpp
+   #define arch_mcs_spin_lock_contended(l)                                 \
+   do {                                                                    \
+           smp_cond_load_acquire(l, VAL);                                  \
+   } while (0)
+   ```
+
 6. 因为在(5)处等待了一段时间，很可能node->next就有值了，因为这时候抢到了
-锁，如果有next需要再将`next->locked = 1`, 但是距离写操作还有一些指令，
-这里执行`prefetchw` 操作，暗示cpu会有对`next`地址的写操作，使其在写操作
-发生之前，将该地址的内容load到 cache中。
-### queue -- part4
+   锁，如果有next需要再将`next->locked = 1`, 但是距离写操作还有一些指令，
+   这里执行`prefetchw` 操作，暗示cpu会有对`next`地址的写操作，使其在写操作
+   发生之前，将该地址的内容load到 cache中。
+
+#### queue -- part4
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
@@ -489,10 +491,12 @@ void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 }
 ```
 1. pv先不看 !!!!!
-2. 自旋 `lock->lock_pending  == 0` (n, 1, 0) 或者 (n,0,1) -->(n, 0, 0), 
-这里只有该进程自旋这个地址，所以如果变为(n, 0, 0) , 只有这个进程可以抢到。
+2. 自旋 `lock->lock_pending  == 0` (n, 1, 0) 或者 (n,0,1) -->(n, 0, 0),
+   这里只有该进程自旋这个地址，所以如果变为(n, 0, 0) , 只有这个进程可以
+   抢到。
 
-### locked
+#### locked
+
 ```cpp
 void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
 {
@@ -554,20 +558,31 @@ release:
 1. 如果tail 就是 当前的mcs, 说明，没有其他人抢了，这时将
 状态变为 (0, 0, 1)
 2. `atomic_try_cmpxchg_relaxed()`
-    + 如果lock->val == val , val保持不变，返回值为true
-    + 如果Lock->val != val, val=lock->val, 返回值为false
-    + 所以, 如果返回为真，说明为(this_node, 0, 0)则
-    直接替换成(0, 0, 1) 即可, 并且释放该mcs
+   + 如果lock->val == val , val保持不变，返回值为true
+   + 如果Lock->val != val, val=lock->val, 返回值为false
+   + 所以, 如果返回为真，说明为(this_node, 0, 0)则
+   直接替换成(0, 0, 1) 即可, 并且释放该mcs
 3. 如果next没有值，并且这时`lock->tail != this_node`, 说明
-有人抢锁，并执行完`old = xchg_tail(lock, tail);` 这行代码，
-但是还没有执行`WRITE_ONCE(prev->next, node);`, 这行代码，
-这时，需要等待 node->next 被赋值。
+   有人抢锁，并执行完`old = xchg_tail(lock, tail);` 这行代码，
+   但是还没有执行`WRITE_ONCE(prev->next, node);`, 这行代码，
+   这时，需要等待 node->next 被赋值。
 4. 这时，可以抢占锁了。
-```
-commit c61da58d8a9ba9238250a548f00826eaf44af0f7
-```
+
+   ```
+   commit c61da58d8a9ba9238250a548f00826eaf44af0f7
+   ```
 5. 将next->locked 赋值为1
-```cpp
-#define arch_mcs_spin_unlock_contended(l)                               \
-        smp_store_release((l), 1)
-```
+
+   ```cpp
+   #define arch_mcs_spin_unlock_contended(l)                               \
+           smp_store_release((l), 1)
+   ```
+
+## 附录
+
+### 附录1 : cacheline bouncing
+
+## 参考链接
+1. [深入理解Linux内核之自旋锁](https://zhuanlan.zhihu.com/p/584016727)
+2. [What is cache line bouncing? How may a spinlock trigger this frequently?](https://www.quora.com/What-is-cache-line-bouncing-How-may-a-spinlock-trigger-this-frequently)
+3. [從 CPU cache coherence 談 Linux spinlock 可擴展能力議題](https://hackmd.io/@sysprog/linux-spinlock-scalability#Aliworkqueue)
