@@ -329,24 +329,236 @@ void spin_unlock(spinlock_t *lock)
 
 我们来画图说明:
 
+
+#### 初始状态
+
 ![hold_spinlock.svg](pic/hold_spinlock.svg)
 
-***
+初始状态为 CPU0 持有自旋锁，CPU1, CPU2 等待自旋锁。CPU 0 已经持有了一段时间，
+此时CPU1, CPU2 中的cache已经更新为最近更新的值。
 
-![unlock_spinlock_part1.svg](pic/unlock_spinlock_part1.svg){: .w-75 .right}
 
-![unlock_spinlock_part2.svg](pic/unlock_spinlock_part2.svg){: .w-75 .right}
+#### CPU0 解锁
+![unlock_spinlock_part1.svg](pic/unlock_spinlock_part1.svg)
 
-![unlock_spinlock_part3.svg](pic/unlock_spinlock_part3.svg){: .w-75 .right}
-![unlock_spinlock_part4.svg](./pic/unlock_spinlock_part4.svg){: .w-75 .right}
+CPU0 准备释放自旋锁，首先请求 directory 查询哪些cpu中还有该地址的cache,
+并要求directory做一些invalid操作。
 
-***
+![unlock_spinlock_part2.svg](pic/unlock_spinlock_part2.svg)
 
-![get_spinlock_part1.svg](pic/get_spinlock_part1.svg){: .w-75 .right}
-![get_spinlock_part2.svg](pic/get_spinlock_part2.svg){: .w-75 .right}
-![get_spinlock_part3.svg](pic/get_spinlock_part3.svg){: .w-75 .right}
+directory clean掉这些cpu bit，并且标记该cache 为dirty. 另外directory 将信息返回
+cpu0.
+
+![unlock_spinlock_part3.svg](pic/unlock_spinlock_part3.svg)
+
+CPU0 发起invalid cpu1, cpu2 该cache的请求。
+
+![unlock_spinlock_part4.svg](./pic/unlock_spinlock_part4.svg)
+
+CPU1, CPU2 返回该req处理完成。该cacheline已经被invalid
+
+#### CPU2 read-miss
+
+此时cpu2 仍然在自旋
+```cpp
+while (my_ticket != lock->curr_ticket)
+```
+由于此时CPU0 在解锁过程中，将cpu 2的`lock->curr_ticket`更新了，cpu2的cacheline
+被invalid，其读取会遇到 `read-miss`。
+
+![get_spinlock_part1.svg](pic/get_spinlock_part1.svg)
+
+* cpu2 read-miss 需要向directory 请求
+* directory 告诉cpu2这个cacheline 是directory的，最新的数据在cpu0
+* CPU2 向CPU0请求最新数据
+
+![get_spinlock_part2.svg](pic/get_spinlock_part2.svg)
+
+CPU0 将最新的数据返回
+![get_spinlock_part3.svg](pic/get_spinlock_part3.svg)
+
+CPU0 请求directory 将请求flush cache(writeback)并请求更新ids(将CPU2 bit置位)
+
+#### if cpu2 not own the update curr_ticket
+
+如果CPU2 没有持有更新后的`curr_ticket`, 此时cpu2 仍然会自旋，而其他的cpu也会重复
+cpu2 的流程，但是如果cpu特别多的话，directory 处理消息则会是瓶颈（假设directory
+处理消息为串行). 
 
 ![get_spinlock_end.svg](pic/get_spinlock_end.svg)
+
+见上图, CPU (0->9) 都自旋 `curr_ticket`, CPU5 是当前ticket的owner但是CPU5 "看到"
+该cacheline的更新比较晚（接收到CPU 0 invalid REQ, 或者因为其他的一些原因) 导致其
+在directory 中排队比较靠后，所以在CPU5 即便是发出了 `read-miss` 相关的消息后，
+也会延迟一段时间，等待directory 处理完前面排队的消息。参与wait spinlock的cpu越多，
+该延迟越明显。
+
+### 总结
+
+本段用前面讲述的`directory-based cache  conherence`协议 描述了ticket spinlock
+在多核架构下的`non-scalable` 的底层原因。其原因主要是在消息通信过程中，会不可
+避免的发生多对一的消息通信，导致"一"这一侧的处理成为了瓶颈。
+
+接下来的章节我们将看下大佬们在 Linux kernel 侧的一些实践，将看到 non-scalable
+spinlock 是多么可怕么，并用数学方法解释相关现象。
+
+## non-scalable lock are dangerous
+
+> NOTE
+>
+> 本文主要是参照<sup>6</sup>
+{: .prompt-ref}
+
+在实践过程中，大佬们发现system throughput(系统吞吐)会因non-scalable
+lock突然崩溃。例如，在系统在25 个核心的cpu 上运行的良好，但是在30个核心
+CPU上运行却完全崩溃. 并且令人惊讶的是，造成崩溃的原因居然可以 **临界区非常小**
+的锁。
+
+![sudden_perf_collapse_with_ticket_locks](pic/sudden_perf_collapse_with_ticket_locks.png)
+
+上图中的曲线有一些共同点，均是当Cpu和增长到一定的数量后，再增长几个核就会出现
+极具的性能下降。
+
+下图是各个负载的具体情况（其中EXIM, 是临界区特别小的场景)。
+
+![Figure_3](pic/Figure_3.png)
+
+文中提出了几个问题:
+* 为什么崩溃会如此早的开始 (例如FOPS 居然在3，4个核心就出发崩溃 )。
+* 为什么性能会最终会大幅下降。
+* 为什么性能会迅速下降。
+
+为了解释上面这些问题，文中建立了马可夫链(`Markov chain`)模型。
+
+![Markov_chain_model](pic/Markov_chain_model.png)
+
+一共有 $0, 1, 2, .... n$ 即$n + 1$个状态, $k$ 表示系统中共有 $k$ 个cpu在等待自旋
+锁解锁。$A[k]$ 表示 状态从 $k$ 转换到 $k+1$ 的频率。(加锁的频率, 但是注意并不是
+一个cpu申请锁的频率，而是 系统中共有$k$ 个等锁cpu到 $k+1$ 个等锁cpu的频率)。
+而 $S[k]$
+
+我们定义 $a$ 为单个核心上连续两次获取锁之间的平均时间。在没有竞争的情况下，单个
+核心尝试获取锁的速率为 $\frac{1}{a}$, 因此，如果已有 k 个核心在等待锁，则新竞争
+者的到达率为 $(n − k)/a$.( $n-k$ 增在从不等待自旋锁到等待自旋锁的状态，每个cpu的
+频率为 $1/a$, 所以两者相乘). 因此图中的 $a[k]$为:
+
+$$
+A[k] = \frac{n-k}{a} \tag{1}
+$$
+
+我们再关注下解锁阶段: $S[k]$ 。我们将 $S[k]$ 阶段所消耗的时间分为两部分，一部分
+是临界区代码所消耗的时间, 记做$E$, 另一部分是$unlock$操作消耗的时间，记做 $R$。
+
+根据我们上面讲的 `directory-based cache conherence`的简单模型，在解锁阶段有一些
+流程需要是串行的。所以我们假设处理一个更新核心的cache所消耗时间为 $c$, 那么 $k$
+个核在等待相同自旋锁的情况下，将所有核的cache更新需要的时间为 $k \times c$, 但是
+先处理哪个cpu，这个是随机的，所以`curr_ticket owner` cache 更新时间取个这些cpu更新
+时间的平均值 $k \times c /2$, 那么可得:
+
+$$
+S[k]=\dfrac{1}{E+\dfrac{k×c}{2}} \tag{2}
+$$
+
+可以看到 $S[k]$ 和$k$ 是成反比的关系。核心越多，更新cacheline的cost越高。
+
+有了上面基本的结论，搭配下面一个稳态 Markov chain 状态转换率守恒的基本原则，即可
+导出模型本身：
+
+假設 $P_0, P_1, P_2, ... P_n$ 系统处在这 $n$ 个状态的机率，显然 
+$$
+\sum P_k=1 \tag{3}
+$$
+
+当系统处在稳态时，下方式子成立：
+
+$$
+P_k \times A[k] = P_{k+1} \times S[k]
+$$
+
+这时一个递推, 结合`(1), (2), (3)`可以求出 $P_k$ 关于 $k$ 的表达式:
+
+$$
+P_k = \dfrac{\frac{1}{T_{arrive}^k(n-k)!}\prod_{i=1}^k (E+ic)}{\sum_{i=0}^{n}\frac{1}{T_{arrive}^i(n-i)!}\prod_{j=1}^i (E+jc)}
+$$
+
+有了上面的公式，我们可以求出任意时刻整个系统等待自旋锁状态的CPU总量: （`有1个cpu
+等锁概率 + 有两个cpu等锁概率+ ... + 有n个cpu等锁`)
+
+$$
+C = \sum_{i=0}^{n}iP_i
+$$
+
+我们定义一个加速比的该你那，即在 $x$ 个cpu争抢 spinlock 时，有多少cpu未处于自旋锁
+等锁的状态.
+
+$$
+S=x - C
+$$
+
+下图是作者使用上面公式得到的推测值以及实际测试过程中得到的数据的对比图:
+
+![MK_chain_predict_and_real_cmp](pic/MK_chain_predict_and_real_cmp.png)
+
+可以发现两者较为重合。
+
+> NOTE
+>
+> 上面公式本人未推导。均参考论文<sup>6</sup>以及狗哥文章<sup>4,5</sup>
+{: .prompt-info}
+
+## scalable spinlock
+
+> NOTE
+>
+> 本文不讨论scalable spinlock的具体实现。关于这部分我们在另外一篇文章
+> 介绍内核qspinlock的实现.
+{: .prompt-warning}
+
+论文中提到了几种scalable spinlock并对这些锁做了性能测试.
+
+![diff_scalable_spinlock_perf](pic/diff_scalable_spinlock_perf.png)
+
+其中MCS和 CLH lock性能较好。
+
+另外，作者还对比了 `MCS vs  ticket spinlock`在上面提到的四种场景下的性能对比 :
+
+![mcs_vs_ticket_spinlock](pic/mcs_vs_ticket_spinlock.png)
+
+均取得了良好的效果。
+
+> NOTE
+>
+> 有小伙伴可能不理解为什么采用`scalable spinlock`后仍然会导致性能吞吐量下降的问
+> 题。但这并不是锁的消耗导致的。文章有一段介绍FOPS性能降低原因:
+>
+>> Figure 12(a) shows the performance of FOPS with MCS locks. Going from one to two
+>> cores, performance with both ticket locks and MCS locks increases. For more than
+>> two cores, performance with the ticket spin lock decreases continuously.
+>> Performance with MCS locks initially also decreases from two to four cores, then
+>> re- mains relatively stable. The reason for this decrease in performance is that
+>> the time spent executing the critical section increases from 450 cycles on two
+>> cores to 852 cycles on four cores. The critical section is executed multiple
+>> times per-operation and modifies shared data, which incurs costly cache misses.
+>> As more cores are added, it is less likely that a core will have been the last
+>> core to execute the critical section, and therefore it will incur more cache
+>> misses, which will increase the length of the critical section
+> {: .prompt-ref}
+>
+> 大概的意思是, 临界区中的代码会遇到较严重的cache miss, 核数越多，这种现象就越明
+> 显(因为核数越多，下次运行到该核上的概率就越低)
+>
+> 另外大家可以想一下，即便是没有`cache-miss` 核数一直增长性能就会一直增长么?
+>
+> 答案是肯定不是，因为这些程序并不全是完全并行的，要不就不会用到spinlock来保护
+> 临界区。因为临界区的存在导致一部分流程必须串行。临界区越大的这种现象越明显。
+> 而在结合临界区中因cache-miss而变长的情况，所以上面的测试得到的结果往往会
+> 性能平稳的略微下降。(个人瞎猜)
+{: .prompt-tip}
+
+## 结论
+
+`non-scalable spinlock` 会因 cache 一致性而造成非常严重的性能问题。通过替换`scalable
+spinlock`会大大缓解该问题。
 
 ## 参考链接
 1. [Wikipedia: Spinlock](https://en.wikipedia.org/wiki/Spinlock)
