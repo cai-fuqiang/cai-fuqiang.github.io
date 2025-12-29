@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "history of scalable spinlock"
+title:  "non-scalable VS scalable spinlock"
 author: fuqiang
 date:   2025-12-26 11:00:00 +0800
 categories: [synchronization]
