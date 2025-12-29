@@ -7,6 +7,7 @@ categories: [synchronization]
 tags: [synchronization, spinlock]
 media_subpath: /_posts/synchronization/spinlock/history_of_scalable_spinlock
 math: true
+image: /pic/get_spinlock_end.svg
 ---
 
 自旋锁是一种会让尝试获取它的线程陷入循环 （“自旋”）并不断检查锁是否可用的锁 <sup>
