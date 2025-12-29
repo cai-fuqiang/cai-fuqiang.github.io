@@ -12,6 +12,9 @@ order: 0
     + [X] [linux qspinlock](/posts/qspinlock)
   + [ ] [rwlock]()
   + [ ] [rcu]()
+* TEE
+  + arch/x86
+    + [X] [Intel Architecture Memory Encryption Technologies]()
 * TODO LIST
   + [ ] [cache coherence(2025-12-26)]()
   + [ ] [HOW cpu handle atomic(2025-12-26)]()
