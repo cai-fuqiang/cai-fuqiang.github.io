@@ -15,6 +15,7 @@ order: 0
 * TEE
   + arch/x86
     + [X] [Intel Architecture Memory Encryption Technologies]()
+    + [ ] [TDX SPEC]()
 * TODO LIST
   + [ ] [cache coherence(2025-12-26)]()
   + [ ] [HOW cpu handle atomic(2025-12-26)]()
