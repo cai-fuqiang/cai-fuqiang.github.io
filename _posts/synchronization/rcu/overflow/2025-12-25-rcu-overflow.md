@@ -5,7 +5,7 @@ author: fuqiang
 date:   2025-12-29 20:26:00 +0800
 categories: [os, synchronization]
 tags: [os, synchronization, rcu]
-media_subpath: /_posts/synchronization/rcu
+media_subpath: /_posts/synchronization/rcu/overflowv
 ---
 
 ## background
@@ -155,22 +155,31 @@ _读者可以看不到最新的更新，但是不能看到不完整的更新_。
 `value-speculation compiler optimizations` 优化比较直观，其会先推测p的值, 然后
 获取`p->a, p->b, p->c`的值，然后在获取实际的 p的值，对比自己的猜测是否正确。
 
-> 不过，这种优化我是不太理解.
+> 作者在<sup>10</sup> 处, 给出了详细的解答。
 >
-> value-speculation compiler optimizations 类似于cpu的预测执行，但是预测执行会根据
-> p的值选择保留还是放弃预测执行的结果。不影响最终的结果。
->
-> 我这里能想到的编译器优化是:
+> 对于下面代码:
 > ```
-> reader first read gp = 0xfffa [1, 2, 3]
->
-> //write relase org gp, and update gp = 0xfffb [2,3,4]
->
-> reader read gp again
-> But reader don't read gp from memory instead of reg, so gp = 0xfffa, read old
-> data.
+> 11 p->a = 1;
+> 12 p->b = 2;
+> 13 p->c = 3;
+> 14 gp = p;
 > ```
-> 按照上面的场景，需要让读操作为标注为voliate 即可.
+> **_关于编译器_**:
+> 
+> 我们将gp = p 这条代码提前至11行之前运行。但是`gp`的值可能存在寄存器中，
+> 但是为了执行`11-13`行，可能将寄存器值溢出（寄存器不够用了). 但是为了能够安全的
+> 提前执行14行(单线程)，需要编译器判断gp 的地址和 `p->a, p->b, p->c`这段区域不重
+> 叠，然而编译器往往有这种能力，并且大部分情况下也不重叠。这种情况是有可能发生的。
+> 规避的方法是，合理使用  barrier() 编译器屏障， 或者 `volatile` 关键字
+>
+> (首先14 提到11行之前运行本身单线程下就没什么问题，但是需要关注地址重叠问题)
+>
+> **_关于CPU_**:
+>
+> 可以设想A cpu 执行了 该段代码，此时`STORE p->a, p->b, p->c, gp`被顺序写入write
+> buffer, 但此时, `gp` 的cacheline在 A cpu 中存在，但是 `p` cacheline 在其他cpu
+> 中存在,在A cpu 中不存在, 此时STORE `p->a,b,c` 就会较快的执行完，过一段时间之后，
+> `p`的cacheline 才从其他的cpu获取到...(回想下 directory cache conherence)
 {: .prompt-info}
 
 我们上面定义的读操作定义为`Publish`, 写操作为`Subscribe`.
@@ -242,7 +251,102 @@ publish 之后，对于data1 的释放就可以不用等待这些readers。
 
 ### Maintain Multiple Versions of Recently Updated Objects (for readers)
 
-在RCU场景下, 
+上面提到, 在数据更新过程中，对于读者而言可能会暂时读到old version data。这时，整
+个系统中，不同的reader可能读取到的数据不同（对于单写者rcu而言，就会存在两个版本
+数据). 本节主要举两个例子来看下:
+
+**_Example 1: Maintaining Multiple Versions During Deletion_**
+
+首先 看删除的例子:
+
+```cpp
+1 p = search(head, key);
+2 if (p != NULL) {
+3   list_del_rcu(&p->list);
+4   synchronize_rcu();
+5   kfree(p);
+6 }
+```
+
+![delete_1](pic/delete_1.png)
+
+图中的三元组表示`p->a, p->b, p->c`的值. 红色外框表示元素正在有人引用。 p  表示第
+一行 search 后要删除的元素。
+
+第三行执行结束后, 会在链表中删除该成员。但是p指向的object 还未释放, 因为此时
+可能有读者在引用:
+
+![delete_2](pic/delete_2.png)
+
+此时不同的读者可能会"看到", 或者"看不到" p 指向的object。呈现出两个版本的链表
+共存。
+
+当所有的读者退出读临界区, 表示所有的读者将不再占用`p`指向的object。此时第四行
+`synchronize_rcu()`返回, 此时链表恢复为单一版本:
+
+![delete_3](pic/delete_3.png)
+
+紧接着, 代码执行到5, 释放p指向的内存。
+
+![delete_4](pic/delete_4.png)
+
+**_Example 2: Maintaining Multiple Versions During Replacement_**
+
+```cpp
+1 q = kmalloc(sizeof(*p), GFP_KERNEL);
+2 *q = *p;
+3 q->b = 2;
+4 q->c = 3;
+5 list_replace_rcu(&p->list, &q->list);
+6 synchronize_rcu();
+7 kfree(p);
+```
+
+和delete 比较类似:
+
+初始状态:
+
+![replace_1](pic/replace_1.png)
+
+`kmalloc()`申请一个新节点:
+
+![replace_2](pic/replace_2.png)
+
+copy p指向内存到新的object
+
+![replace_3](pic/replace_3.png)
+
+更新object `q->b=2, q->c=3`, 此时执行`synchronize_rcu()`等待宽限期结束:
+
+![replace_4](pic/replace_4.png)
+
+![replace_5](pic/replace_5.png)
+
+宽限期结束后，`synchronize_rcu()`返回，此时没有读者再对p指向的object
+有引用:
+
+![replace_6](pic/replace_6.png)
+
+调用`kfree()` 释放p指向内存:
+
+![replace_7](pic/replace_7.png)
+
+## 总结
+
+对于`almost read-only`场景, 往往期望读操作的性能非常高（接近于read-only), 而对写
+操作的性能不怎么要求. 使用rcu算法可以达到非常好的效果。
+
+RCU在更新数据时，采用了类似于 发布订阅机制，用来结耦reader和writer流程。
+
+RCU虽然全称为 `read copy and update`, 但是其主要的工作并不在这，**rcu 本身是一种
+等待事件完成的算法**, 其主要的工作量是在等待要删除的object在何时释放。
+
+## NEXT
+
+接下来我们来看下具体的RCU实现，包括:
+
+* kernel
+* Userspace(QEMU imitating from librcu)
 
 ## 附录
 
@@ -323,6 +427,7 @@ update  怎么做呢? 也比较简单, 需要将上面几个步骤结合下:
 * delete 旧数据
 * update 新数据
 
+
 ## 参考链接
 1. [What is RCU, Fundamentally?](https://lwn.net/Articles/262464/)
 2. [Linux 核心設計: RCU 同步機制](https://hackmd.io/@sysprog/linux-rcu#%E5%B0%8D%E6%AF%94%E5%85%B6%E4%BB%96-lock-free-%E5%90%8C%E6%AD%A5%E6%A9%9F%E5%88%B6)
@@ -333,3 +438,4 @@ update  怎么做呢? 也比较简单, 需要将上面几个步骤结合下:
 7. [Publish–subscribe pattern](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern)
 8. [WRITE_ONCE in linux kernel lists](https://stackoverflow.com/questions/34988277/write-once-in-linux-kernel-lists)
 9. [Read, Copy, Update... Then what?](https://github.com/CppCon/CppCon2017/blob/master/Presentations/Read%2C%20Copy%2C%20Update...%20Then%20What/Read%2C%20Copy%2C%20Update...%20Then%20What%20-%20Fedor%20Pikus%20-%20CppCon%202017.pdf)
+10. [Forcing the compiler and CPU to execute assignment statements in order ?](https://lwn.net/Articles/263561/)
