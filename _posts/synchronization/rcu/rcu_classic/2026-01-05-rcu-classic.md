@@ -345,7 +345,7 @@ static void rcu_check_quiescent_state(void)
     //处理下一个宽限期
     rcu_ctrlblk.curbatch++;
 
-    //发起下一个宽限期
+    //发起下一个宽限期,
     //==(3)==
     rcu_start_batch(rcu_ctrlblk.maxbatch);
     spin_unlock(&rcu_ctrlblk.mutex);
@@ -362,9 +362,65 @@ static void rcu_check_quiescent_state(void)
    所以这里将`qsctr`赋值为`RCU_QSCTR_INVAILD`, 为了给下次进入该函数识别新宽限期
    发起后，首次执行该函数作准备
 2. 这个地方着实没看懂
-3. 这里使用`maxbatch`作为参数调用`rcu_start_batch()`， 主要是想发起`maxbatch`
-   版本的宽限期(这里可能是其他cpu在当前宽限期内，新增了一些rcu callback
-   添加到下一个宽限期, nxtlist->curlist)
+3. 这里使用`maxbatch`作为参数调用`rcu_start_batch()`, `maxbatch` 前面提到过, 可
+   以认为是 目前"预定的"最大版本的宽限期. 相当于pending的最大版本的宽限期，
+   如果这个宽限期都处理完了，说明所有的`cpu->curlist` 都处理完了。
+
+### 处理流程图示
+
+<details markdown=1 open>
+<summary>流程图示展开</summary>
+
+初始状态
+
+![first_patch_simple_process_init](pic/first_patch_simple_process_init.svg)
+
+cpu0 rcu writer 调用 call_rcu() 异步释放object
+
+![first_patch_simple_process_1](pic/first_patch_simple_process_1.svg)
+
+CPU0 在时钟中断中发现有rcu事情需要处理，唤起
+rcu tasklet, 将nxtlist 移动至 cutlist
+
+![first_patch_simple_process_2](pic/first_patch_simple_process_2.svg)
+
+发起一个新的宽限期新的宽限期为2 (maxbatch(2) 表示当前申请的最大的宽限期),
+`rcu_cpu_mask` 赋值为 `cpu_online_mask`(1,1,1,1),  表示所有的cpu豆未经历静默状态。
+
+![first_patch_simple_process_3](pic/first_patch_simple_process_3.svg)
+
+CPU0, CPU1, CPU2, CPU3 在检测自己是否进入静默状态是，现将
+`last_qsctr`重置为`qsctr`，不过后者也是0。
+
+![first_patch_simple_process_5](pic/first_patch_simple_process_5.svg)
+
+CPU0, CPU1, CPU2 进入静默状态，清除自己cpu的 `rcu_cpu_mask`
+
+![first_patch_simple_process_6](pic/first_patch_simple_process_6.svg)
+
+CPU3 进入静默状态，并清除其cpu的`rcu_cpu_mask`, 作为最后一个清除`rcu_cpu_mask`
+的cpu, 最终会将`rcu_cpu_mask` 更改为0。更新至0 意味着所有的cpu 都进入静默状态。
+也就是该宽限期(1)结束。
+
+![first_patch_simple_process_7](pic/first_patch_simple_process_7.svg)
+
+宽限期(1) 结束，但是CPU0  curlist申请的不是宽限期1而是宽限期2(maxbatch), 所以
+该宽限期结束不会处理任何callback，但是会发起进入下一个宽限期.
+
+![first_patch_simple_process_8](pic/first_patch_simple_process_8.svg)
+
+等待所有cpu又经历一个宽限期后, cpu0的rcu callback可以得到处理。
+
+![first_patch_simple_process_9](pic/first_patch_simple_process_9.svg)
+
+处理过后，maxbatch仍然是2，而curbatch 更新至3，curbatch > maxbatch, 说明pending
+的宽限期已经处理完成，没有必要再处理curbatch。等待maxbatch 更新上来。
+
+可以看到这里有些流程是不太好的。例如当我们重新发起宽限期时(move nxtlist->curlist),
+总是将`RCU_batch(cpu) = rcu_ctrlblk.curbatch + 1`, 并没有看当前的宽限期活不活跃。
+这样就会多经历一个额外的宽限期
+
+</details>
 
 ## 参考链接
 1. [LWN: Hierarchical RCU](https://lwn.net/Articles/305782/)
