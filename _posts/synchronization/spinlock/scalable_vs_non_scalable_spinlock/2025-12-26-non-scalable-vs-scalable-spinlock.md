@@ -5,7 +5,7 @@ author: fuqiang
 date:   2025-12-26 11:00:00 +0800
 categories: [synchronization]
 tags: [synchronization, spinlock]
-media_subpath: /_posts/synchronization/spinlock/history_of_scalable_spinlock
+media_subpath: /_posts/synchronization/spinlock/scalable_vs_non_scalable_spinlock
 math: true
 image: /pic/get_spinlock_end.svg
 ---
