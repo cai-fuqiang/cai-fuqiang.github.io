@@ -6,6 +6,7 @@ date:   2025-12-29 20:26:00 +0800
 categories: [os, synchronization]
 tags: [os, synchronization, rcu]
 media_subpath: /_posts/synchronization/rcu/overflow
+image: /pic/rcu_overflow.png
 ---
 
 ## background
