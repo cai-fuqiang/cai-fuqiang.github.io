@@ -422,6 +422,66 @@ CPU3 进入静默状态，并清除其cpu的`rcu_cpu_mask`, 作为最后一个�
 
 </details>
 
+## NOHZ support
+`s390`首先引入了`nohz`(commit 2), `nohz`意味着空闲的核心将可能在一段事件之内不会
+有时钟中断。而发起一个新的宽限期后, 会等待所有的cpu进入静默状态。而 每个
+cpu调整自己的静默状态是依赖时钟中断的执行`rcu_pending()`, 然后再唤醒`rcu tasklet`
+所以, 当关闭某个cpu的时钟中断后，原有的`rcu`的处理逻辑就要变动。
+
+首先，处于nohz的cpu肯定是idle的, 并且不会处于中断上下文和软中断上下文。
+所以, 在发起新的宽限期时，可以不选择等待处于nohz 的cpu
+```diff
+ static void rcu_start_batch(long newbatch)
+ {
++       cpumask_t active;
++
+        if (rcu_batch_before(rcu_ctrlblk.maxbatch, newbatch)) {
+                rcu_ctrlblk.maxbatch = newbatch;
+        }
+@@ -111,7 +113,9 @@ static void rcu_start_batch(long newbatch)
+                return;
+        }
+        /* Can't change, since spin lock held. */
+-       rcu_ctrlblk.rcu_cpu_mask = cpu_online_map;
++       active = idle_cpu_mask;
++       cpus_complement(active);
++       cpus_and(rcu_ctrlblk.rcu_cpu_mask, cpu_online_map, active);
+ }
+```
+
+另外，如果在宽限期中，如果一个cpu并未进入静默状态，说明有宽限期在等待
+该cpu进入静默状态，然后结束宽限期。此时该cpu不能进入nohz。(相当于不能
+在读临界区中长期阻塞)
+```sh
+stop_hz_timer
+=> if (rcu_pending(smp_processor_id()) || local_softirq_pending())
+   ## return 1 表示 CPU 没有停掉timer
+   => return 1
+```
+
+> 我这里有一点疑问:
+>
+> 这里访问`idle_cpu_mask` 并未使用同步源语. 那另一个cpu对 idle_cpu_mask
+> 的更新，可能得等一段事件才能被`rcu_start_batch()`发现，那么这会有影
+> 响么?
+>
+> 例如:
+> ```
+> cpu0                       cpu1
+> ==============================================
+> start_hz_timer
+>   update idle_cpu_mask
+>   enter rcu crtical section
+>     get data1
+>                            delete data1 in list
+>                            start a new grace period
+>                              copy idle_cpu_mask(but copy old data)
+> ```
+> 我个人认为可能会有这种情况.
+{: .prompt-info}
+
+## CPU OFFLINE/ONLINE
+
 ## rcu_cpu_mask is too busy
 
 `rcu_cpu_mask` 表示哪些cpu在本次宽限期中有没有进入静默状态:
@@ -726,6 +786,10 @@ curbatch 如果完成，就自增为`curbatch+1`
    + 1477a825d7e6486a077608c7baf6abbb6f27ed95
    + Dipankar Sarma <dipankar@in.ibm.com>
    + Tue Oct 15 05:40:46 2002 -0700
+2. Hotplug CPUs: Read Copy Update Changes
+   + 211b2fcef6366298877f1a8c0ba95d43db86ef85
+   + Rusty Russell <rusty@rustcorp.com.au>
+   + Thu Mar 18 16:03:35 2004 -0800
 2. s390: no timer interrupts in idle.
    + 1bd4c02c645161959a69be858ee1efc4d0273507
    + Martin Schwidefsky <schwidefsky@de.ibm.com>
