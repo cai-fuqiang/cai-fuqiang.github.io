@@ -422,5 +422,305 @@ CPU3 进入静默状态，并清除其cpu的`rcu_cpu_mask`, 作为最后一个�
 
 </details>
 
+## rcu_cpu_mask is too busy
+
+`rcu_cpu_mask` 表示哪些cpu在本次宽限期中有没有进入静默状态:
+* **_0_**: 进入静默状态
+* **_1_**: 尚未进入静默状态
+
+一版来说, 内核的宽限期都不长，所以该字段可能面临频繁更新。（尤其是cpu很多的情况
+下), 而`rcu_cpu_mask`的访问频次又很高。出现在:
+
+**check look for quiescent states**
++ rcu_pending() 
++ rcu_check_quiescent_state()
+
+这两个位置都会获取当前cpu 是否在宽限期中已经处于静默状态。这种情况下，面临严重的
+cacheline trash. (可以回忆下 directory cache conherence read miss 的场景)。
+
+但是我们在宽限期中进入静默状态后，在新的宽限期到来之前，该cpu的静默状态不再会更
+改。（换句话说一个cpu的静默状态在一次宽限期中只会变更一次）。其他cpu静默状态变化
+并不影响该cpu的静默状态。但是因为代码实现的原因，而导致其他cpu静默状态变化，影响
+该cpu获取静默状态的性能，显然是不合理的。
+
+因此cpu 是否处于静默状态更适合使用percpu vars保存，并且该变量的行为更像是read-only
+(write-less). 尽量避免对写频繁的 `rcu_cpu_mask` 访问.
+
+于是, `Manfred Spraul`在上一版rcu实现中，做了如下改动:
+
+### Separating Write-Hot and Write-Cold Variables in rcu_ctrblk
+
+cacheline trash 问题往往发生在对全局变量的更新中。所以`Manfred` 将`write-hot`部分
+和`write-cold`分为两个cacheline:
+
+```diff
+ struct rcu_ctrlblk {
+-       spinlock_t      mutex;          /* Guard this struct                  */
+-       long            curbatch;       /* Current batch number.              */
+-       long            maxbatch;       /* Max requested batch number.        */
+-       cpumask_t       rcu_cpu_mask;   /* CPUs that need to switch in order  */
+-                                       /* for current batch to proceed.      */
++       /* "const" members: only changed when starting/ending a grace period  */
++       struct {
++               long    cur;            /* Current batch number.              */
++               long    completed;      /* Number of the last completed batch */
++       } batch ____cacheline_maxaligned_in_smp;
++       /* remaining members: bookkeeping of the progress of the grace period */
++       struct {
++               spinlock_t      mutex;  /* Guard this struct                  */
++               int     next_pending;   /* Is the next batch already waiting? */
++               cpumask_t       rcu_cpu_mask;   /* CPUs that need to switch   */
++                               /* in order for current batch to proceed.     */
++       } state ____cacheline_maxaligned_in_smp;
+ };
+```
+这里有一些新面孔:
+* **cur**: 同curbatch, 在宽限期结束后更新
+* **completed**: 上一个完成的 batch, 在宽限期结束后更新
+* **next_pending**: 有下一个宽限期pending, 在发起新的宽限期时更新
+
+该改动主要是优化了先前的`maxbatch`的逻辑。
+
+之前如何判断是否有一个新的宽限期需要发起呢?
+```
+maxbatch > curbatch
+```
+但是maxbatch的值，往往最大=curbatch + 1. 所以这里更需要一个类似于bool类型
+的值来表示是否有新的宽限期。
+
+另外, 关于宽限期是否结束的判断逻辑也更改了，之前是判断:
+
+```cpp
+rcu_batch_before(RCU_batch(cpu), rcu_ctrlblk.curbatch)
+```
+curbatch 如果完成，就自增为`curbatch+1`
+
+现在使用completed替代. 表已经完成的宽限期的最大版本,所以判断逻辑更改为:
+```cpp
+!rcu_batch_before(rcu_ctrlblk.batch.completed,RCU_batch(cpu))
+```
+
+发起新宽限期的代码也有变动:
+```diff
+-static void rcu_start_batch(long newbatch)
++static void rcu_start_batch(int next_pending)
+ {
+        cpumask_t active;
+
+-       if (rcu_batch_before(rcu_ctrlblk.maxbatch, newbatch)) {
+-               rcu_ctrlblk.maxbatch = newbatch;
++       if (next_pending)
++               rcu_ctrlblk.state.next_pending = 1;
++
++       if (rcu_ctrlblk.state.next_pending &&
++                       rcu_ctrlblk.batch.completed == rcu_ctrlblk.batch.cur) {
++               rcu_ctrlblk.state.next_pending = 0;
++               /* Can't change, since spin lock held. */
++               active = nohz_cpu_mask;
++               cpus_complement(active);
++               cpus_and(rcu_ctrlblk.state.rcu_cpu_mask, cpu_online_map, active);
++               rcu_ctrlblk.batch.cur++;
+        }
+-       if (rcu_batch_before(rcu_ctrlblk.maxbatch, rcu_ctrlblk.curbatch) ||
+-           !cpus_empty(rcu_ctrlblk.rcu_cpu_mask)) {
+-               return;
++}
+```
+
+不再维护`newbatch`，而是传入`next_pending`表示，调用该函数的原因是由于
+* 发起了新的宽限期? -- `next_pending = 1`
+* 当前宽限期结束，可能有pending的宽限期需要处理 -- `next_pending == 1`
+
+然后再根据`rcu_ctrlblk.statet.next_pending`决定是否要发起新的宽限期.
+
+而调用流程和之前类似:
+* 发起了新的宽限期的调用者: 将nxtlist->curlist, 发起新的宽限期
+
+  ```diff
+  @@ -236,10 +268,10 @@ static void rcu_process_callbacks(unsigned long unused)
+                  /*
+                   * start the next batch of callbacks
+                   */
+  -               spin_lock(&rcu_ctrlblk.mutex);
+  -               RCU_batch(cpu) = rcu_ctrlblk.curbatch + 1;
+  -               rcu_start_batch(RCU_batch(cpu));
+  -               spin_unlock(&rcu_ctrlblk.mutex);
+  +               spin_lock(&rcu_ctrlblk.state.mutex);
+  +               RCU_batch(cpu) = rcu_ctrlblk.batch.cur + 1;
+  +               rcu_start_batch(1);
+  +               spin_unlock(&rcu_ctrlblk.state.mutex);
+  ```
+* `cpu_quiet()` 表示该宽限期已经结束，可能有pending的宽限期需要处理（发起pending
+    的宽限期)
+  ```sh
+  cpu_quiet
+  => cpus_empty(rcu_ctrlblk.state.rcu_cpu_mask)
+     ## 重新赋值 completed->cur, 表示该宽限期已经结束
+     => rcu_ctrlblk.batch.completed = rcu_ctrlblk.batch.cur;
+     ## 可能有pending的宽限期，尝试发起
+     => rcu_start_batch(0);
+  ```
+
+### record per cpu batch
+
+前面提到过，判断该cpu是否要处理rcu宽限期需要判断全局的`rcu_cpu_mask`, 性能不好
+要切换到`per-cpu vars`来记录, 那么就需要记录，在当前宽限期内，是否进入过静默
+状态。在per cpu 的`rcu_data`中增加
+
+```cpp
+ struct rcu_data {
++       /* 1) quiescent state handling : */
++        long           quiescbatch;     /* Batch # for grace period */
+        long            qsctr;           /* User-mode/idle loop etc. */
+         long            last_qsctr;     /* value of qsctr at beginning */
+                                          /* of rcu grace period */
++       int             qs_pending;      /* core waits for quiesc state */
++
++       /* 2) batch handling */
+         long           batch;           /* Batch # for current RCU batch */
+         struct list_head  nxtlist;
+         struct list_head  curlist;
+
+```
+* **quiescbatch**: 当前cpu所处的宽限期 
+* **qs_pending**: 在`quiescbatch`所表示的宽限期中，该cpu是否处于静默状态
+
+我们首先来看`rcu_pending()`处的改动:
+```diff
+ static inline int rcu_pending(int cpu)
+ {
+-       if ((!list_empty(&RCU_curlist(cpu)) &&
+-            rcu_batch_before(RCU_batch(cpu), rcu_ctrlblk.curbatch)) ||
+-           (list_empty(&RCU_curlist(cpu)) &&
+-                        !list_empty(&RCU_nxtlist(cpu))) ||
+-           cpu_isset(cpu, rcu_ctrlblk.rcu_cpu_mask))
++       /* This cpu has pending rcu entries and the grace period
++        * for them has completed.
++        */
++       if (!list_empty(&RCU_curlist(cpu)) &&
++                 !rcu_batch_before(rcu_ctrlblk.batch.completed,RCU_batch(cpu)))
++               return 1;
++       /* This cpu has no pending entries, but there are new entries */
++       if (list_empty(&RCU_curlist(cpu)) &&
++                        !list_empty(&RCU_nxtlist(cpu)))
++               return 1;
++       /* The rcu core waits for a quiescent state from the cpu */
+        //有新的宽限期到达, 需要重新关注该cpu在该宽限期内的静默状态
+        //或者
+        //在当前的宽限期内，该cpu还未进入静默状态
++       if (RCU_quiescbatch(cpu) != rcu_ctrlblk.batch.cur || RCU_qs_pending(cpu))
+                return 1;
+-       else
+-               return 0;
++       /* nothing to do */
++       return 0;
+ }
+```
+可以看到在判断是否需要处理静默状态时，不再访问`rcu_cpu_mask`
+
+我们再来看下`rcu_check_quiescent_state()` 是怎么处理静默状态的:
+```diff
+@@ -127,7 +161,19 @@ static void rcu_check_quiescent_state(void)
+ {
+        int cpu = smp_processor_id();
+
+-       if (!cpu_isset(cpu, rcu_ctrlblk.rcu_cpu_mask))
+        //==(1)==
++       if (RCU_quiescbatch(cpu) != rcu_ctrlblk.batch.cur) {
++               /* new grace period: record qsctr value. */
++               RCU_qs_pending(cpu) = 1;
++               RCU_last_qsctr(cpu) = RCU_qsctr(cpu);
++               RCU_quiescbatch(cpu) = rcu_ctrlblk.batch.cur;
++               return;
++       }
++
+        //==(2)==
++       /* Grace period already completed for this cpu?
++        * qs_pending is checked instead of the actual bitmap to avoid
++        * cacheline trashing.
++        */
++       if (!RCU_qs_pending(cpu))
+                return;
+        //==(3)==
+```
+1. 当判断有新的宽限期到达时，将`RCU_quiescbatch`更新为新的宽限期版本,并置位
+   `RCU_qs_pending`
+2. 当cpu在该宽限期内不再处于静默状态时, 则不需要再处理. 直接返回
+3. 说明该cpu在该宽限期在之前未处于静默状态，需要继续判断现在是否已经进入静默状态
+
+```diff
+@@ -135,27 +181,19 @@ static void rcu_check_quiescent_state(void)
+         * we may miss one quiescent state of that CPU. That is
+         * tolerable. So no need to disable interrupts.
+         */
+-       if (RCU_last_qsctr(cpu) == RCU_QSCTR_INVALID) {
+-               RCU_last_qsctr(cpu) = RCU_qsctr(cpu);
+-               return;
+-       }
+        if (RCU_qsctr(cpu) == RCU_last_qsctr(cpu))
+                return;
+        //==(1)==
++       RCU_qs_pending(cpu) = 0;
+
+-       spin_lock(&rcu_ctrlblk.mutex);
+-       if (!cpu_isset(cpu, rcu_ctrlblk.rcu_cpu_mask))
+-               goto out_unlock;
+-
+-       cpu_clear(cpu, rcu_ctrlblk.rcu_cpu_mask);
+-       RCU_last_qsctr(cpu) = RCU_QSCTR_INVALID;
+-       if (!cpus_empty(rcu_ctrlblk.rcu_cpu_mask))
+-               goto out_unlock;
+-
+-       rcu_ctrlblk.curbatch++;
+-       rcu_start_batch(rcu_ctrlblk.maxbatch);
++       spin_lock(&rcu_ctrlblk.state.mutex);
++       /*
++        * RCU_quiescbatch/batch.cur and the cpu bitmap can come out of sync
++        * during cpu startup. Ignore the quiescent state.
++        */
+        //==(2)==
++       if (likely(RCU_quiescbatch(cpu) == rcu_ctrlblk.batch.cur))
++               cpu_quiet(cpu);
+
+-out_unlock:
+-       spin_unlock(&rcu_ctrlblk.mutex);
++       spin_unlock(&rcu_ctrlblk.state.mutex);
+ }
+```
+1. cpu 在该宽限期已经处于静默状态，置位`RCU_qs_pending()`
+2. 走到这里，说明cpu已经处于静默状态，但是时第一次进入该函数，需要将cpu 在
+   `rcu_cpu_mask`中移除:
+
+   ```diff
+   +/*
+   + * cpu went through a quiescent state since the beginning of the grace period.
+   + * Clear it from the cpu mask and complete the grace period if it was the last
+   + * cpu. Start another grace period if someone has further entries pending
+   + */
+   +static void cpu_quiet(int cpu)
+   +{
+   +       cpu_clear(cpu, rcu_ctrlblk.state.rcu_cpu_mask);
+   +       if (cpus_empty(rcu_ctrlblk.state.rcu_cpu_mask)) {
+   +               /* batch completed ! */
+                   //表示该宽限期结束
+   +               rcu_ctrlblk.batch.completed = rcu_ctrlblk.batch.cur;
+   +               rcu_start_batch(0);
+           }
+   -       /* Can't change, since spin lock held. */
+   -       active = nohz_cpu_mask;
+   -       cpus_complement(active);
+   -       cpus_and(rcu_ctrlblk.rcu_cpu_mask, cpu_online_map, active);
+    }
+   ```
+
+所以经过该改动后，在每个宽限期内，每个cpu 只会读写各一次`rcu_cpu_mask`. 大大
+减少了cacheline trash 
+
 ## 参考链接
 1. [LWN: Hierarchical RCU](https://lwn.net/Articles/305782/)
+2. Read-Copy Update infrastructure
+   + Dipankar Sarma <dipankar@in.ibm.com>
+   + Tue Oct 15 05:40:46 2002 -0700
+2. rcu lock update: Add per-cpu batch counter
+   + Manfred Spraul <manfred@colorfullife.com>
+   + Wed Jun 23 18:49:33 2004 -0700
