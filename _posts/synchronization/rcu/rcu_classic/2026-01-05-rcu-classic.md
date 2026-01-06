@@ -485,8 +485,10 @@ cacheline trash 问题往往发生在对全局变量的更新中。所以`Manfre
 ```
 maxbatch > curbatch
 ```
-但是maxbatch的值，往往最大=curbatch + 1. 所以这里更需要一个类似于bool类型
-的值来表示是否有新的宽限期。
+但是maxbatch的值，往往最大=curbatch + 1, 表示下一个预定的宽限期比当前宽限期大，
+也就是有pending的宽限期，由于只大一，所以其也只能表示是否有pending. 所以这里干
+脆就将这个值删除，直接搞一个`next_pending`表示是否有新的宽限期正在阻塞，当前
+宽限期结束后，需要立即发起该宽限期。
 
 另外, 关于宽限期是否结束的判断逻辑也更改了，之前是判断:
 
@@ -495,7 +497,7 @@ rcu_batch_before(RCU_batch(cpu), rcu_ctrlblk.curbatch)
 ```
 curbatch 如果完成，就自增为`curbatch+1`
 
-现在使用completed替代. 表已经完成的宽限期的最大版本,所以判断逻辑更改为:
+现在使用completed替代. 表已经完成的宽限期的最大版本, 所以判断逻辑更改为:
 ```cpp
 !rcu_batch_before(rcu_ctrlblk.batch.completed,RCU_batch(cpu))
 ```
