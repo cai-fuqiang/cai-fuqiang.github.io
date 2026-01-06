@@ -5,7 +5,7 @@ author: fuqiang
 date:   2025-12-26 11:00:00 +0800
 categories: [synchronization]
 tags: [synchronization, spinlock]
-media_subpath: /_posts/synchronization/spinlock/history_of_scalable_spinlock
+media_subpath: /_posts/synchronization/spinlock/scalable_vs_non_scalable_spinlock
 math: true
 image: /pic/get_spinlock_end.svg
 ---
@@ -14,7 +14,7 @@ image: /pic/get_spinlock_end.svg
 1</sup>。
 
 和mutex 不同，mutex 可以睡眠，将cpu让渡给其他的程序，而自旋锁则是占据着cpu资源忙
-等。忙等最主要的有点时，避免了调度所带来的上下文开销, 可以提升等锁进程获得锁的延
+等。忙等最主要的优点是，避免了调度所带来的上下文开销, 可以提升等锁进程获得锁的延
 迟。另外，如果加锁的临界区很小，自旋锁忙等所带来的开销，可能会小于上下文切换的开
 销，自旋锁的收益就会非常大。所以，自旋锁适用于临界区小的场景。
 
@@ -22,11 +22,11 @@ image: /pic/get_spinlock_end.svg
 
 本文主要是来讲述, spinlock 的可伸缩性(scalable). 可扩展性是指系统处理不断增长的
 工作量的能力。软件系统的可扩展性定义之一是，可以通过向系统添加资源来实现<sup>
-2</sup>. 而对于spinlock而言, 如何增加其工作量呢？ **增加并行调用spinlock的cpu**
+2</sup>. 而对于spinlock而言, 如何增加其工作量呢？ **增加并行调用spinlock的cpu数量**
 
-在介绍之前我们先思考下，自旋锁和 "smp", "up" 关系<sup>3</sup>。首先按照自旋锁
-的逻辑，自旋锁的临界区是不能睡眠的，这个动作是非常危险的，容易造成死锁。所以
-UP下(单CPU) 自旋锁是没有意义的。
+在介绍之前我们先思考下，自旋锁和 "smp", "up" 关系<sup>3</sup>。首先按照自旋锁的
+逻辑，自旋锁的临界区是不能睡眠的，这个动作非常危险，容易造成死锁。所以 UP下(单
+CPU) 自旋锁是没有意义的。
 
 所以自旋锁是服务于smp的。而随着cpu的发展，cpu的核心越来越多, 并行调用spinlock的
 数量也大大增加。而传统的spinlock则在 smp 场景中体现出了 non-scalable。
@@ -35,8 +35,8 @@ UP下(单CPU) 自旋锁是没有意义的。
 * cache snoop method
 * cost of cache coherence
 
-而之后，便介绍因cache coherence 给spinlock带来的性能影响。最后，介绍scalable spinlock
-是如何规避这一问题的。
+而之后，便介绍因cache coherence 给spinlock带来的性能影响。最后，展示下scalable spinlock
+带来的性能提升。
 
 > 文本主要参考老黄和狗哥的文章<sup>4,5</sup> 以及`Non-scalable locks are dangerous`
 > 论文<sup>6</sup>.
@@ -118,7 +118,7 @@ conherence 消息。而这就需要一个数据库，记录cache在各个cpu中�
 
 ![l3_cache_back](pic/l3_cache_back.png){: .w-50 .right}
 directory存在于L3 缓存组中(可能哈, 个人认为将l3当成了一个directory，该缓存条目中
-除了包括常规的缓存信息外，还包括了和 directory 相关的信息。个人瞎猜.
+除了包括常规的缓存信息外，还包括了和 directory 相关的信息。个人瞎猜).
 
 我们来看下两个场景, read miss to dirty line 和write miss(这对应于竞争较激烈的
 spinlock场景)
@@ -194,12 +194,12 @@ spinlock场景)
 ***
 
 > 其实这个过程性能并不低，因为这是一个一对多，并且允许每个点对点的`{request, response}`
-> 可以异步执行。但是这是一个触发器，其在spinlock过程中会将其他cpu的cache clean line掉。
-> 其他cpu 会再执行`read miss`流程...
+> 可以异步执行。但是这是一个触发器，其在spinlock过程中会将其他cpu的cache line invalid。
+> 其他cpu 会如果再访问该内存会执行`read miss`流程...
 {: .prompt-info}
 
 > 文章<sup>4, 5</sup>介绍缓存一致性时，从`write-update`, `write-invalid`角度展开
-> 两个缓存一致性协议，个人查找资料发现`write-update`似乎不主流的缓存一致性实现中
+> 两个缓存一致性协议，个人查找资料发现`write-update`似乎不在主流的缓存一致性实现中
 > <sup>9</sup>
 >
 > 大家可以设想下，`write-update`一个好处是，在write操作发起时，会将cache 更新到
@@ -239,7 +239,7 @@ ok, 关于cache conherence 这个基础而又宏大的话题就再此戛然而�
 来设想下: `non-scalable` 一般是怎么出现的。往往是在资源扩张后(例如cpu数量), 执行
 一些操作时，这些操作的复杂度往往会随着资源扩张线性增长。
 
-而 _spinlock_ 尤为突出，因为spinlock这种阻塞忙等性质的同步机制不会会影响发起慢操
+而 _spinlock_ 尤为突出，因为spinlock这种阻塞忙等性质的同步机制不仅会影响发起慢操
 作的cpu运行，而且由于其阻塞性质，会影响全局的进度。
 
 在介绍具体的触发机制之前，我们先来看下 non-scalable spinlock的实现方式 
@@ -324,7 +324,7 @@ void spin_unlock(spinlock_t *lock)
 我们以`ticket spinlock`为例来看下其在`directory-based conherence` 中
 的non-scala.
 
-按照ticket spinlock的设计, 当持有锁的cpu释放锁后，将会有一个确定的锁的等待着
+按照ticket spinlock的设计, 当持有锁的cpu释放锁后，将会有一个确定的锁owner等待着
 获取锁。但是按照前文提到的 `directory-based conherence`协议并不能第一时间让
 这个确定的cpu看到，这就是矛盾所在。
 
@@ -369,8 +369,8 @@ while (my_ticket != lock->curr_ticket)
 
 ![get_spinlock_part1.svg](pic/get_spinlock_part1.svg)
 
-* cpu2 read-miss 需要向directory 请求
-* directory 告诉cpu2这个cacheline 是directory的，最新的数据在cpu0
+* cpu2 read-miss 需要向directory 发起请求
+* directory 告诉cpu2这个cacheline 是 dirty 的，最新的数据在cpu0
 * CPU2 向CPU0请求最新数据
 
 ![get_spinlock_part2.svg](pic/get_spinlock_part2.svg)
@@ -389,10 +389,10 @@ cpu2 的流程，但是如果cpu特别多的话，directory 处理消息则会�
 ![get_spinlock_end.svg](pic/get_spinlock_end.svg)
 
 见上图, CPU (0->9) 都自旋 `curr_ticket`, CPU5 是当前ticket的owner但是CPU5 "看到"
-该cacheline的更新比较晚（接收到CPU 0 invalid REQ, 或者因为其他的一些原因) 导致其
-在directory 中排队比较靠后，所以在CPU5 即便是发出了 `read-miss` 相关的消息后，
-也会延迟一段时间，等待directory 处理完前面排队的消息。参与wait spinlock的cpu越多，
-该延迟越明显。
+该cacheline的更新比较晚（接收到CPU 0 invalid REQ比较慢, 或者因为其他的一些原因)
+导致其在directory 中排队比较靠后，所以在CPU5 即便是发出了 `read-miss` 相关的消息
+后，也会延迟一段时间，等待directory 处理完前面排队的消息。参与wait spinlock的cpu
+越多，该延迟越明显。
 
 ### 总结
 
@@ -483,7 +483,7 @@ P_k = \dfrac{\frac{1}{T_{arrive}^k(n-k)!}\prod_{i=1}^k (E+ic)}{\sum_{i=0}^{n}\fr
 $$
 
 有了上面的公式，我们可以求出任意时刻整个系统等待自旋锁状态的CPU总量: （`有1个cpu
-等锁概率 + 有两个cpu等锁概率+ ... + 有n个cpu等锁`)
+等锁概率 * 1 + 有两个cpu等锁概率 * 2 + ... + 有n个cpu等锁 * n`)
 
 $$
 C = \sum_{i=0}^{n}iP_i
@@ -553,7 +553,7 @@ $$
 > 答案是肯定不是，因为这些程序并不全是完全并行的，要不就不会用到spinlock来保护
 > 临界区。因为临界区的存在导致一部分流程必须串行。临界区越大的这种现象越明显。
 > 而在结合临界区中因cache-miss而变长的情况，所以上面的测试得到的结果往往会
-> 性能平稳的略微下降。(个人瞎猜)
+> 性能平稳的略微下降。
 {: .prompt-tip}
 
 ## 结论
