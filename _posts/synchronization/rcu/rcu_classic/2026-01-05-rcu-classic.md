@@ -700,7 +700,7 @@ curbatch 如果完成，就自增为`curbatch+1`
    + * cpu. Start another grace period if someone has further entries pending
    + */
    +static void cpu_quiet(int cpu)
-   +{
+   + {
    +       cpu_clear(cpu, rcu_ctrlblk.state.rcu_cpu_mask);
    +       if (cpus_empty(rcu_ctrlblk.state.rcu_cpu_mask)) {
    +               /* batch completed ! */
@@ -715,14 +715,22 @@ curbatch 如果完成，就自增为`curbatch+1`
     }
    ```
 
-所以经过该改动后，在每个宽限期内，每个cpu 只会读写各一次`rcu_cpu_mask`. 大大
+所以经过该改动后，在每个宽限期内, 每个cpu 只会读写各一次`rcu_cpu_mask`. 大大
 减少了cacheline trash 
 
 ## 参考链接
 1. [LWN: Hierarchical RCU](https://lwn.net/Articles/305782/)
-2. Read-Copy Update infrastructure
+
+##  相关 commit
+1. Read-Copy Update infrastructure
+   + 1477a825d7e6486a077608c7baf6abbb6f27ed95
    + Dipankar Sarma <dipankar@in.ibm.com>
    + Tue Oct 15 05:40:46 2002 -0700
-2. rcu lock update: Add per-cpu batch counter
+2. s390: no timer interrupts in idle.
+   + 1bd4c02c645161959a69be858ee1efc4d0273507
+   + Martin Schwidefsky <schwidefsky@de.ibm.com>
+   + Mon Apr 26 09:00:52 2004 -0700
+3. rcu lock update: Add per-cpu batch counter
+   + 5c60169a01af712b0b1aa1f5db3fcb8776b22d9f
    + Manfred Spraul <manfred@colorfullife.com>
    + Wed Jun 23 18:49:33 2004 -0700
