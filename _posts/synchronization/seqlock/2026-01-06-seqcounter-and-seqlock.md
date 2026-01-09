@@ -7,6 +7,7 @@ categories: [os, synchronization]
 tags: [os, synchronization, seqlock]
 media_subpath: /_posts/synchronization/seqlock
 math: true
+image: pic/seqcount_latch.svg
 ---
 
 ## introduce
@@ -512,7 +513,7 @@ int main() {
 ```
 __seqprop_##lockname##_##prop
 ```
-在看`__seqprop_##lockname##_##prop()`具体展开实现之前我先来看在原有接口上的改动
+再看`__seqprop_##lockname##_##prop()`具体展开实现之前我先来看在原有接口上的改动
 </details>
 
 **write**:
@@ -582,13 +583,177 @@ __seqprop_##lockname##_sequence(const seqcount_##lockname##_t *s)       \
 3. 直接调用睡眠锁（可抢占锁). 让其随眠。唤醒后（大概率是writer临界区结束，唤醒)
    再重新获取 `sequence` 的值
 
-***
+
+<details markdown=1>
+<summary>以spinlock为例, 点击展开</summary>
+
+```cpp
+SEQCOUNT_LOCKNAME(spinlock,     spinlock_t,      __SEQ_RT, spin)
+```
+主要的是第三个参数:
+
+`__SEQ_RT`: 在配置了`CONFIG_PREEMPT_RT` 的情况下是 `true`, 不配置是false:
+* 配置`CONFIG_PREEMPT_RT`,  说明其是可以被抢占的。那么在`seqprop_sequence()`中
+  会使用睡眠锁，而不是类似自旋的`raw sequence counter`的方式等待写者退出临界区。
+* 不配置`CONFIG_PREEMPT_RT`, 说明其不可以被抢占。那么在`seqprop_preemptible()`
+  的调用结果为`false`, 在`write_seqcount_begin()` 时不再关抢占。（因为在进入
+  `write_seqcount_begin()` 之前，`spin_lock()`接口做了关闭抢占。
+
+看下`seqcount_spinlock_t`的实际用法(以 `blk-iocost` 模块中的 `ioc`)为例子:
+
+数据结构:
+```cpp
+struct ioc {
+  ...
+  spinlock_t                      lock;
+  ...
+  seqcount_spinlock_t             period_seqcount;
+  ...
+};
+```
+初始化:
+```cpp
+static int blk_iocost_init(struct gendisk *disk)
+{
+    seqcount_spinlock_init(&ioc->period_seqcount, &ioc->lock);
+}
+```
+
+写:
+```sh
+ioc_timer_fn
+## 先加自旋锁
+=> spin_lock_irq(&ioc->lock);
+=> ioc_start_period(ioc, &now);
+   ## 在调用`write_seqcount_begin`
+   => write_seqcount_begin(&ioc->period_seqcount);
+   => ioc->period_at = now->now;
+   => ioc->period_at_vtime = now->vnow;
+   => write_seqcount_end(&ioc->period_seqcount);
+=> spin_unlock_irq(&ioc->lock);
+```
+
+读:
+
+```cpp
+static void ioc_now(struct ioc *ioc, struct ioc_now *now)
+{
+        ...
+        do {
+                seq = read_seqcount_begin(&ioc->period_seqcount);
+                now->vnow = ioc->period_at_vtime +
+                        (now->now - ioc->period_at) * vrate;
+        } while (read_seqcount_retry(&ioc->period_seqcount, seq));
+}
+```
+读和之前没有变化
+
+</details>
 
 能不能在NMI中执行reader(NMI无法屏蔽)?
 
 可以!!!
 
+## Latch sequence counters (seqcount_latch_t)
+
+在上一节我们讲述了`CONFIG_PREEMPT_RT` 不允许关抢占，导致可能在写临界区被别的进程
+抢占走，从而走到读上下文. 但是其可以调用睡眠锁再次切换到writer上下文。
+
+但是想NMI/interrupt/bh 机制不同。其本身就是在 **当前进程的上下文切换**, 如果写
+临界区因为上述机制打断，进入读临界区，其读操作就不好处理. 所以之前的策略是如果
+在`interrupt/bh`上下文中可能执行reader, 则将`interrupt/bh`关闭.
+
+但是`NMI` 不同! 其无法通过上述手段屏蔽（虽然NMI 可以block, 但是block机制并不是
+为了让软件在常规流程中disable NMI). 所以应该通过另一种机制.
+
+***
+
+> latch : 一词的含义有: 门闩, 插销; 锁存器, 锁住的含义。在该功能中也有这个意思。
+> 就是reader要访问的值，是被锁住的, writer "暂时" 无法修改。
+{: .prompt-trans}
+
+其做法非常简单，就是使用双副本机制。writer在写时，依次对两个副本进行写入。那么
+在任意时刻, 总有一个副本是完整的。如下图所示:
+
+![seqcount_latch](pic/seqcount_latch.svg)
+
+我们来看下具体代码:
+
+**数据结构**:
+```cpp
+typedef struct {
+        seqcount_t seqcount;
+} seqcount_latch_t;
+
+//需要在外部嵌套:
+struct latch_struct {
+        seqcount_latch_t        seq;
+        struct data_struct      data[2];
+};
+```
+
+**write** :
+```cpp
+//写的时候，需要按照下面的方式调用
+void latch_modify(struct latch_struct *latch, ...)
+{
+        write_seqcount_latch_begin(&latch->seq);
+        modify(latch->data[0], ...);
+        write_seqcount_latch(&latch->seq);
+        modify(latch->data[1], ...);
+        write_seqcount_latch_end(&latch->seq);
+}
+static __always_inline void write_seqcount_latch_begin(seqcount_latch_t *s)
+{
+        kcsan_nestable_atomic_begin();
+        raw_write_seqcount_latch(s);
+}
+static __always_inline void write_seqcount_latch(seqcount_latch_t *s)
+{
+        raw_write_seqcount_latch(s);
+}
+static __always_inline void write_seqcount_latch_end(seqcount_latch_t *s)
+{
+        kcsan_nestable_atomic_end();
+}
+```
+对比raw的方式，就是在原来`write_seqcount_end()` 将`sequence_counter` 变更为偶数
+后，对`latch->data[1]` 再做更改。
+
+**reader**:
+```cpp
+struct entry *latch_query(struct latch_struct *latch, ...)
+{
+        struct entry *entry;
+        unsigned seq, idx;
+
+        do {
+                //读seq
+                seq = read_seqcount_latch(&latch->seq);
+                //如果seq是奇数，说明写者正在修改data[0]。那么
+                //读data[1]
+                //
+                //如果是偶数, 说明写者还没有修改data[0]. 那么
+                //读data[0]
+                idx = seq & 0x01;
+                entry = data_query(latch->data[idx], ...);
+
+        // This includes needed smp_rmb()
+        //当然这里还需要判断seq是被写者更改，如果被写者更改再次重试
+        } while (read_seqcount_latch_retry(&latch->seq, seq));
+
+        return entry;
+}
+```
+
+正如前面所说，如果写者被NMI打断，进入读临界区，可以根据seq的值访问写者没有在操作
+的区域。从而保证了读者读取数据完整性。
+
 ## TMP note
+
+<details markdown=1>
+<summary>随笔记录, 暂时保存在这</summary>
+
 ### seqcount_##lockname
 
 ```cpp
@@ -687,6 +852,8 @@ do {                                                                    \
 } while (0)
 #define seqprop_assert(s)               __seqprop(s, assert)(s)
 ```
+
+</details>
 
 ## 参考链接
 1. [Sequence counters and sequential locks](https://docs.kernel.org/locking/seqlock.html)
