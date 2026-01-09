@@ -41,3 +41,5 @@ Date:   Tue Oct 15 05:40:46 2002 -0700
 [深入剖析Linux RCU原理（一）初窥门径](https://www.bilibili.com/opus/740215262661312560?spm_id_from=333.1369.0.0)
 
 [深入剖析Linux RCU原理（二）- 渐入佳境](https://www.bilibili.com/opus/740550171313569861)
+
+[KERNEL DOC RCU RTFP](https://www.kernel.org/doc/Documentation/RCU/RTFP.txt)

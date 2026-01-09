@@ -368,7 +368,7 @@ static void rcu_check_quiescent_state(void)
 
 ### 处理流程图示
 
-<details markdown=1 open>
+<details markdown=1 closee>
 <summary>流程图示展开</summary>
 
 初始状态
@@ -480,7 +480,143 @@ stop_hz_timer
 > 我个人认为可能会有这种情况.
 {: .prompt-info}
 
-## CPU OFFLINE/ONLINE
+## CPU HotPlug
+
+当发起一个新的宽限期时，会将`rcu_cpu_mask` 赋值为`cpu_online_map`. 其只关注
+online的cpu。从当cpu拓扑处于静态状态(没有热插拔), 来看没有什么问题.
+
+但是当支持热插拔后, 事情有一些复杂。我们分为两个部分:
+
+* 热插
+  + 当热插后，cpu online 流程会更新`cpu_online_map`,  然后再进入读临界区。(中间
+    可能会有内存屏障。所以对于发起宽限期流程来说不会有影响。
+  > 关于cpu online 处理流程 纯个人猜测，没有找到代码(置位 cpu_online_map)
+  {: .prompt-warning}
+* 热拔
+  + 热拔流程会受一些影响主要为:
+    + 在热拔时，该cpu可能在当前的宽限期中还未进入静默状态（也就意味着有人在等)
+    + 在热拔时, 可能有一些rcu callback还未执行
+
+    那我们展开下这部分改动 
+
+**rcu 关于 cpu热拔新增改动**
+
+首先在增加`CPU_DEAD` notify:
+```diff
+@@ -214,7 +269,11 @@ static int __devinit rcu_cpu_notify(struct notifier_block *self,
+        case CPU_UP_PREPARE:
+                rcu_online_cpu(cpu);
+                break;
+-       /* Space reserved for CPU_OFFLINE :) */
++#ifdef CONFIG_HOTPLUG_CPU
++       case CPU_DEAD:
++               rcu_offline_cpu(cpu);
++               break;
++#endif
+        default:
+                break;
+        }
+```
+
+查看相关回调:
+
+<details markdown=1>
+<summary>代码以及解释展开</summary>
+
+```cpp
+/* warning! helper for rcu_offline_cpu. do not use elsewhere without reviewing
+ * locking requirements, the list it's pulling from has to belong to a cpu
+ * which is dead and hence not processing interrupts.
+ */
+/*
+ * 这种处理往往是危险的。
+ *
+ * 首先中断上下文可能会调用`call_rcu()`, 所以一般情况下，操作`RCU_nxtlist()`都会
+ * 关中断。
+ *
+ * 另外list所在的cpu 未offline那更危险，因为操作 per cpu的 rcu_data不会加锁。
+ * 所以可能有两个cpu同时操作一个rcu_data...
+ *
+ * 所以`rcu_move_batch` 的约束为 offline cpu 另外关中断(在rcu_move_batch() 中已
+ * 经将中断关了
+ */
+static void rcu_move_batch(struct list_head *list)
+{
+    struct list_head *entry;
+    //获取当前cpu
+    int cpu = smp_processor_id();
+
+    local_irq_disable();
+    while (!list_empty(list)) {
+        entry = list->next;
+        //从之前的list转移到当前cpu 的 RCU_nxtlist()上.
+        list_del(entry);
+        list_add_tail(entry, &RCU_nxtlist(cpu));
+    }
+    local_irq_enable();
+}
+
+static void rcu_offline_cpu(int cpu)
+{
+    /* if the cpu going offline owns the grace period
+     * we can block indefinitely waiting for it, so flush
+     * it here
+     */
+    //cpu offline之前先标记他已经进入静默状态,
+    //和 rcu_check_quiescent_state() 类似, 当有cpu标记其进入静默状态，
+    //该cpu还需要负责检查宽限期是否结束，如果结束，根据是否有pending
+    //的宽限期发起新的宽限期
+    spin_lock_irq(&rcu_ctrlblk.mutex);
+    if (!rcu_ctrlblk.rcu_cpu_mask)
+        goto unlock;
+
+    cpu_clear(cpu, rcu_ctrlblk.rcu_cpu_mask);
+    if (cpus_empty(rcu_ctrlblk.rcu_cpu_mask)) {
+        //标记该宽限期已经结束
+        rcu_ctrlblk.curbatch++;
+        /* We may avoid calling start batch if
+         * we are starting the batch only
+         * because of the DEAD CPU (the current
+         * CPU will start a new batch anyway for
+         * the callbacks we will move to current CPU).
+         * However, we will avoid this optimisation
+         * for now.
+         */
+        /*
+         * 但是有必要在这里发起宽限期么?
+         *
+         * 当前cpu(非hotplug cpu) 会因为宽限期已经结束，rcu_pending 
+         * 会返回true。从而进入`rcu_process_callbacks()`, 如果此时iu
+         * `nxtlist`有值则会发起一个新的宽限期
+         * 
+         * 如果在这里取消调用`rcu_start_batch()`，就比较依赖`nxtlist`
+         * 有值，但是一定会有值么?
+         *
+         * 首先如果当前cpu本身nxtlist 有值 那没有问题。
+         *
+         * 那如果当前cpu没有值，但是hotplug的 curlist, nxtlist 有值，那也没有问
+         * 题，请看`rcu_move_batch()`
+         *
+         * 但是如果两个都没有值，但是maxbatch >= curbatch (这里大概率是 等于),
+         * 说明什么呢? 说明曾经有cpu预定过下一个宽限期。那后续就没有办法及时
+         * 发起曾经pending的宽限期。
+         *
+         * 所以这个地方如果想优化，还得做一些其他改动。
+         */
+        rcu_start_batch(rcu_ctrlblk.maxbatch);
+    }
+unlock:
+    spin_unlock_irq(&rcu_ctrlblk.mutex);
+
+    //将offline cpu的 curlist移动到 当前cpu的 nxtlist
+    rcu_move_batch(&RCU_curlist(cpu));
+    //将offline cpu的 nxtlist移动到 当前cpu的 nxtlist
+    rcu_move_batch(&RCU_nxtlist(cpu));
+
+    tasklet_kill_immediate(&RCU_tasklet(cpu), cpu);
+}
+```
+</details>
 
 ## rcu_cpu_mask is too busy
 
@@ -503,8 +639,8 @@ cacheline trash. (可以回忆下 directory cache conherence read miss 的场景
 并不影响该cpu的静默状态。但是因为代码实现的原因，而导致其他cpu静默状态变化，影响
 该cpu获取静默状态的性能，显然是不合理的。
 
-因此cpu 是否处于静默状态更适合使用percpu vars保存，并且该变量的行为更像是read-only
-(write-less). 尽量避免对写频繁的 `rcu_cpu_mask` 访问.
+因此cpu 是否处于静默状态更适合使用percpu vars保存，并且该变量的行为更像是
+`read-only` (write-less). 尽量避免对写频繁的 `rcu_cpu_mask` 访问.
 
 于是, `Manfred Spraul`在上一版rcu实现中，做了如下改动:
 
@@ -778,6 +914,14 @@ curbatch 如果完成，就自增为`curbatch+1`
 所以经过该改动后，在每个宽限期内, 每个cpu 只会读写各一次`rcu_cpu_mask`. 大大
 减少了cacheline trash 
 
+## 还有高手?
+
+即便是做了上面的优化, `rcu_cpu_mask`仍然会有可扩展性的问题. 主要原因在于其变量在
+多个cpu之间共享, 虽然上面的patch已经大大减少了访问次数, 但是,
+`clear(rcu_cpu_mask)` 在自旋锁下处理. 当临界区较小时，会造成严重的争用。
+
+**TODO, 关于rcu 和CPU 节能, 之后分析**
+
 ## 参考链接
 1. [LWN: Hierarchical RCU](https://lwn.net/Articles/305782/)
 
@@ -786,15 +930,29 @@ curbatch 如果完成，就自增为`curbatch+1`
    + 1477a825d7e6486a077608c7baf6abbb6f27ed95
    + Dipankar Sarma <dipankar@in.ibm.com>
    + Tue Oct 15 05:40:46 2002 -0700
-2. Hotplug CPUs: Read Copy Update Changes
+2. percpu: convert RCU
+   + c12e16e28b4cf576840cff509caf0c06ff4dc299
+   + Dipankar Sarma <dipankar@in.ibm.com>
+   + Tue Oct 29 23:31:27 2002 -0800
+   + **DESC**: This patch convers RCU per_cpu data to use per_cpu data area
+       and makes it safe for cpu_possible allocation by using CPU notifiers.
+3. Hotplug CPUs: Read Copy Update Changes
    + 211b2fcef6366298877f1a8c0ba95d43db86ef85
    + Rusty Russell <rusty@rustcorp.com.au>
    + Thu Mar 18 16:03:35 2004 -0800
-2. s390: no timer interrupts in idle.
+4. s390: no timer interrupts in idle.
    + 1bd4c02c645161959a69be858ee1efc4d0273507
    + Martin Schwidefsky <schwidefsky@de.ibm.com>
    + Mon Apr 26 09:00:52 2004 -0700
-3. rcu lock update: Add per-cpu batch counter
+5. rcu lock update: Add per-cpu batch counter
    + 5c60169a01af712b0b1aa1f5db3fcb8776b22d9f
    + Manfred Spraul <manfred@colorfullife.com>
    + Wed Jun 23 18:49:33 2004 -0700
+7. rcu, debug: detect stalled grace periods
+   + 67182ae1c42206e516f7efb292b745e826497b24
+   + Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+   + Sun Aug 10 18:35:38 2008 -0700
+8. rcu: RCU-based detection of stalled CPUs for Classic RCU
+   + 2133b5d7ff531bc15a923db4a6a50bf96c561be9
+   + Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+   + Thu Oct 2 16:06:39 2008 -0700
