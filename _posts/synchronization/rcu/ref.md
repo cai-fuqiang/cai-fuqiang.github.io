@@ -1,4 +1,16 @@
 ```
+commit 5127bed588a2f8f3a1f732de2a8a190b7df5dce3
+Author: Lai Jiangshan <laijs@cn.fujitsu.com>
+Date:   Sun Jul 6 17:23:59 2008 +0800
+
+    rcu classic: new algorithm for callbacks-processing(v2)
+
+commit daf86b08a178f950c0e0ec073c25cc392dbbc789
+Author: Dipankar Sarma <dipankar@in.ibm.com>
+Date:   Sun Aug 22 22:57:42 2004 -0700
+
+    [PATCH] RCU: low latency rcu
+
 commit b659a6fbb927a79acd606c4466d03cb615879f9f
 Author: Andrew Morton <akpm@osdl.org>
 Date:   Wed Jun 23 18:50:06 2004 -0700
@@ -43,3 +55,7 @@ Date:   Tue Oct 15 05:40:46 2002 -0700
 [深入剖析Linux RCU原理（二）- 渐入佳境](https://www.bilibili.com/opus/740550171313569861)
 
 [KERNEL DOC RCU RTFP](https://www.kernel.org/doc/Documentation/RCU/RTFP.txt)
+
+[Expedited Grace Periods](https://www.kernel.org/doc/Documentation/RCU/Design/Expedited-Grace-Periods/Expedited-Grace-Periods.html)
+
+[Extending RCU for Realtime and Embedded Workloads](http://www.rdrop.com/users/paulmck/RCU/OLSrtRCU.2006.08.11a.pdf)

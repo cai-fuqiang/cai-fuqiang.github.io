@@ -912,7 +912,188 @@ curbatch 如果完成，就自增为`curbatch+1`
    ```
 
 所以经过该改动后，在每个宽限期内, 每个cpu 只会读写各一次`rcu_cpu_mask`. 大大
-减少了cacheline trash 
+减少了cacheline trash
+
+这种级别的优化真是赏心悦目。作者在随后的patch中又对这块流程做了优化:
+
+## reduce unnecessary rcu_start_batch(1)
+
+经过上面的改动, 每当cpu发现其要发起一个宽限期时 就会做如下动作:
+
+```cpp
+spin_lock(&rcu_ctrlblk.state.mutex);
+RCU_batch(cpu) = rcu_ctrlblk.batch.cur + 1;
+rcu_start_batch(1);
+spin_unlock(&rcu_ctrlblk.state.mutex);
+```
+
+但是可能也有很多cpu同时发要发起一个新的宽限期，于是大家就串行的获取
+`rcu_ctrblk.state.mutex`, 并且执行`rcu_start_batch()`。但是呢, 在
+`rcu_start_batch()` 因为当前宽限期未完成，几乎什么都不做。
+
+作者在想，能不能判断下现在是不是有宽限期正在pending，如果没有再发起一个新的宽限
+期。作者的本意是,  直接使用`seqcount` 机制确保`cur, next_pending`两个值获取的一
+致性:
+
+
+<details markdown=1>
+<summary>代码变动展开</summary>
+
+**reader改动** :
+```diff
+@@ -268,10 +272,19 @@ static void rcu_process_callbacks(unsigned long unused)
+                /*
+                 * start the next batch of callbacks
+                 */
+-               spin_lock(&rcu_ctrlblk.state.mutex);
+-               RCU_batch(cpu) = rcu_ctrlblk.batch.cur + 1;
+-               rcu_start_batch(1);
+-               spin_unlock(&rcu_ctrlblk.state.mutex);
++               do {
++                       seq = read_seqcount_begin(&rcu_ctrlblk.batch.lock);
++                       /* determine batch number */
++                       RCU_batch(cpu) = rcu_ctrlblk.batch.cur + 1;
++                       next_pending = rcu_ctrlblk.batch.next_pending;
++               } while (read_seqcount_retry(&rcu_ctrlblk.batch.lock, seq));
++
++               if (!next_pending) {
++                       /* and start it/schedule start if it's a new batch */
++                       spin_lock(&rcu_ctrlblk.state.mutex);
++                       rcu_start_batch(1);
++                       spin_unlock(&rcu_ctrlblk.state.mutex);
++               }
+```
+
+**writer改动** :
+```diff
+diff --git a/kernel/rcupdate.c b/kernel/rcupdate.c
+index d665d001e03..dc1ac448d07 100644
+--- a/kernel/rcupdate.c
++++ b/kernel/rcupdate.c
+@@ -47,7 +47,7 @@
+
+ /* Definition for rcupdate control block. */
+ struct rcu_ctrlblk rcu_ctrlblk =
+-       { .batch = { .cur = -300, .completed = -300 },
++       { .batch = { .cur = -300, .completed = -300 , .lock = SEQCNT_ZERO },
+          .state = {.mutex = SPIN_LOCK_UNLOCKED, .rcu_cpu_mask = CPU_MASK_NONE } };
+ DEFINE_PER_CPU(struct rcu_data, rcu_data) = { 0L };
+
+@@ -124,16 +124,18 @@ static void rcu_start_batch(int next_pending)
+        cpumask_t active;
+
+        if (next_pending)
+-               rcu_ctrlblk.state.next_pending = 1;
++               rcu_ctrlblk.batch.next_pending = 1;
+
+-       if (rcu_ctrlblk.state.next_pending &&
++       if (rcu_ctrlblk.batch.next_pending &&
+                        rcu_ctrlblk.batch.completed == rcu_ctrlblk.batch.cur) {
+-               rcu_ctrlblk.state.next_pending = 0;
+                /* Can't change, since spin lock held. */
+                active = nohz_cpu_mask;
+                cpus_complement(active);
+                cpus_and(rcu_ctrlblk.state.rcu_cpu_mask, cpu_online_map, active);
++               write_seqcount_begin(&rcu_ctrlblk.batch.lock);
++               rcu_ctrlblk.batch.next_pending = 0;
+                rcu_ctrlblk.batch.cur++;
++               write_seqcount_end(&rcu_ctrlblk.batch.lock);
+        }
+ }
+```
+</details>
+
+但是真的有必要这样搞么? 可能有两种潜在的故障需要避免:
+* 设置`cur`错误，导致设置不符合自己的宽限期版本?
+* 丢失宽限期发起
+
+首先我们来想下第一个可能性。`cur`设置无非有两个版本:
+* old_cur++(`new_cur`)
+* new_cur++(`++(++old_cur)`)
+
+其实设置哪个都可以，毕竟该cpu其实属于 `old_cur++`的宽限期版本，设置为`new_cur++`
+无非是多等待一个宽限期.
+
+那么下一种可能性是宽限期发起丢失，如果设置为了`new_cur` 不发起宽限期也不会有问题。
+但是如果设置为`new_cur++`, 如果不执行`rcu_start_batch(1)`发起宽限期，可能会导致
+`new_cur++`的宽限期不再发起. 而什么情况下不再发起呢 -- 看到的`next_pending = 1`
+那也就是得预防下看到下面的组合:
+
+```
+new_cur + old_next_pending
+```
+
+这种情况下是还未读到next_pending的情况下，reader先看到了`new_cur`, 这其实是一个
+memory order的问题，而为了避免这种情况, 那如果读写两端做哪些努力呢?
+
+* reader: must read in order: cur, next_pending(必须先读 cur), 否则:
+  ```sh
+  reader                          writer
+    read next_pending =  1
+                                  update next_pending = 0
+                                  update cur++
+    read ++(++(cur))
+  ```
+* writer: must write in order: next_pending, cur(必须先写next_pending), 否则:
+  ```sh
+  reader                          writer
+                                  update cur++
+  read ++(++(cur))
+  read next_pending = 1
+                                  update next_pending = 0
+  ```
+
+所以通过合理添加内存屏障就可以规避上面的行为:
+
+<details markdown=1>
+<summary>patch细节</summary>
+writer:
+```diff
+@@ -185,10 +185,13 @@ static void rcu_start_batch(struct rcu_ctrlblk *rcp, struct rcu_state *rsp,
+                        rcp->completed == rcp->cur) {
+                /* Can't change, since spin lock held. */
+                cpus_andnot(rsp->cpumask, cpu_online_map, nohz_cpu_mask);
+-               write_seqcount_begin(&rcp->lock);
++
+                rcp->next_pending = 0;
++               /* next_pending == 0 must be visible in __rcu_process_callbacks()
++                * before it can see new value of cur.
++                */
++               smp_wmb();
+                rcp->cur++;
+-               write_seqcount_end(&rcp->lock);
+        }
+ }
+```
+
+reader:
+```diff
+@@ -330,14 +331,15 @@ static void __rcu_process_callbacks(struct rcu_ctrlblk *rcp,
+                /*
+                 * start the next batch of callbacks
+                 */
+-               do {
+-                       seq = read_seqcount_begin(&rcp->lock);
+-                       /* determine batch number */
+-                       rdp->batch = rcp->cur + 1;
+-                       next_pending = rcp->next_pending;
+-               } while (read_seqcount_retry(&rcp->lock, seq));
+-
+-               if (!next_pending) {
++
++               /* determine batch number */
++               rdp->batch = rcp->cur + 1;
++               /* see the comment and corresponding wmb() in
++                * the rcu_start_batch()
++                */
++               smp_rmb();
++
++               if (!rcp->next_pending) {
+                        /* and start it/schedule start if it's a new batch */
+                        spin_lock(&rsp->lock);
+                        rcu_start_batch(rcp, rsp, 1);
+```
+</details>
 
 ## 还有高手?
 
@@ -934,8 +1115,9 @@ curbatch 如果完成，就自增为`curbatch+1`
    + c12e16e28b4cf576840cff509caf0c06ff4dc299
    + Dipankar Sarma <dipankar@in.ibm.com>
    + Tue Oct 29 23:31:27 2002 -0800
-   + **DESC**: This patch convers RCU per_cpu data to use per_cpu data area
-       and makes it safe for cpu_possible allocation by using CPU notifiers.
+   + **DESC**: This patch convers RCU per_cpu data to use 
+     per_cpu data area and makes it safe for cpu_possible allocation by using
+     CPU notifiers.
 3. Hotplug CPUs: Read Copy Update Changes
    + 211b2fcef6366298877f1a8c0ba95d43db86ef85
    + Rusty Russell <rusty@rustcorp.com.au>
@@ -948,11 +1130,11 @@ curbatch 如果完成，就自增为`curbatch+1`
    + 5c60169a01af712b0b1aa1f5db3fcb8776b22d9f
    + Manfred Spraul <manfred@colorfullife.com>
    + Wed Jun 23 18:49:33 2004 -0700
-7. rcu, debug: detect stalled grace periods
-   + 67182ae1c42206e516f7efb292b745e826497b24
-   + Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-   + Sun Aug 10 18:35:38 2008 -0700
-8. rcu: RCU-based detection of stalled CPUs for Classic RCU
-   + 2133b5d7ff531bc15a923db4a6a50bf96c561be9
-   + Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-   + Thu Oct 2 16:06:39 2008 -0700
+6. rcu lock update: Use a sequence lock for starting batches
+   + 720e8a63908eb18aad1721c1429e89fbf7cf0ca6
+   + Manfred Spraul <manfred@colorfullife.com>
+   + Wed Jun 23 18:49:44 2004 -0700
+7. [PATCH] rcu: eliminate rcu_ctrlblk.lock
+   + a48d69a5c734ceedc04d351f394d428e032ca4b9
+   + [PATCH] rcu: eliminate rcu_ctrlblk.lock
+   + Tue Jan 4 05:30:36 2005 -0800
