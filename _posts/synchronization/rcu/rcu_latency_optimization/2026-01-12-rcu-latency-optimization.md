@@ -6,6 +6,7 @@ date:   2026-01-12 22:13:00 +0800
 categories: [os, synchronization]
 tags: [os, synchronization, rcu]
 media_subpath: /_posts/synchronization/rcu/rcu_latency_optimization
+image: pic/merge_three_list_to_one.svg
 math: true
 ---
 
