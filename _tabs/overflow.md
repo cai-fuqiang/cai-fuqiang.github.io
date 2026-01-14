@@ -1,0 +1,30 @@
+---
+# the default layout is 'page'
+icon: fas fa-star
+order: 0
+---
+
+* [synchronization]()
+  + theoretical knowledge
+    + [X] [non-blocking algorithm](/posts/non-blocking-algorithm)
+  + spinlock
+    + [X] [non-scalable VS scalable pinlock](/posts/non-scalable-vs-scalable-spinlock)
+    + [X] [linux qspinlock](/posts/qspinlock)
+  + [ ] [rwlock]()
+  + [ ] [rcu](/tags/rcu/)
+    + [X] [rcu - overflow](/posts/rcu-overflow)
+    + [X] [rcu - classic](/posts/rcu-classic)
+    + [ ] [rcu - Hierarchical]()
+    + [ ] [rcu - stalled grace peroiod detection](/posts/rcu-stall-dettection)
+<!--
+    + [ ] [rcu - preemption]()
+    + [ ] [rcu - bh]()
+-->
+  + [X] [sequence counters and sequential locks](/posts/seqcounter-and-seqlock/)
+* TEE
+  + arch/x86
+    + [X] [Intel Architecture Memory Encryption Technologies]()
+    + [ ] [TDX SPEC]()
+* TODO LIST
+  + [ ] [cache coherence(2025-12-26)]()
+  + [ ] [HOW cpu handle atomic(2025-12-26)]()

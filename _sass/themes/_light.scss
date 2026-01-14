@@ -69,8 +69,15 @@
   --kbd-text-color: var(--text-color);
   --kbd-bg-color: white;
   --prompt-text-color: rgb(46 46 46 / 77%);
-  --prompt-tip-bg: rgb(123 247 144 / 20%);
+  --prompt-tip-bg: rgb(123 247 144 / 40%);
   --prompt-tip-icon-color: #03b303;
+  --prompt-trans-bg: rgb(233, 230, 146 / 50%);
+  --prompt-trans-icon-color: #81d7ff;
+  --prompt-trans-font-size: 80%;
+  --prompt-ref-bg: rgb(222, 226, 255 / 50%);
+  --prompt-ref-icon-color: #81d7ff;
+  --prompt-ref-text-color: rgb(2, 48, 71 / 100%);
+  --prompt-ref-font-size: 80%;
   --prompt-info-bg: #e1f5fe;
   --prompt-info-icon-color: #0070cb;
   --prompt-warning-bg: rgb(255 243 205);
