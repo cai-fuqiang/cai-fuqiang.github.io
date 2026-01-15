@@ -99,4 +99,21 @@ __rcu_init
 |=> RCU_DATA_PTR_INIT(&rcu_bh_state, rcu_bh_data);
 ```
 
-ONLY for test
+初始化rdp:
+
+`rcu_init_percpu_data()`
+```sh
+rcu_init_percpu_data
+=> lastcomp = rsp->completed
+## 将completed 先记录为rsp中的completed
+=> rdp->completed = lastcomp;
+## 和上面相同，将gpnum 记录为lastcomp
+=> rdp->gpnum = lastcomp
+## 在新的宽限期中还未进入静默期
+=> rdp->passed_quiesc = 0;
+
+## 
+=> rdp->qs_pending = 1
+## 表示目前的rdp已经是online状态 降级
+=> rdp->beenonline = 1
+```
