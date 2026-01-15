@@ -37,8 +37,6 @@ struct rcu_state rcu_state = RCU_STATE_INITIALIZER(rcu_state);
     .n_force_qs = 0, \
     .n_force_qs_ngp = 0, \
 }
-
-
 ```
 
 `__rcu_init`:
@@ -100,3 +98,5 @@ __rcu_init
 |=> rcu_init_one(&rcu_bh_state);
 |=> RCU_DATA_PTR_INIT(&rcu_bh_state, rcu_bh_data);
 ```
+
+ONLY for test
