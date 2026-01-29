@@ -18,7 +18,8 @@ image: /pic/rcu_todo_overflow.svg
 * **_rcu callback_**: 某些rcu writer将释放动作封装为一个`rcu_head`, 通过调用
     `call_rcu()`注册回调，允许异步执行释放动作。
 
-rcu处理流程的关键点是: 
+rcu处理流程的关键点是:
+
 1. 如何发现新的rcu callback, 发起一个新的宽限期
 2. **如何判定该宽限期结束, 调用相关rcu callback**
 
@@ -27,6 +28,7 @@ rcu处理流程的关键点是:
 ![rcu_todo_overflow](pic/rcu_todo_overflow.svg)
 
 这里有几个问题需要思考下:
+
 1. 谁持有rcu read lock(和问题三相关联)
 2. 什么时候需要发起一个新的宽限期
 3. 怎么确定该cpu 进入静默状态
@@ -44,24 +46,26 @@ rcu处理流程的关键点是:
 
 **_global_**:
 
-+ **rcu_ctrblk**: 全局数据结构，和全局的宽限期"version", 以及cpu静默状态位图
+* **rcu_ctrblk**: 全局数据结构，和全局的宽限期"version", 以及cpu静默状态位图
   * **curbatch**: 当前宽限期的"version"
   * **maxbatch**: rcu callback "预定的" 最大宽限期 "version"
   * **rcu_cpu_mask**: 当前宽限期处于静默状态位图
 
 **_per cpu_**:
+
 * rcu_tasklet: 用于定义rcu_tasklet, 用户在`softirq`中处理rcu。
 * **rcu_data**: 用于记录每个cpu的静默期，以及待处理的rcu callback 链表, 以及
   batch "version"
-  + **qsctr**: 当前静默期"version" 
-  + **last_qsctr**: 上一次记录的静默期 "version"
-  + **batch**: 当前 **curlist** 处于宽限期的"version"
-  + **curlist**: 处于宽限期的rcu callback列表 
-  + **nxtlist**: 表示待处理的rcu callback 列表(还未发起宽限期)
+  * **qsctr**: 当前静默期"version"
+  * **last_qsctr**: 上一次记录的静默期 "version"
+  * **batch**: 当前 **curlist** 处于宽限期的"version"
+  * **curlist**: 处于宽限期的rcu callback列表
+  * **nxtlist**: 表示待处理的rcu callback 列表(还未发起宽限期)
 
 ### 处理流程
 
 #### add rcu_callback to head
+
 ```cpp
 void call_rcu(struct rcu_head *head, void (*func)(void *arg), void *arg)
 {
@@ -87,9 +91,9 @@ void call_rcu(struct rcu_head *head, void (*func)(void *arg), void *arg)
 #### cpu experience a quiescent state
 
 上面讲述了，如何将rcu callback 注册到相应的数据结构中。那什么时候处理(执行)rcu
-callback呢? -- 等一个完整的宽限期结束. 
+callback呢? -- 等一个完整的宽限期结束.
 
-> 这里为什么要提完整的宽限期呢? 
+> 这里为什么要提完整的宽限期呢?
 >
 > 那就得讨论下是否要支持全局的宽限期。可以设想下，每个cpu 都可以发起宽限期。每个
 > cpu 负责记录自己的静默状态，并标记这些并在记录后，再处理每个cpu的宽限期状态。
@@ -102,6 +106,7 @@ callback呢? -- 等一个完整的宽限期结束.
 > ======================================================================> timeline
 > |--  grace period 1  --|-- grace period 2 --|-- grace period 3--|--next 
 > ```
+>
 > 那假设在period 1 阶段调用`call_rcu()`, 那call_rcu()产生的callback能不能在`grace
 > period 1` 结束后执行么? 不可以，因为此时已经有一些cpu 进入下一个宽限期。可能正
 > 处于读临界区中。所以需要等到grace period 2 结束。
@@ -116,13 +121,14 @@ Linux 本身要求rcu达到的效果相违背: 安全高效。
 `rcu_read_unlock()` 的问题:
 
 全局状态更新太频繁: 在某个流程中频繁的调用`rcu_read_lock()`, `rcu_read_unlock()`.
-频繁的更新全局状态会让写端(其实是处理grace period 流程)开销陡增（cache 
+频繁的更新全局状态会让写端(其实是处理grace period 流程)开销陡增（cache
 conherence cost)
 
 > 并未找到官方说明, 所以这里我只是猜测。不知道是否有其他更深层次的原因。
 {: .prompt-warning}
 
 于是开发者们, 在两个点定义静默状态:
+
 * timer interrupt from USERSPACE, idle
 * schedule()
 
@@ -131,6 +137,7 @@ conherence cost)
 做), 所以也可以认为其属于静默状态.
 
 判断条件在`rcu_check_callback()` 代码中:
+
 ```cpp
 rcu_check_callbacks
 => if (user || (idle_cpu(cpu) && !in_softirq() && hardirq_count() <= 1))
@@ -144,7 +151,6 @@ rcu_check_callbacks
 * `!in_softirq()`: 不处于softirq 上下文
 * `hardirq_count <= 1`: 不处于中断上下文（该时钟中断的前一个上下文，而时钟中断
   本身位于中断上下文, 所以这里要 `<=1`)
-
 
 #### when to initiate a new grace period and handle
 
@@ -176,11 +182,12 @@ rcu_check_callbacks
 > ```
 >
 > 有两种情况需要在下半部进一步处理
+>
 > 1. 当前有未处理的 rcu_callback
->    + curlist 不为空，但是curlist 所在的batch 已经expired.(说明curlist所在的
+>    * curlist 不为空，但是curlist 所在的batch 已经expired.(说明curlist所在的
 >      宽限期已经结束), 或者
->    + curlist 是空，nxtlist不为空。说明, 需要未nxtlist 发起一个新的宽限期
->    + 其他情况: 例如curlist 不为空，但是curlist 所在的batch 还没有 expired.
+>    * curlist 是空，nxtlist不为空。说明, 需要未nxtlist 发起一个新的宽限期
+>    * 其他情况: 例如curlist 不为空，但是curlist 所在的batch 还没有 expired.
 >      这说明curlist 所在的宽限期还没有结束。还不能为`nxtlist`分配下一个宽
 >      限期
 > 2. 判断`rcu_ctrlblk->rcu_cpu_mask` 是否有该cpu bit, `rcu_cpu_mask`用来标记
@@ -192,12 +199,14 @@ rcu_check_callbacks
 #### work in rcu_tasklet
 
 而位于`rcu_tasklet`中的流程，是rcu 处理的主流程, 其主要有几部分工作:
+
 * 为新的rcu callback分配宽限期
 * 判断该cpu是否处于静默状态, 并修改`rcu_cpu_mask`
 * 判断该cpu curlist 所在的宽限期是否结束，如果结束执行相应的callback，并根据
   nxtlist链表情况, 要不要发起下一个宽限期.
 
 代码并不复杂，我们直接看代码:
+
 ```cpp
 static void rcu_process_callbacks(unsigned long unused)
 {
@@ -236,6 +245,7 @@ static void rcu_process_callbacks(unsigned long unused)
         rcu_do_batch(&list);
 }
 ```
+
 1. curlist中没有成员，并且 `rcu_ctrblk.curbatch` 比 `RCU_batch(cpu)` 要高，说明
    当前全局的宽限期，已经比`cpu curlist`所在的宽限期要高，所以`cpu curlist`宽限期
    已经结束。为此可以执行该`cpu curlist`中的`rcu callback`
@@ -247,9 +257,10 @@ static void rcu_process_callbacks(unsigned long unused)
    `rcu_staret_batch()`（下面讲)
 4. 该函数会判断当前函数是否经历一次完整的静默期.
 5. 根据 1 可知，list中的rcu callback肯定经历了一次完整的静默期，可以执行release
-   - rcu_callback 流程
+   * rcu_callback 流程
 
 **_rcu_start_batch()_**:
+
 ```cpp
 static void rcu_start_batch(long newbatch)
 {
@@ -270,6 +281,7 @@ static void rcu_start_batch(long newbatch)
     rcu_ctrlblk.rcu_cpu_mask = cpu_online_map;
 }
 ```
+
 怎么才算发起一个新的宽限期呢? 还记得`rcu_pending()`的条件么? 只要该cpu 的
 `rcu_cpu_mask` 置位，说明该cpu 需要关注自己的静默状态, 并在达到静默状态后，
 清除`rcu_cpu_mask`相应状态，所以，将`rcu_cpu_mask`全部置位，所有的cpu
@@ -279,11 +291,13 @@ static void rcu_start_batch(long newbatch)
 > 所以无论是curbatch改变，还是`maxbatch`改变都有可能发起新的宽限期.
 >
 > 而该调用路径:
+>
 > ```
 > rcu_process_callback()
 > => rcu_start_batch()
 >    => rcu_ctrlblk.rcu_cpu_mask = cpu_online_map
 > ```
+>
 > 其实是描述的`maxbatch`改变，在cpu检测到宽限期结束，自增全局curbatch时，
 > 也会让这个天平倾斜
 {: .prompt-tip}
@@ -423,6 +437,7 @@ CPU3 进入静默状态，并清除其cpu的`rcu_cpu_mask`, 作为最后一个�
 </details>
 
 ## NOHZ support
+
 `s390`首先引入了`nohz`(commit 2), `nohz`意味着空闲的核心将可能在一段事件之内不会
 有时钟中断。而发起一个新的宽限期后, 会等待所有的cpu进入静默状态。而 每个
 cpu调整自己的静默状态是依赖时钟中断的执行`rcu_pending()`, 然后再唤醒`rcu tasklet`
@@ -430,6 +445,7 @@ cpu调整自己的静默状态是依赖时钟中断的执行`rcu_pending()`, 然
 
 首先，处于nohz的cpu肯定是idle的, 并且不会处于中断上下文和软中断上下文。
 所以, 在发起新的宽限期时，可以不选择等待处于nohz 的cpu
+
 ```diff
  static void rcu_start_batch(long newbatch)
  {
@@ -452,6 +468,7 @@ cpu调整自己的静默状态是依赖时钟中断的执行`rcu_pending()`, 然
 另外，如果在宽限期中，如果一个cpu并未进入静默状态，说明有宽限期在等待
 该cpu进入静默状态，然后结束宽限期。此时该cpu不能进入nohz。(相当于不能
 在读临界区中长期阻塞)
+
 ```sh
 stop_hz_timer
 => if (rcu_pending(smp_processor_id()) || local_softirq_pending())
@@ -466,6 +483,7 @@ stop_hz_timer
 > 响么?
 >
 > 例如:
+>
 > ```
 > cpu0                       cpu1
 > ==============================================
@@ -477,6 +495,7 @@ stop_hz_timer
 >                            start a new grace period
 >                              copy idle_cpu_mask(but copy old data)
 > ```
+>
 > 我个人认为可能会有这种情况.
 {: .prompt-info}
 
@@ -488,20 +507,21 @@ online的cpu。从当cpu拓扑处于静态状态(没有热插拔), 来看没有�
 但是当支持热插拔后, 事情有一些复杂。我们分为两个部分:
 
 * 热插
-  + 当热插后，cpu online 流程会更新`cpu_online_map`,  然后再进入读临界区。(中间
+  * 当热插后，cpu online 流程会更新`cpu_online_map`,  然后再进入读临界区。(中间
     可能会有内存屏障。所以对于发起宽限期流程来说不会有影响。
   > 关于cpu online 处理流程 纯个人猜测，没有找到代码(置位 cpu_online_map)
   {: .prompt-warning}
 * 热拔
-  + 热拔流程会受一些影响主要为:
-    + 在热拔时，该cpu可能在当前的宽限期中还未进入静默状态（也就意味着有人在等)
-    + 在热拔时, 可能有一些rcu callback还未执行
+  * 热拔流程会受一些影响主要为:
+    * 在热拔时，该cpu可能在当前的宽限期中还未进入静默状态（也就意味着有人在等)
+    * 在热拔时, 可能有一些rcu callback还未执行
 
-    那我们展开下这部分改动 
+    那我们展开下这部分改动
 
 **rcu 关于 cpu热拔新增改动**
 
 首先在增加`CPU_DEAD` notify:
+
 ```diff
 @@ -214,7 +269,11 @@ static int __devinit rcu_cpu_notify(struct notifier_block *self,
         case CPU_UP_PREPARE:
@@ -616,11 +636,13 @@ unlock:
     tasklet_kill_immediate(&RCU_tasklet(cpu), cpu);
 }
 ```
+
 </details>
 
 ## rcu_cpu_mask is too busy
 
 `rcu_cpu_mask` 表示哪些cpu在本次宽限期中有没有进入静默状态:
+
 * **_0_**: 进入静默状态
 * **_1_**: 尚未进入静默状态
 
@@ -628,8 +650,9 @@ unlock:
 下), 而`rcu_cpu_mask`的访问频次又很高。出现在:
 
 **check look for quiescent states**
-+ rcu_pending() 
-+ rcu_check_quiescent_state()
+
+* rcu_pending()
+* rcu_check_quiescent_state()
 
 这两个位置都会获取当前cpu 是否在宽限期中已经处于静默状态。这种情况下，面临严重的
 cacheline trash. (可以回忆下 directory cache conherence read miss 的场景)。
@@ -670,7 +693,9 @@ cacheline trash 问题往往发生在对全局变量的更新中。所以`Manfre
 +       } state ____cacheline_maxaligned_in_smp;
  };
 ```
+
 这里有一些新面孔:
+
 * **cur**: 同curbatch, 在宽限期结束后更新
 * **completed**: 上一个完成的 batch, 在宽限期结束后更新
 * **next_pending**: 有下一个宽限期pending, 在发起新的宽限期时更新
@@ -678,12 +703,14 @@ cacheline trash 问题往往发生在对全局变量的更新中。所以`Manfre
 该改动主要是优化了先前的`maxbatch`的逻辑。
 
 之前如何判断是否有一个新的宽限期需要发起呢?
+
 ```
 maxbatch > curbatch
 ```
+
 但是maxbatch的值，往往最大=curbatch + 1, 表示下一个预定的宽限期比当前宽限期大，
-也就是有pending的宽限期，由于只大一，所以其也只能表示是否有pending. 所以这里干
 脆就将这个值删除，直接搞一个`next_pending`表示是否有新的宽限期正在阻塞，当前
+也就是有pending的宽限期，由于只大一，所以其也只能表示是否有pending. 所以这里干
 宽限期结束后，需要立即发起该宽限期。
 
 另外, 关于宽限期是否结束的判断逻辑也更改了，之前是判断:
@@ -691,14 +718,17 @@ maxbatch > curbatch
 ```cpp
 rcu_batch_before(RCU_batch(cpu), rcu_ctrlblk.curbatch)
 ```
+
 curbatch 如果完成，就自增为`curbatch+1`
 
 现在使用completed替代. 表已经完成的宽限期的最大版本, 所以判断逻辑更改为:
+
 ```cpp
 !rcu_batch_before(rcu_ctrlblk.batch.completed,RCU_batch(cpu))
 ```
 
 发起新宽限期的代码也有变动:
+
 ```diff
 -static void rcu_start_batch(long newbatch)
 +static void rcu_start_batch(int next_pending)
@@ -726,12 +756,14 @@ curbatch 如果完成，就自增为`curbatch+1`
 ```
 
 不再维护`newbatch`，而是传入`next_pending`表示，调用该函数的原因是由于
+
 * 发起了新的宽限期? -- `next_pending = 1`
 * 当前宽限期结束，可能有pending的宽限期需要处理 -- `next_pending == 1`
 
 然后再根据`rcu_ctrlblk.statet.next_pending`决定是否要发起新的宽限期.
 
 而调用流程和之前类似:
+
 * 发起了新的宽限期的调用者: 将nxtlist->curlist, 发起新的宽限期
 
   ```diff
@@ -748,8 +780,10 @@ curbatch 如果完成，就自增为`curbatch+1`
   +               rcu_start_batch(1);
   +               spin_unlock(&rcu_ctrlblk.state.mutex);
   ```
+
 * `cpu_quiet()` 表示该宽限期已经结束，可能有pending的宽限期需要处理（发起pending
     的宽限期)
+
   ```sh
   cpu_quiet
   => cpus_empty(rcu_ctrlblk.state.rcu_cpu_mask)
@@ -780,10 +814,12 @@ curbatch 如果完成，就自增为`curbatch+1`
          struct list_head  curlist;
 
 ```
-* **quiescbatch**: 当前cpu所处的宽限期 
+
+* **quiescbatch**: 当前cpu所处的宽限期
 * **qs_pending**: 在`quiescbatch`所表示的宽限期中，该cpu是否处于静默状态
 
 我们首先来看`rcu_pending()`处的改动:
+
 ```diff
  static inline int rcu_pending(int cpu)
  {
@@ -814,9 +850,11 @@ curbatch 如果完成，就自增为`curbatch+1`
 +       return 0;
  }
 ```
+
 可以看到在判断是否需要处理静默状态时，不再访问`rcu_cpu_mask`
 
 我们再来看下`rcu_check_quiescent_state()` 是怎么处理静默状态的:
+
 ```diff
 @@ -127,7 +161,19 @@ static void rcu_check_quiescent_state(void)
  {
@@ -841,9 +879,10 @@ curbatch 如果完成，就自增为`curbatch+1`
                 return;
         //==(3)==
 ```
+
 1. 当判断有新的宽限期到达时，将`RCU_quiescbatch`更新为新的宽限期版本,并置位
    `RCU_qs_pending`
-2. 当cpu在该宽限期内不再处于静默状态时, 则不需要再处理. 直接返回
+2. 当cpu在该宽限期内已经处于静默状态, 则不需要再处理. 直接返回
 3. 说明该cpu在该宽限期在之前未处于静默状态，需要继续判断现在是否已经进入静默状态
 
 ```diff
@@ -885,6 +924,7 @@ curbatch 如果完成，就自增为`curbatch+1`
 +       spin_unlock(&rcu_ctrlblk.state.mutex);
  }
 ```
+
 1. cpu 在该宽限期已经处于静默状态，置位`RCU_qs_pending()`
 2. 走到这里，说明cpu已经处于静默状态，但是时第一次进入该函数，需要将cpu 在
    `rcu_cpu_mask`中移除:
@@ -935,11 +975,11 @@ spin_unlock(&rcu_ctrlblk.state.mutex);
 期。作者的本意是,  直接使用`seqcount` 机制确保`cur, next_pending`两个值获取的一
 致性:
 
-
 <details markdown=1>
 <summary>代码变动展开</summary>
 
 **reader改动** :
+
 ```diff
 @@ -268,10 +272,19 @@ static void rcu_process_callbacks(unsigned long unused)
                 /*
@@ -965,6 +1005,7 @@ spin_unlock(&rcu_ctrlblk.state.mutex);
 ```
 
 **writer改动** :
+
 ```diff
 diff --git a/kernel/rcupdate.c b/kernel/rcupdate.c
 index d665d001e03..dc1ac448d07 100644
@@ -1001,18 +1042,56 @@ index d665d001e03..dc1ac448d07 100644
         }
  }
 ```
+
 </details>
 
 但是真的有必要这样搞么? 可能有两种潜在的故障需要避免:
+
 * 设置`cur`错误，导致设置不符合自己的宽限期版本?
 * 丢失宽限期发起
 
+### set a wrong cur
+
 首先我们来想下第一个可能性。`cur`设置无非有两个版本:
+
 * old_cur++(`new_cur`)
 * new_cur++(`++(++old_cur)`)
 
-其实设置哪个都可以，毕竟该cpu其实属于 `old_cur++`的宽限期版本，设置为`new_cur++`
-无非是多等待一个宽限期.
+但从`cur`来看，比较危险的是, `old_cur++(new_cur)`(别的cpu发起了新的宽限期，
+但是该cpu还没有观测到, 为什么之前不会出现这种问题呢? 因为之前使用
+`spinlock()`强行串行了, 这也就意味着, 在`new_cur`所表示在当前宽限期结束后,
+该`cpu->curlist`中的object就会被释放。那我们就需要评估下, 在`new_cur` 宽限期
+结束后，还有没有其他的cpu使用着这些object, 我们来画图看下:
+
+```sh
+CPU 0                 CPU 1
+                      initiate a new grace period
+                      update cur to old_cur++
+                      set all cpumask
+                      get object A
+Remove object A
+Get old_cur++(new_cur)
+
+observation a new grace period
+wait inc qsctr done
+umask cpumask
+                      NOT HOLD object A
+wait new_cur grace period expired
+```
+
+上图中展示了, CPU 1 可能在新的宽限期中仍然持有object, 但是并没有关系, 因为该object
+的释放一定等待`new_cur`宽限期结束，而`new_cur`宽限期结束就意味着CPU 1 不再持有`object
+A`, 那其实还有一个隐藏问题，当`new_cur` 宽限期结束后(也就是`new_cur++`)宽限期, `CPU
+1` 还能不能拿到object A.
+
+这是一个典型的内存顺序问题。
+
+上面说过, `CPU 0` 在Remove object A后，必然经历一次宽限期过期, 而该宽限期过期需要
+被其他的cpu 观测到(`unmask cpumask`)，所以我们只需要保证，`Remove object A`和 `unmask
+cpumask`, 这两个内存操作的顺序, 而该patch 使用了 `seqcount`  机制，该机制会内置
+内存屏障，在进入临界区之前保证前面所有的写操作完成。
+
+### lose initiate a new grace period
 
 那么下一种可能性是宽限期发起丢失，如果设置为了`new_cur` 不发起宽限期也不会有问题。
 但是如果设置为`new_cur++`, 如果不执行`rcu_start_batch(1)`发起宽限期，可能会导致
@@ -1027,6 +1106,7 @@ new_cur + old_next_pending
 memory order的问题，而为了避免这种情况, 那如果读写两端做哪些努力呢?
 
 * reader: must read in order: cur, next_pending(必须先读 cur), 否则:
+
   ```sh
   reader                          writer
     read next_pending =  1
@@ -1034,7 +1114,9 @@ memory order的问题，而为了避免这种情况, 那如果读写两端做哪
                                   update cur++
     read ++(++(cur))
   ```
+
 * writer: must write in order: next_pending, cur(必须先写next_pending), 否则:
+
   ```sh
   reader                          writer
                                   update cur++
@@ -1067,6 +1149,7 @@ writer:
 ```
 
 reader:
+
 ```diff
 @@ -330,14 +331,15 @@ static void __rcu_process_callbacks(struct rcu_ctrlblk *rcp,
                 /*
@@ -1093,6 +1176,7 @@ reader:
                         spin_lock(&rsp->lock);
                         rcu_start_batch(rcp, rsp, 1);
 ```
+
 </details>
 
 ## 还有高手?
@@ -1104,37 +1188,39 @@ reader:
 **TODO, 关于rcu 和CPU 节能, 之后分析**
 
 ## 参考链接
+
 1. [LWN: Hierarchical RCU](https://lwn.net/Articles/305782/)
 
-##  相关 commit
+## 相关 commit
+
 1. Read-Copy Update infrastructure
-   + 1477a825d7e6486a077608c7baf6abbb6f27ed95
-   + Dipankar Sarma <dipankar@in.ibm.com>
-   + Tue Oct 15 05:40:46 2002 -0700
+   * 1477a825d7e6486a077608c7baf6abbb6f27ed95
+   * Dipankar Sarma <dipankar@in.ibm.com>
+   * Tue Oct 15 05:40:46 2002 -0700
 2. percpu: convert RCU
-   + c12e16e28b4cf576840cff509caf0c06ff4dc299
-   + Dipankar Sarma <dipankar@in.ibm.com>
-   + Tue Oct 29 23:31:27 2002 -0800
-   + **DESC**: This patch convers RCU per_cpu data to use 
+   * c12e16e28b4cf576840cff509caf0c06ff4dc299
+   * Dipankar Sarma <dipankar@in.ibm.com>
+   * Tue Oct 29 23:31:27 2002 -0800
+   * **DESC**: This patch convers RCU per_cpu data to use
      per_cpu data area and makes it safe for cpu_possible allocation by using
      CPU notifiers.
 3. Hotplug CPUs: Read Copy Update Changes
-   + 211b2fcef6366298877f1a8c0ba95d43db86ef85
-   + Rusty Russell <rusty@rustcorp.com.au>
-   + Thu Mar 18 16:03:35 2004 -0800
+   * 211b2fcef6366298877f1a8c0ba95d43db86ef85
+   * Rusty Russell <rusty@rustcorp.com.au>
+   * Thu Mar 18 16:03:35 2004 -0800
 4. s390: no timer interrupts in idle.
-   + 1bd4c02c645161959a69be858ee1efc4d0273507
-   + Martin Schwidefsky <schwidefsky@de.ibm.com>
-   + Mon Apr 26 09:00:52 2004 -0700
+   * 1bd4c02c645161959a69be858ee1efc4d0273507
+   * Martin Schwidefsky <schwidefsky@de.ibm.com>
+   * Mon Apr 26 09:00:52 2004 -0700
 5. rcu lock update: Add per-cpu batch counter
-   + 5c60169a01af712b0b1aa1f5db3fcb8776b22d9f
-   + Manfred Spraul <manfred@colorfullife.com>
-   + Wed Jun 23 18:49:33 2004 -0700
+   * 5c60169a01af712b0b1aa1f5db3fcb8776b22d9f
+   * Manfred Spraul <manfred@colorfullife.com>
+   * Wed Jun 23 18:49:33 2004 -0700
 6. rcu lock update: Use a sequence lock for starting batches
-   + 720e8a63908eb18aad1721c1429e89fbf7cf0ca6
-   + Manfred Spraul <manfred@colorfullife.com>
-   + Wed Jun 23 18:49:44 2004 -0700
+   * 720e8a63908eb18aad1721c1429e89fbf7cf0ca6
+   * Manfred Spraul <manfred@colorfullife.com>
+   * Wed Jun 23 18:49:44 2004 -0700
 7. [PATCH] rcu: eliminate rcu_ctrlblk.lock
-   + a48d69a5c734ceedc04d351f394d428e032ca4b9
-   + [PATCH] rcu: eliminate rcu_ctrlblk.lock
-   + Tue Jan 4 05:30:36 2005 -0800
+   * a48d69a5c734ceedc04d351f394d428e032ca4b9
+   * [PATCH] rcu: eliminate rcu_ctrlblk.lock
+   * Tue Jan 4 05:30:36 2005 -0800
