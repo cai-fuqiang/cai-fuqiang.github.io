@@ -46,7 +46,7 @@ $上加上该时间。 相当于其他的任务看到自己的表突然变快了
 > $\frac{stride1}{\sum W_i}$ 的步幅前进，而其中的client $i$ 是以
 > $\frac{stride1}{W_i}$ 的步幅前进，每个调度点，都会根据该任务的步幅更新该任务
 > 的虚拟时间，也根据全局的步幅，更新`global virtual time`, 那么问题来了，
-> 
+>
 > > `global virtual time` 和 `per-client virtual time` 应该有什么样的关系? 
 > {: .prompt-warning}
 >

@@ -17,7 +17,7 @@ math: true
 + rcu_state(rsp)
   + qpnum: 当前正在发起的宽限期
   + completed: 已经完成的宽限期
-+ + rcu_data(rdp)
++ rcu_data(rdp)
   + qiescbatch
   + gpnum: 当前cpu正在处理的宽限期
   + completed: 该cpu 观测到的结束的宽限期
@@ -30,6 +30,14 @@ math: true
   + n_rcu_pending_force_qs:
   + n_rcu_pending:
   + jiffies_force_qs: 强制结束宽限期的jiffies
+  + signaled: 强制宽限期的状态
+    + RCU_GP_INIT: 表示正在初始化中，在`rcu_start_gp`重置，但是发生在还未初始
+      化完各个node的mask
+    + RCU_SAVE_DYNTICK: 需要扫描dyntick state
+    + RCU_FORCE_QS:  需要 force quiescent state
+    + RCU_SIGNAL_INIT: 在`rcu_start_gp`中重置, 发生在已经初始化完各个`node`的`qsmask`
+      + `CONFIG_NO_HZ`: `RCU_SAVE_DYNTICK`
+      + NO `CONFIG_NO_HZ`: `RCU_FORCE_QS`
 + rcu_node(rnp)
   + qsmask: 标记着该level还未处理的 cpu/groups
   + qsmaskinit: 每个宽限期开始时, 要设置的qsmask的值(初始值)
@@ -424,4 +432,153 @@ rcu_start_gp
     spin_unlock_irqrestore(&rsp->onofflock, flags);
    }
 
+```
+
+## nohz
+
+rcu_online_cpu
+
+```sh
+rcu_online_cpu
+=> struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
+=> rdtp->dynticks_nesting = 1;
+## 变奇数
+=> rdtp->dynticks |= 1;
+=> rdtp->dynticks_nmi = (rdtp->dynticks_nmi + 1) & ~0x1;
+```
+
+rcu_enter_nohz
+
+```sh
+rcu_enter_nohz
+## CPUs seeing ++ must see prior RCU read-side crit sects
+##
+## 应该 先让CPU 看到读临界区，在看到++
+## (也就是说必须++必须发生在读临界区后)
+=> smp_mb(); 
+=> rdtp = &__get_cpu_var(rcu_dynticks);
+## 变偶数
+=> rdtp->dynticks++;
+## 变0
+=> rdtp->dynticks_nesting--;
+## 如果时奇数则报WARN
+=> WARN_ON_RATELIMIT(rdtp->dynticks & 0x1, &rcu_rs);
+```
+
+rcu_exit_nohz
+
+```sh
+rcu_exit_nohz
+=> rdtp = &__get_cpu_var(rcu_dynticks);
+=> rdtp->dynticks++;
+=> rdtp->dynticks_nesting++;
+=> WARN_ON_RATELIMIT(!(rdtp->dynticks & 0x1), &rcu_rs);
+## CPUs seeing ++ must see later RCU read-side crit sects
+=> smp_mb();
+```
+
+force_quiescent_state
+
+```sh
+force_quiescent_state
+=> switch (signaled)
+   => case RCU_GP_INIT:
+      ## 此时有别的cpu正在发起一个新的宽限期，什么都不做
+      => break
+   => case RCU_SAVE_DYNTICK:
+      => if (rcu_process_dyntick(rsp, lastcomp, 
+                  dyntick_save_progress_counter) != 0)  goto unlock
+         => foreach every leaf node
+            ## 临时变量mask表示，有哪些cpu在该过程中识别其已经是静默状态
+            => mask = 0
+            => spin_lock_irqsave(&rnp_cur->lock, flags);
+            ## 如果发现有宽限期结束了
+            => if rsp->completed != lastcomp:
+               ## 什么都不做, 
+               => spin_unlock_irqrestore(&rnp_cur->lock, flags);
+               ## 这里返回1，表示无需升级state -- 不用进入强制结束宽限期的状态
+               => return 1
+            ## 无需解释
+            => if rnp_cur->qsmask == 0
+               => spin_unlock_irqrestore(&rnp_cur->lock, flags)
+               => continue
+            => cpu = rnp_cur->grplo, bit=1;
+            ## 处理该node的每个rdp, 如果 f() 返回1, 则给临时变量mask 置位该cpu，
+            ## 表示该cpu 已经进入静默状态, 但是由于其目前正在NOHZ状态，暂时不能
+            ## 自己置位mask，需要其他cpu帮助。
+            => for (; cpu <= rnp_cur->grphi; cpu++, bit <<= 1)
+               => if ((rnp_cur->qsmask & bit) != 0 && f(rsp->rda[cpu]))
+                  => mask |= bit;
+            => if (mask != 0 && rsp->completed == lastcomp)
+               => cpu_quiet_msk(mask, rsp, rnp_cur, flags);
+               => continue;
+            => 
+      => spin_lock(&rnp->lock);
+      ## 整个上面过程中, rsp->completed 没有改变, 所以需要强制
+      ## 结束宽限期
+      => if (lastcomp == rsp->completed)
+         => rsp->signaled = RCU_FORCE_QS;
+         => dyntick_record_completed(rsp, lastcomp);
+            => rsp->dynticks_completed = comp;
+      => spin_unlock(&rnp->lock);
+      => break
+   ## RCU_SAVE_DYNTICK END
+
+   => case RCU_FORCE_QS
+      => if (rcu_process_dyntick(rsp, dyntick_recall_completed(rsp,
+           rcu_implicit_dynticks_qs)) != 0)  goto unlock
+      => break
+```
+
+## dyntick_save_progress_counter
+
+```sh
+dyntick_save_progress_counter
+=> snap = rdp->dynticks->dynticks;
+=> snap_nmi = rdp->dynticks->dynticks_nmi;
+## Order sampling of snap with end of grace period.
+=> smp_mb(); 
+## 这里为什么要存一个副本呢，我们在强制结束宽限期发起之前，
+## 需要再次判断下nohz的状态有没有发生改变。只要改变了，说明
+## 已经经历过一次静默状态.
+=> rdp->dynticks_snap = snap;
+=> rdp->dynticks_nmi_snap = snap_nmi;
+## 如果snap是偶数，说明其位于nohz, 并且未在nohz中处理中断
+## 如果snap_nmi是偶数，说明其未位于nmi
+## 综合这两者可以判断出, 其就是在nohz 的idle上下文中。
+## 所以返回值可以设置为1，表示该cpu已经处于静默状态
+=> ret = ((snap & 0x1) == 0) && ((snap_nmi & 0x1) == 0);
+=> if (ret)
+   => rdp->dynticks_fqs++;
+=> return ret;
+```
+
+## rcu_implicit_dynticks_qs
+
+```sh
+rcu_implicit_dynticks_qs
+=> curr = rdp->dynticks->dynticks;
+=> snap = rdp->dynticks_snap;
+=> curr_nmi = rdp->dynticks->dynticks_nmi;
+=> snap_nmi = rdp->dynticks_nmi_snap;
+## 如果现在的number和之前不一样,    或   者
+## 当前是偶数, 则无需处理
+=> if ((curr != snap || (curr & 0x1) == 0) &&
+     (curr_nmi != snap_nmi || (curr_nmi & 0x1) == 0))
+   => rdp->dynticks_fqs++;
+   => return 1
+=> return rcu_implicit_offline_qs(rdp);
+   ## 如果cpu是offline, 也无需处理
+   => if (cpu_is_offline(rdp->cpu))
+      => rdp->offline_fqs++
+      => return 1
+   => if rdp->cpu != smp_processor_id()
+      => smp_send_reschedule(rdp->cpu)
+   => else
+      => set_need_resched()
+   => rdp->resched_ipi++;
+   ## 个人理解，虽然目前已经处理完 force quiescent state,
+   ## 但是此时宽限期并未强制结束，后续可能还有其他处理。
+   ## 返回0，表示此时在该宽限期中，并未达到静默状态.
+   => return 0
 ```

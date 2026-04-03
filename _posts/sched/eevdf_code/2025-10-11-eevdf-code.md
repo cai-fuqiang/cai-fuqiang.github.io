@@ -8,6 +8,45 @@ tags: [sched]
 math: true
 ---
 
+## overflow
+
+我们本篇文章主要看下, `linux kernel` 第一版引入 `eevdf` 时的patch
+分析。
+
+在介绍整个patchset之前，我们先来回忆下 `eevdf` 论文大致的算法。
+
+`eevdf` 是结合了 将 `EDF` 实时算法以及比例份额算法进行结合, 可以让其
+按照 类似于 `EDF` 算法处理批处理任务。
+
+对此，需要做到:
+* client 需要将自己的对时间片的需求，拆分成一段段的 request
+* client 需要根据自己的权重分，按照比例分配总的时间片
+
+这样就需要调度子系统去判断, 某个任务是否已经在某个时间段内，满足了其应分得
+的份额，如果超过了，该任务 则不再是 `eligble` 的，在时间到达 `eligble time`
+之前，其不能在发起新的request.
+
+另外，调度子系统在 `pick next task` 时除了考虑选择 `eligble` task 之外，还要
+优先选取 `min deadline`的任务(优先满足最小deadline的request，符合 EDF 算法)。
+
+***
+
+简单介绍完，我们来看下目前Linux实现EEVDF算法的难点。
+
+个人认为主要的难点在于 `Virtual Time`(下面简称 $v_s(t)$ (s表示 stride)), 也
+就是Linux 中的`vruntime`. 我们知道, kernel 目前的vruntime完全为 `CFS` 服务,
+`CFS` 本质上是一种, 基于步进算法的一种比例份额算法。$v_s(t)$ 计算方式为:
+
+$$
+v_s(t) = \frac{A}{w_i} * wall\_time \tag{1}
+$$
+
+计算方式为，用一个很大的数除任务的权重 ( $\frac{A}{w_i}$ )，其值作为和 
+$wall\_time$ 乘积作为 $v_s(t)$ 的值, 选择任务时，选取最小的 $v_s(t)$ 的
+任务来执行。
+
+算法思想为, $\frac{A}{w_i}$ 值作为步幅, 表示其
+
 ## 注释
 ### avg_vruntime_add
 公平调度器能够保持 lag 不变(conserve lag):
@@ -666,5 +705,16 @@ place_entity
 4. [zzh csdn](https://blog.csdn.net/father_yingying?type=blog)
 5. [MAIL: sched: EEVDF and latency-nice and/or slice-attr](https://lore.kernel.org/all/20240405102754.435410987@infradead.org/)
 
+<!--
+e4ec3318a17f sched/debug: Rename sysctl_sched_min_granularity to sysctl_sched_base_slice
+5e963f2bd465 sched/fair: Commit to EEVDF
+e8f331bcc270 sched/smp: Use lag to simplify cross-runqueue placement
+76cae9dbe185 sched/fair: Commit to lag based placement
+147f3efaa241 sched/fair: Implement an EEVDF-like scheduling policy
+99d4d26551b5 rbtree: Add rb_add_augmented_cached() helper
+86bfbb7ce4f6 sched/fair: Add lag based placement
+e0c2ff903c32 sched/fair: Remove sched_feat(START_DEBIT)
+af4cf40470c2 sched/fair: Add cfs_rq::avg_vruntime
+-->
 ## 其他
 1. [Ben 发现lag 存在的问题](https://lore.kernel.org/all/xm26fs2fhcu7.fsf@bsegall-linux.svl.corp.google.com/)
