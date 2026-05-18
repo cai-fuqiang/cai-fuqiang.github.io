@@ -16,6 +16,8 @@ order: 0
     + [X] [rcu - classic](/posts/rcu-classic)
     + [ ] [rcu - Hierarchical]()
     + [ ] [rcu - stalled grace peroiod detection](/posts/rcu-stall-dettection)
+* [data structure]()
+  + [radix-tree && xarray]()
 <!--
     + [ ] [rcu - preemption]()
     + [ ] [rcu - bh]()
